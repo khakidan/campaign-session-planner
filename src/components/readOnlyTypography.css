@@ -1,0 +1,51 @@
+/*
+ * Slice 4.2g follow-up — typography for the Quick-reference Drawer's
+ * read-only content specifically. `BlockNoteView`'s default styling is
+ * tuned for a full-width editing surface (large headings, generous
+ * vertical rhythm); a narrow side panel reading rendered prose needs
+ * different rules entirely. Scoped to `.qrd-readonly` (applied to
+ * `BlockNoteView`'s own `className` prop, which lands on its outer
+ * `.bn-root.bn-container` wrapper, one level above `.bn-editor` — hence
+ * every selector here is a descendant selector, not a direct-class one).
+ *
+ * A fixed reading-measure cap (`max-width: Nch`, centered) was tried
+ * here first and reverted per direct feedback: the content should grow
+ * proportionately with the panel as it's resized, not stay pinned to a
+ * fixed width with the extra space becoming empty margin.
+ *
+ * The actual answer for "how content should use extra width" lives in
+ * `blockNoteColumns.css`, not here: `column-count: 2` + `column-width:
+ * 20rem`, scoped to `.qrd-readonly` alongside the editable field's own
+ * `.bnff-editable`, reflows this content into 2 columns once the panel
+ * is wide enough to fit them (and back to 1 as it narrows) — confirmed
+ * live to no longer be the no-op it first was earlier in this slice
+ * (multi-column layout needs a *bounded height* to create extra columns
+ * out of, which the Drawer's `overflow-y-auto` scroll ancestor was not
+ * originally giving it; removing the `max-width` cap here changed that
+ * enough for it to actually take effect, and the result reads well, so
+ * it's being kept rather than re-removed). `font-size`/heading scale/
+ * vertical rhythm below are still tuned down from `BlockNoteView`'s
+ * full-width-editor defaults, independent of that column behavior.
+ */
+
+.qrd-readonly .bn-editor {
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.qrd-readonly [data-content-type='heading'] {
+  padding-top: 0.85em;
+}
+
+.qrd-readonly [data-content-type='heading'][data-level='3'] {
+  --level: 1.05em;
+}
+
+.qrd-readonly .bn-toggle-button {
+  padding: 1px;
+}
+
+.qrd-readonly .bn-toggle-button > svg {
+  width: 15px;
+  height: 15px;
+}

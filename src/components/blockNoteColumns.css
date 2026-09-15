@@ -1,0 +1,59 @@
+/*
+ * Slice 4.2f (2nd attempt) — a pure-CSS multi-column layout, replacing the
+ * from-scratch `columnList`/`column` BlockNote block types this package
+ * shipped and then removed (see `CHANGELOG.md` for the full story: they
+ * required BlockNote internals — drag-and-drop reparenting, side-menu
+ * positioning, schema cleanup — that only a real column NodeView (what
+ * the GPL/proprietary `@blocknote/xl-multi-column` package provides)
+ * handles correctly; a from-scratch implementation on the public block-
+ * spec API alone could not safely replicate them, and repeated live-
+ * reproduced bugs led to removing that approach outright).
+ *
+ * This is architecturally nothing like that attempt. BlockNote's document
+ * stays one single, ordinary, linear list of blocks — no new block type,
+ * no schema change, nothing for BlockNote's own JS to reparent or
+ * position-compensate for. `column-count`/`column-width` here are a pure
+ * *rendering* effect: the browser visually reflows the editor's existing
+ * top-level blocks into 1-2 columns, the same way a newspaper or a CSS
+ * multi-column article does, entirely independent of BlockNote's block
+ * model. Every position/hover/drag calculation BlockNote makes reads real
+ * `getBoundingClientRect()` geometry, which already reflects this reflow
+ * correctly — there's no missing internal marker to route around this
+ * time, because nothing here depends on BlockNote recognizing a "column"
+ * concept at all.
+ *
+ * `column-count: 2` + `column-width: 20rem` together (not just one alone)
+ * is what gives "2 columns when there's room, fewer as the container
+ * narrows, down to 1" for free — no media query needed: the browser takes
+ * the *smaller* of what each property would independently produce, so a
+ * narrow viewport is naturally capped below 2 by `column-width` alone.
+ *
+ * `break-inside: avoid-column` on each top-level block keeps a heading
+ * and the content nested under it (BlockNote's toggle-heading mechanism
+ * nests a heading's following blocks as its own children, confirmed live
+ * via the real rendered DOM) together in one column rather than splitting
+ * mid-block.
+ *
+ * Scoped to `.bnff-editable` (this component's own `BlockNoteView`
+ * `className`) and `.qrd-readonly` (the Quick-reference Drawer's
+ * read-only renderer, `ReadOnlyBlockNoteView.tsx`) rather than a bare
+ * `.bn-editor` selector that would apply everywhere by accident. Both
+ * are listed deliberately, not just the editable one: the same reflow
+ * — proportionate width, dropping to 2 columns once there's room rather
+ * than growing one column arbitrarily wide — reads well in the Drawer
+ * too, confirmed live. Each of those two classNames lands on the outer
+ * `.bn-root.bn-container` wrapper, one level above `.bn-editor`, hence
+ * every selector here is a descendant selector, not a direct-class one.
+ */
+
+.bnff-editable .bn-editor > .bn-block-group,
+.qrd-readonly .bn-editor > .bn-block-group {
+  column-count: 2;
+  column-width: 20rem;
+  column-gap: 2rem;
+}
+
+.bnff-editable .bn-editor > .bn-block-group > .bn-block-outer,
+.qrd-readonly .bn-editor > .bn-block-group > .bn-block-outer {
+  break-inside: avoid-column;
+}

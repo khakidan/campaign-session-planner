@@ -1,0 +1,16 @@
+/*
+ * Overrides `@blocknote/core`'s own `editor.css` baseline
+ * (`.bn-editor { padding-inline: 54px; }`) — 54px of horizontal gutter
+ * on each side is tuned for a full-page editing surface, not the
+ * narrower contexts this package actually renders BlockNote into (an
+ * entity editor's document field, the Template Settings panel, and the
+ * Quick-reference Drawer's read-only view — the last of these loses over
+ * a quarter of its ~420px default width to padding alone at the
+ * upstream default). Imported by every component that renders a
+ * `BlockNoteView` in this package, after `@blocknote/shadcn/style.css`,
+ * so this same-specificity single-class rule wins the cascade by import
+ * order.
+ */
+.bn-editor {
+  padding-inline: 10px;
+}
