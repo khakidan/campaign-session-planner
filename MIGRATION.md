@@ -1,10 +1,37 @@
 # Migration Notes
 
-For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard`, or any future consumer) pulling in a newer version of this submodule. Empty sections mean nothing to do — most updates land here with nothing required. See `CHANGELOG.md` for what changed; this file is specifically about what a host must *do* in response, if anything.
+For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser`, or any future consumer) pulling in a newer version of this submodule. Empty sections mean nothing to do — most updates land here with nothing required. See `CHANGELOG.md` for what changed; this file is specifically about what a host must *do* in response, if anything.
 
 ---
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
+
+### ⚠️ Build step: compiled `dist/` output — real action needed in both `daggerheart-gm-dashboard-multiuser` and `dnd-gm-dashboard-multiuser`
+
+This is the one change in this batch that isn't a no-op. `main`/`types` no longer point at raw `src/index.ts` — they point at compiled `dist/index.js`/`dist/index.d.ts`, produced by `npm run build` (via a new `"prepare"` script, which `npm install` runs automatically). Full rationale in `CHANGELOG.md`.
+
+**Action needed, in each host repo:**
+
+1. **Pull and rebuild.** After updating the submodule pointer:
+   ```bash
+   cd packages/campaign-session-planner
+   git pull origin master
+   npm run build
+   cd ../..
+   ```
+   (Or just `npm install` at the host root — the first time this specific `dist/` doesn't yet exist, `prepare` will run. But once it exists, npm won't reliably know to rebuild it again on a later pull unless you run the build explicitly — see `README.md`'s "Pulling in upstream changes later.")
+
+2. **Import the package's compiled stylesheet once**, in your app's entry point (wherever you already import global CSS/Tailwind):
+   ```ts
+   import 'campaign-session-planner/dist/index.css';
+   ```
+   Without this, the planner's colors and BlockNote layout styling will be missing (Tailwind utility classes will still render — see next point — but the CSS-variable-driven colors and structural CSS won't).
+
+3. **Point your Tailwind `content` config at the compiled output, not the source.** Find wherever your Tailwind config (or CSS `@source` directives, if you're on Tailwind v4's CSS-first config) currently scans this package — likely something scanning `packages/campaign-session-planner/src/**/*.tsx` or relying on default whole-module-graph scanning — and confirm it also covers `packages/campaign-session-planner/dist/**/*.js`. **If you were relying on `@tailwindcss/vite`'s automatic whole-module-graph scanning and never had an explicit `content`/`@source` entry for this package, you likely need to check this now**: Vite's plugin scans whatever's actually in the resolved module graph, and that's now compiled JS in `dist/`, not `.tsx` source — for most setups this should already work with zero changes (Tailwind v4's Vite plugin doesn't care about file extension, just that content-scannable files are in the graph), but verify: if any Tailwind utility classes render unstyled after upgrading, this is the first thing to check.
+
+4. **`@blocknote/core`/`@blocknote/shadcn`'s own base stylesheets are unaffected** — the compiled output still imports them directly (`@blocknote/core/fonts/inter.css`, `@blocknote/shadcn/style.css`), and your bundler already needed to resolve those before this change. Nothing to do here.
+
+**How to verify it worked:** load any page that mounts `<CampaignSessionPlanner>` and confirm buttons/tabs/borders have their normal emerald/slate colors (not colorless or unstyled) and BlockNote's rich-text editors render with their normal spacing/typography (not a wall of unstyled browser-default text).
 
 ### Theming: hardcoded Tailwind colors replaced with CSS custom properties
 

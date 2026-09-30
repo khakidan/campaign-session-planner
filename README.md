@@ -50,25 +50,38 @@ real-world reference implementation of both interfaces (Postgres/Prisma
 ## What a host app must provide
 
 1. **React 19** (`peerDependencies`: `react`/`react-dom` `^19.0.1`).
-2. **Tailwind CSS v4**, and — this is the part that's easy to miss —
-   **your build must content-scan this package's `.tsx` files.** The
-   package ships zero compiled CSS; every visual is a Tailwind utility
-   class string, generated at build time by *your* Tailwind pipeline,
-   not this package's. If you're on `@tailwindcss/vite` (Tailwind v4's
-   Vite plugin) and this package is a normal dependency reachable from
-   your app's module graph (an npm workspace, a git submodule under
-   your own `packages/`, or a `file:` dependency), this happens
-   automatically — Tailwind v4's Vite plugin scans the whole resolved
-   module graph, not just your own `src/`. If your host uses a
-   different build tool, or an explicit Tailwind `content:` allowlist,
-   you must add this package's path to it explicitly or its components
-   will render completely unstyled.
-3. **`@base-ui/react`** and the `@blocknote/*` packages are real
+2. **Import this package's compiled stylesheet once**, anywhere in your
+   app's entry point: `import 'campaign-session-planner/dist/index.css';`.
+   This carries the `theme.css` color variables (see "Theming & layout
+   customization" below) and the package's own structural CSS
+   (BlockNote layout overrides). It does **not** include Tailwind
+   utility classes or BlockNote's own base stylesheets — see the next
+   two points for those.
+3. **Tailwind CSS v4**, and — this is the part that's easy to miss —
+   **your build must content-scan this package's compiled output**,
+   `node_modules/campaign-session-planner/dist/**/*.js` (not its
+   `.tsx` source — see `MIGRATION.md` if you're updating from a version
+   that pointed at source). The package ships zero compiled Tailwind
+   CSS; every visual is a Tailwind utility class string, generated at
+   build time by *your* Tailwind pipeline, not this package's. If
+   you're on `@tailwindcss/vite` (Tailwind v4's Vite plugin) and this
+   package is a normal dependency reachable from your app's module
+   graph, this happens automatically — Tailwind v4's Vite plugin scans
+   the whole resolved module graph, not just your own `src/`. If your
+   host uses a different build tool, or an explicit Tailwind `content:`
+   allowlist, you must add this package's `dist/` path to it explicitly
+   or its components will render completely unstyled.
+4. **`@base-ui/react`** and the `@blocknote/*` packages are real
    `dependencies` of this package (not peer deps) — `npm install` pulls
    them in automatically. They can coexist fine alongside a different
    primitives library your host already uses (e.g. `radix-ui`) — no
-   conflict, just extra bytes.
-4. Two mount points, both fed the *same* `repository`/`hostAdapter`
+   conflict, just extra bytes. This package's own compiled output still
+   imports `@blocknote/core`'s and `@blocknote/shadcn`'s *own* base
+   stylesheets directly (`@blocknote/core/fonts/inter.css`,
+   `@blocknote/shadcn/style.css`) — any bundler that already resolves
+   CSS imports from `node_modules` (Vite, Webpack, Parcel, all of them
+   by default) picks these up automatically; nothing extra to do.
+5. Two mount points, both fed the *same* `repository`/`hostAdapter`
    instances:
    - `<CampaignSessionPlanner campaignId repository hostAdapter
      onOpenHostEntity? />` — the actual planner UI, embedded inside one
@@ -120,10 +133,20 @@ the two components described above.
 ```bash
 cd packages/campaign-session-planner
 git pull origin main
+npm run build    # regenerate dist/ from the new source — see "Build step" below
 cd ../..
 git add packages/campaign-session-planner
 git commit -m "Update campaign-session-planner submodule"
 ```
+
+The explicit `npm run build` matters: this package's own `"prepare"`
+script (which also runs `tsup`) reliably runs the *first* time npm
+links a workspace package, but isn't guaranteed to re-run on every
+later `npm install` just because the submodule's tracked commit
+changed underneath it — npm workspaces symlink the package directory
+rather than reinstalling it, so there's no `package.json`/lockfile
+change for npm to notice. Running the build explicitly after every pull
+avoids depending on that.
 
 Check `MIGRATION.md` after pulling — it lists anything a host app needs to *do* in response to a change (most updates require nothing, but it says so explicitly rather than leaving you to infer it from the diff).
 
@@ -171,15 +194,34 @@ to match it — it doesn't assume it owns your app's visual identity.
   slotted) — see `ROADMAP.md` if you need to go further than the tab
   bar.
 
+## Build step
+
+`package.json`'s `main`/`types`/`exports` point at compiled `dist/`
+output (`index.js` ESM + `index.d.ts` + `index.css`), built by `tsup`
+(`tsup.config.ts`). `react`/`react-dom`/`@base-ui/react`/`@blocknote/*`
+are marked external — never bundled into `dist/index.js` — so a host's
+own instances of those are always the ones actually used; bundling any
+of them would mean this package's copy and the host's stop being the
+same instance, breaking React context/hooks in painful-to-debug ways.
+
+Since this package isn't published to npm (git submodule + npm
+workspace — see "How this package is currently distributed"), the
+`dist/` output isn't committed to git (`.gitignore`); instead, a
+`"prepare"` script (`tsup`) runs automatically whenever `npm install`
+links this package as a git/workspace dependency, so a host always
+gets a fresh build without a manual step. `npm run dev` (`tsup
+--watch`) rebuilds automatically while actively developing this
+package itself, e.g. from a shell in `packages/campaign-session-planner`
+alongside your host app's own dev server.
+
+This replaced the package pointing `main`/`types` straight at
+`src/index.ts` and relying on the host's own bundler to transpile raw
+TypeScript from a workspace member directly — which only worked for a
+Vite/esbuild-based host. See `MIGRATION.md` for what changed for
+existing hosts.
+
 ## Known gaps / things to know before extending this further
 
-- **No build step.** `package.json`'s `main`/`types` point straight at
-  `src/index.ts` — this works because every consumer so far is a
-  Vite/esbuild-based bundler that transpiles TypeScript from a
-  workspace member directly. If a future host's toolchain doesn't do
-  that (e.g. a plain `tsc`+Node consumer with no bundler), add a real
-  build step (`tsup` or Vite library mode) emitting `dist/` + `.d.ts`
-  before that host can consume it.
 - **Single game-system assumption isn't hardcoded, but isn't exercised
   either.** `TTRPGHostAdapter.getGameSystem()` exists so the planner
   could theoretically branch UI copy/behavior per system in the future,
