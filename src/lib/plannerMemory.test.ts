@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildSessionBriefing, selectActiveMemoryNotes, selectActiveThreads } from './plannerMemory';
-import { makeNote, makeThread } from '../test/fixtures';
+import {
+  buildSessionBriefing,
+  getNoteConfidence,
+  groupMemoryByCharacter,
+  selectActiveMemoryNotes,
+  selectActiveThreads,
+  withConfidence,
+} from './plannerMemory';
+import { makeEntityLink, makeNote, makeThread } from '../test/fixtures';
 
 describe('selectActiveMemoryNotes', () => {
   it('keeps only memory-typed Notes', () => {
@@ -56,6 +63,7 @@ describe('buildSessionBriefing', () => {
       characterGoals: [goal],
       npcAttachments: [attachment],
       unresolvedQuestions: [question],
+      playerPreferences: [],
       activeThreads: [openThread],
     });
   });
@@ -67,7 +75,71 @@ describe('buildSessionBriefing', () => {
       characterGoals: [],
       npcAttachments: [],
       unresolvedQuestions: [],
+      playerPreferences: [],
       activeThreads: [],
     });
+  });
+
+  it('groups Player Preference notes into their own bucket', () => {
+    const preference = makeNote({ id: 'n1', type: 'Player Preference', title: 'Likes tactical combat' });
+    const briefing = buildSessionBriefing([preference], []);
+    expect(briefing.playerPreferences).toEqual([preference]);
+  });
+});
+
+describe('getNoteConfidence / withConfidence', () => {
+  it('reads a confidence tag off an otherwise plain tag list', () => {
+    expect(getNoteConfidence(makeNote({ tags: ['ebon-sigil', 'confidence:proposed', 'pandemonium'] }))).toBe('proposed');
+  });
+
+  it('returns null when no confidence tag is present, or the value is unrecognized', () => {
+    expect(getNoteConfidence(makeNote({ tags: ['ebon-sigil'] }))).toBeNull();
+    expect(getNoteConfidence(makeNote({ tags: ['confidence:certain'] }))).toBeNull();
+  });
+
+  it('sets a confidence tag without disturbing other tags', () => {
+    expect(withConfidence(['ebon-sigil'], 'observed')).toEqual(['ebon-sigil', 'confidence:observed']);
+  });
+
+  it('replaces an existing confidence tag rather than appending a second one', () => {
+    expect(withConfidence(['ebon-sigil', 'confidence:proposed'], 'observed')).toEqual(['ebon-sigil', 'confidence:observed']);
+  });
+
+  it('clears the confidence tag when given null', () => {
+    expect(withConfidence(['ebon-sigil', 'confidence:proposed'], null)).toEqual(['ebon-sigil']);
+  });
+});
+
+describe('groupMemoryByCharacter', () => {
+  it('groups active memory Notes by the host character each is linked to', () => {
+    const theory = makeNote({ id: 'n1', type: 'Player Theory', title: 'Theory' });
+    const goal = makeNote({ id: 'n2', type: 'Character Goal', title: 'Goal' });
+    const unlinked = makeNote({ id: 'n3', type: 'Player Interest', title: 'Unlinked interest' });
+    const link1 = makeEntityLink({
+      id: 'link-1',
+      sourceType: 'note',
+      sourceId: 'n1',
+      targetType: 'character',
+      targetId: 'char-1',
+    });
+    const link2 = makeEntityLink({
+      id: 'link-2',
+      sourceType: 'note',
+      sourceId: 'n2',
+      targetType: 'character',
+      targetId: 'char-1',
+    });
+
+    const result = groupMemoryByCharacter([theory, goal, unlinked], [link1, link2]);
+
+    expect(result.get('char-1')).toEqual([theory, goal]);
+    expect(result.size).toBe(1);
+  });
+
+  it('excludes resolved/inactive Notes and Notes with no character link', () => {
+    const resolved = makeNote({ id: 'n1', type: 'Player Theory', status: 'Resolved' });
+    const link = makeEntityLink({ sourceType: 'note', sourceId: 'n1', targetType: 'character', targetId: 'char-1' });
+
+    expect(groupMemoryByCharacter([resolved], [link]).size).toBe(0);
   });
 });

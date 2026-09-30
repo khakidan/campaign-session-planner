@@ -119,4 +119,37 @@ describe('SessionEditor', () => {
 
     expect(screen.queryByText('Previously Established')).not.toBeInTheDocument();
   });
+
+  it('shows Session Readiness alongside the briefing, and hides it once Completed', () => {
+    const { rerender } = render(<SessionEditor session={null} onSave={vi.fn()} {...baseProps()} />);
+    expect(screen.getByText('Session Readiness')).toBeInTheDocument();
+
+    const completed = makeSession({ id: 'session-1', status: 'Completed' });
+    rerender(<SessionEditor session={completed} onSave={vi.fn()} {...baseProps()} />);
+    expect(screen.queryByText('Session Readiness')).not.toBeInTheDocument();
+  });
+
+  it('shows "What Changed Since Last Session" only for a brand-new Session created after a prior dated one exists', async () => {
+    const props = baseProps();
+    const priorSession = makeSession({ id: 'session-1', date: '2024-01-01T00:00:00.000Z' });
+    props.repository = createFakeRepository({ sessions: [priorSession] });
+
+    render(<SessionEditor session={null} onSave={vi.fn()} {...props} />);
+
+    await waitFor(() => expect(screen.getByText('What Changed Since Last Session')).toBeInTheDocument());
+  });
+
+  it('hides "What Changed Since Last Session" when no prior Session has a date, or when editing an existing Session', async () => {
+    const props = baseProps();
+    const undatedPrior = makeSession({ id: 'session-1', date: null });
+    props.repository = createFakeRepository({ sessions: [undatedPrior] });
+
+    render(<SessionEditor session={null} onSave={vi.fn()} {...props} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save Session' })).toBeInTheDocument());
+    expect(screen.queryByText('What Changed Since Last Session')).not.toBeInTheDocument();
+
+    const existing = makeSession({ id: 'session-2' });
+    render(<SessionEditor session={existing} onSave={vi.fn()} {...baseProps()} />);
+    expect(screen.queryByText('What Changed Since Last Session')).not.toBeInTheDocument();
+  });
 });

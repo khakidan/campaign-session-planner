@@ -220,6 +220,21 @@ TypeScript from a workspace member directly — which only worked for a
 Vite/esbuild-based host. See `MIGRATION.md` for what changed for
 existing hosts.
 
+## Local demo
+
+`npm run demo` starts a Vite dev server (`demo/`, `vite.demo.config.ts`)
+that mounts `<CampaignSessionPlanner>` against the same fake
+repository/host-adapter fixtures the test suite uses (`src/test/
+fixtures.ts`), seeded with sample data — no host app needed. Useful for
+visually checking a change without wiring up either real host. This
+folder is dev-only: it's outside `tsup`'s `src/index.ts` entry point,
+so it's never part of the published `dist/` output. It does pull in a
+few extra devDependencies just for itself (`vite`,
+`@vitejs/plugin-react`, `tailwindcss`, `@tailwindcss/vite`) — the
+published package still ships zero Tailwind CSS, per "What a host app
+must provide" above; this demo just needs its own Tailwind pipeline to
+render realistically, the same way any real host does.
+
 ## Known gaps / things to know before extending this further
 
 - **Single game-system assumption isn't hardcoded, but isn't exercised

@@ -100,4 +100,40 @@ describe('NoteEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Delete Note' }));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
+
+  it('setting Confidence adds a confidence tag without disturbing existing tags', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<NoteEditor note={null} onSave={onSave} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Title'), 'A Theory');
+    await user.type(screen.getByLabelText('Tags (comma-separated)'), 'ebon-sigil');
+    await user.selectOptions(screen.getByLabelText('Confidence'), 'proposed');
+    await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
+    await user.click(screen.getByRole('button', { name: 'Save Note' }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ tags: 'ebon-sigil, confidence:proposed' }));
+  });
+
+  it('pre-fills Confidence from an existing Note\'s tags', () => {
+    render(
+      <NoteEditor
+        note={{
+          id: 'note-1',
+          campaignId: 'campaign-1',
+          title: 'Existing',
+          type: 'Player Theory',
+          status: null,
+          content: [],
+          tags: ['confidence:inferred'],
+          createdAt: 'x',
+          updatedAt: 'x',
+        }}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText('Confidence')).toHaveValue('inferred');
+  });
 });

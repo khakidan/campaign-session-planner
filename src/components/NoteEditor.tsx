@@ -2,12 +2,21 @@ import React, { useState } from 'react';
 import type { Block, Note } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
-import { MEMORY_NOTE_TYPES } from '../lib/plannerMemory';
+import { MEMORY_NOTE_TYPES, OBSERVATION_CONFIDENCE_LEVELS, getNoteConfidence, withConfidence, type ObservationConfidence } from '../lib/plannerMemory';
+import { NOTE_TYPE_TEMPLATES } from '../lib/noteTypeTemplates';
 
 /** Phase 1 "Memory" (ROADMAP.md) adds `MEMORY_NOTE_TYPES` to the
  * datalist alongside the original suggestions — a Note tagged with one
  * of those types is what `useSessionBriefing`/`SessionBriefingPanel`
- * surface as "previously established" context. Purely additive to the
+ * surface as "previously established" context. Phase 2 item 4 (Session
+ * Observations) adds the rest of the proposal's `SessionObservation`
+ * type list that isn't already covered by `MEMORY_NOTE_TYPES` or the
+ * dedicated `'Player Preference'` type — these are GM/table
+ * observations, not "still-open memory" a future session briefing
+ * needs to resurface, so they live in this plain suggestion list
+ * rather than `MEMORY_NOTE_TYPES`. `'Session Safety'` (item 8) and
+ * `'Player Contribution'` (item 6) each have matching starter content
+ * in `NOTE_TYPE_TEMPLATES`. Every addition is purely additive to the
  * existing free-text `type` field; no schema change. */
 const SUGGESTED_TYPES = [
   'General',
@@ -20,6 +29,12 @@ const SUGGESTED_TYPES = [
   'Player Note',
   'Secret',
   ...MEMORY_NOTE_TYPES,
+  'World Fact',
+  'Consequence',
+  'Pacing Note',
+  'Rules Question',
+  'Session Safety',
+  'Player Contribution',
 ];
 
 export interface NoteFormValues {
@@ -76,6 +91,21 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, 
     setError(null);
     await onSave(values);
   };
+
+  const parsedTags = values.tags
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const confidence = getNoteConfidence({ tags: parsedTags });
+
+  const handleConfidenceChange = (level: ObservationConfidence | '') => {
+    setValues((prev) => ({ ...prev, tags: withConfidence(parsedTags, level || null).join(', ') }));
+  };
+
+  /** Phase 2 item 7 — type-specific starter content, offered only while
+   * creating a brand-new Note (an existing Note's content shouldn't be
+   * silently reinterpreted if its type is edited later). */
+  const starterTemplate = note === null ? NOTE_TYPE_TEMPLATES[values.type] : undefined;
 
   return (
     <div className="space-y-4">
@@ -137,18 +167,38 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, 
         </div>
       </div>
 
-      <div>
-        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="note-tags">
-          Tags (comma-separated)
-        </label>
-        <input
-          id="note-tags"
-          type="text"
-          value={values.tags}
-          onChange={(e) => setValues((prev) => ({ ...prev, tags: e.target.value }))}
-          className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
-          placeholder="ebon-sigil, pandemonium"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="note-tags">
+            Tags (comma-separated)
+          </label>
+          <input
+            id="note-tags"
+            type="text"
+            value={values.tags}
+            onChange={(e) => setValues((prev) => ({ ...prev, tags: e.target.value }))}
+            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
+            placeholder="ebon-sigil, pandemonium"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="note-confidence">
+            Confidence
+          </label>
+          <select
+            id="note-confidence"
+            value={confidence ?? ''}
+            onChange={(e) => handleConfidenceChange(e.target.value as ObservationConfidence | '')}
+            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
+          >
+            <option value="">Not recorded</option>
+            {OBSERVATION_CONFIDENCE_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div>
@@ -157,6 +207,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, 
           value={values.content}
           onChange={(blocks) => setValues((prev) => ({ ...prev, content: blocks }))}
           linking={links}
+          template={starterTemplate}
         />
       </div>
 

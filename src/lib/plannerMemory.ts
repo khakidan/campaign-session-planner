@@ -1,4 +1,4 @@
-import type { Note, Thread } from '../types';
+import type { EntityId, EntityLink, Note, Thread } from '../types';
 
 /**
  * Phase 1 "Memory" (ROADMAP.md) — the suggested `Note.type` values that
@@ -8,6 +8,11 @@ import type { Note, Thread } from '../types';
  * already offers as datalist suggestions — no schema change, no new
  * entity. Exported so `NoteEditor.tsx` and this file share one list
  * instead of duplicating the strings.
+ *
+ * `'Player Preference'` (Phase 2 item 3) covers the proposal's "Player
+ * Style" section (Enjoys/Often Contributes/Needs Opportunities For) —
+ * deliberately framed as a note a GM writes and revisits, not a
+ * permanent label on a player.
  */
 export const MEMORY_NOTE_TYPES = [
   'Player Theory',
@@ -17,9 +22,41 @@ export const MEMORY_NOTE_TYPES = [
   'Unresolved Question',
   'Player-Created Fact',
   'Future Hook',
+  'Player Preference',
 ] as const;
 
 export type MemoryNoteType = (typeof MEMORY_NOTE_TYPES)[number];
+
+/**
+ * Phase 2 item 4 (Session Observations) — the proposal's
+ * `SessionObservation.confidence` field, minus the new entity: rather
+ * than a schema column, this is a reserved-prefix tag on the existing
+ * `Note.tags: string[]` field, the same "free-text, UI-suggested, not
+ * schema-enforced" convention `type`/`status` already use. The book's
+ * own point is the whole reason this exists: a player's guess should
+ * never render indistinguishably from an established fact.
+ */
+export const OBSERVATION_CONFIDENCE_LEVELS = ['observed', 'inferred', 'proposed'] as const;
+export type ObservationConfidence = (typeof OBSERVATION_CONFIDENCE_LEVELS)[number];
+
+const CONFIDENCE_TAG_PREFIX = 'confidence:';
+
+/** Reads the confidence level encoded in a Note's `tags`, if any. */
+export function getNoteConfidence(note: Pick<Note, 'tags'>): ObservationConfidence | null {
+  const tag = note.tags.find((t) => t.startsWith(CONFIDENCE_TAG_PREFIX));
+  if (!tag) return null;
+  const value = tag.slice(CONFIDENCE_TAG_PREFIX.length);
+  return (OBSERVATION_CONFIDENCE_LEVELS as readonly string[]).includes(value) ? (value as ObservationConfidence) : null;
+}
+
+/** Returns a new `tags` array with any existing confidence tag replaced
+ * (or removed, if `level` is `null`) — never producing two confidence
+ * tags at once. Every other tag is left untouched, in its original
+ * order. */
+export function withConfidence(tags: string[], level: ObservationConfidence | null): string[] {
+  const withoutConfidence = tags.filter((t) => !t.startsWith(CONFIDENCE_TAG_PREFIX));
+  return level ? [...withoutConfidence, `${CONFIDENCE_TAG_PREFIX}${level}`] : withoutConfidence;
+}
 
 const RESOLVED_STATUSES = new Set(['resolved', 'archived']);
 
@@ -52,6 +89,7 @@ export interface SessionBriefing {
   characterGoals: Note[];
   npcAttachments: Note[];
   unresolvedQuestions: Note[];
+  playerPreferences: Note[];
   activeThreads: Thread[];
 }
 
@@ -71,6 +109,34 @@ export function buildSessionBriefing(notes: Note[], threads: Thread[]): SessionB
     characterGoals: byType('Character Goal'),
     npcAttachments: byType('NPC Attachment'),
     unresolvedQuestions: byType('Unresolved Question'),
+    playerPreferences: byType('Player Preference'),
     activeThreads: selectActiveThreads(threads),
   };
+}
+
+/**
+ * Phase 2 item 3 (Player Intent) — groups already-active memory Notes
+ * by the host-owned `'character'` each is linked to, via the *existing*
+ * `EntityLink` graph (no new entity, no `TTRPGHostAdapter` change: a
+ * Note has always been linkable to a host Character through "Add Link"
+ * → `EntityLinkPicker`, which already searches and links host entities
+ * with `source: 'host'`). A Note with no such link simply doesn't
+ * appear in the result — it's still visible in the plain campaign-wide
+ * `SessionBriefing` groups, just not attributable to one PC.
+ */
+export function groupMemoryByCharacter(notes: Note[], links: EntityLink[]): Map<EntityId, Note[]> {
+  const active = selectActiveMemoryNotes(notes);
+  const result = new Map<EntityId, Note[]>();
+
+  for (const note of active) {
+    const characterId = links.find(
+      (link) => link.sourceType === 'note' && link.sourceId === note.id && link.targetType === 'character'
+    )?.targetId;
+    if (!characterId) continue;
+    const existing = result.get(characterId);
+    if (existing) existing.push(note);
+    else result.set(characterId, [note]);
+  }
+
+  return result;
 }

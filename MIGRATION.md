@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: Phase 2 "Workflow, Collaboration & Facilitation" feature set
+
+**Action needed: none.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, no new required props. Adds several new UI panels (Session Readiness, Campaign Changes, a "Why This Session Matters" section in the existing briefing, a floating Session Safety Controls widget for a Running Session), a Confidence field on Notes, several new suggested `Note.type` values, and enriched starter templates (Complication Bank, Scene Truth/Player Prompts, GM/Player/Shared Canon, etc.). See `CHANGELOG.md` for the full rundown. If you want to try any of it visually before pulling it into your host app, run `npm run demo` from inside this package's own directory (new, dev-only — see README.md's "Local demo").
+
 ### New: Phase 1 "Memory" feature set (Session Briefing)
 
 **Action needed: none.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, no new required props. `NoteEditor`'s Type datalist now suggests a few new values (`Player Theory`, `Player Interest`, `Character Goal`, `NPC Attachment`, `Unresolved Question`, `Player-Created Fact`, `Future Hook`) and `SessionEditor` now shows a "Previously Established" briefing panel while a Session is new/Draft/Prepared. See `CHANGELOG.md` for the full rationale.

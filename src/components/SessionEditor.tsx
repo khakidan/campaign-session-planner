@@ -3,13 +3,18 @@ import type { PartialBlock } from '@blocknote/core';
 import type { Block, CampaignId, CampaignPlannerRepository, EntityReference, Scene, Session, TTRPGHostAdapter } from '../types';
 import { useScenes } from '../hooks/useScenes';
 import { useEntityLinks } from '../hooks/useEntityLinks';
+import { useSessions } from '../hooks/useSessions';
 import { useSessionBriefing } from '../hooks/useSessionBriefing';
+import { useCampaignChanges } from '../hooks/useCampaignChanges';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
 import { SceneEditor, type SceneFormValues } from './SceneEditor';
 import { SessionBriefingPanel } from './SessionBriefingPanel';
+import { SessionReadinessChecklist } from './SessionReadinessChecklist';
+import { CampaignChangesPanel } from './CampaignChangesPanel';
 import { Field } from './EditorFormControls';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { sessionTemplate as defaultSessionTemplate, sessionDebriefTemplate as defaultSessionDebriefTemplate } from '../lib/entityTemplates';
+import { checkSessionReadiness } from '../lib/sessionReadiness';
 import type { PlannerSearchItem } from './EntityLinkPicker';
 
 const SUGGESTED_STATUSES = ['Draft', 'Prepared', 'Running', 'Completed'];
@@ -111,9 +116,26 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const [scenesView, setScenesView] = useState<ScenesView>({ mode: 'list' });
 
   const { scenes, createScene, updateScene, deleteScene } = useScenes(repository, session?.id ?? null);
-  const briefing = useSessionBriefing(repository, campaignId);
+  const briefing = useSessionBriefing(repository, campaignId, hostAdapter);
   const showBriefing = session === null || values.status === 'Draft' || values.status === 'Prepared';
   const sortedScenes = useMemo(() => [...(scenes ?? [])].sort((a, b) => a.order - b.order), [scenes]);
+
+  const readinessChecks = useMemo(
+    () => checkSessionReadiness(sortedScenes, links?.outgoing ?? []),
+    [sortedScenes, links]
+  );
+
+  // Phase 2 item 5 (Campaign Changes) — the backward-looking
+  // counterpart to `SessionBriefingPanel`, shown only for a brand-new
+  // Session created after a prior one already exists, using the most
+  // recent prior Session's date as the "since" boundary.
+  const { sessions: allSessions } = useSessions(repository, campaignId);
+  const mostRecentPriorSession = useMemo(() => {
+    const withDates = (allSessions ?? []).filter((s): s is typeof s & { date: string } => !!s.date);
+    return [...withDates].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+  }, [allSessions]);
+  const showCampaignChanges = session === null && !!mostRecentPriorSession;
+  const campaignChanges = useCampaignChanges(repository, campaignId, mostRecentPriorSession?.date ?? '1970-01-01T00:00:00.000Z');
 
   const editingScene = scenesView.mode === 'edit' && scenesView.id ? sortedScenes.find((s) => s.id === scenesView.id) ?? null : null;
   const editingSceneRef: EntityReference | null =
@@ -244,7 +266,14 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         </div>
       </div>
 
-      {showBriefing && <SessionBriefingPanel briefing={briefing} onOpenPlannerEntity={onOpenPlannerEntity} />}
+      {showCampaignChanges && <CampaignChangesPanel changes={campaignChanges} onOpenPlannerEntity={onOpenPlannerEntity} />}
+
+      {showBriefing && (
+        <>
+          <SessionBriefingPanel briefing={briefing} byCharacter={briefing.byCharacter} onOpenPlannerEntity={onOpenPlannerEntity} />
+          <SessionReadinessChecklist checks={readinessChecks} />
+        </>
+      )}
 
       <BlockNoteFreeformField
         value={values.details}

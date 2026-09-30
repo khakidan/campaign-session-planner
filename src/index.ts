@@ -22,10 +22,32 @@ export { useEvents } from './hooks/useEvents';
 export { useEntityLinks } from './hooks/useEntityLinks';
 export { useTemplates } from './hooks/useTemplates';
 export { useSessionBriefing } from './hooks/useSessionBriefing';
+export type { UseSessionBriefingResult, CharacterMemoryGroup } from './hooks/useSessionBriefing';
+export { useCampaignChanges } from './hooks/useCampaignChanges';
 export { SessionBriefingPanel } from './components/SessionBriefingPanel';
 export type { SessionBriefingPanelProps } from './components/SessionBriefingPanel';
-export { MEMORY_NOTE_TYPES, selectActiveMemoryNotes, selectActiveThreads, buildSessionBriefing } from './lib/plannerMemory';
-export type { MemoryNoteType, SessionBriefing } from './lib/plannerMemory';
+export { SessionReadinessChecklist } from './components/SessionReadinessChecklist';
+export type { SessionReadinessChecklistProps } from './components/SessionReadinessChecklist';
+export { CampaignChangesPanel } from './components/CampaignChangesPanel';
+export type { CampaignChangesPanelProps } from './components/CampaignChangesPanel';
+export { SessionSafetyControls, SAFETY_EVENT_NOTE_TYPE } from './components/SessionSafetyControls';
+export type { SessionSafetyControlsProps } from './components/SessionSafetyControls';
+export {
+  MEMORY_NOTE_TYPES,
+  OBSERVATION_CONFIDENCE_LEVELS,
+  selectActiveMemoryNotes,
+  selectActiveThreads,
+  buildSessionBriefing,
+  groupMemoryByCharacter,
+  getNoteConfidence,
+  withConfidence,
+} from './lib/plannerMemory';
+export type { MemoryNoteType, SessionBriefing, ObservationConfidence } from './lib/plannerMemory';
+export { checkSessionReadiness } from './lib/sessionReadiness';
+export type { SessionReadinessCheck } from './lib/sessionReadiness';
+export { selectChangedSince, buildCampaignChanges } from './lib/campaignChanges';
+export type { CampaignChanges } from './lib/campaignChanges';
+export { NOTE_TYPE_TEMPLATES } from './lib/noteTypeTemplates';
 export type {
   Block,
   CampaignId,
