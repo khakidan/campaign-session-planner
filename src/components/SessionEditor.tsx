@@ -3,8 +3,10 @@ import type { PartialBlock } from '@blocknote/core';
 import type { Block, CampaignId, CampaignPlannerRepository, EntityReference, Scene, Session, TTRPGHostAdapter } from '../types';
 import { useScenes } from '../hooks/useScenes';
 import { useEntityLinks } from '../hooks/useEntityLinks';
+import { useSessionBriefing } from '../hooks/useSessionBriefing';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
 import { SceneEditor, type SceneFormValues } from './SceneEditor';
+import { SessionBriefingPanel } from './SessionBriefingPanel';
 import { Field } from './EditorFormControls';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { sessionTemplate as defaultSessionTemplate, sessionDebriefTemplate as defaultSessionDebriefTemplate } from '../lib/entityTemplates';
@@ -109,6 +111,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const [scenesView, setScenesView] = useState<ScenesView>({ mode: 'list' });
 
   const { scenes, createScene, updateScene, deleteScene } = useScenes(repository, session?.id ?? null);
+  const briefing = useSessionBriefing(repository, campaignId);
+  const showBriefing = session === null || values.status === 'Draft' || values.status === 'Prepared';
   const sortedScenes = useMemo(() => [...(scenes ?? [])].sort((a, b) => a.order - b.order), [scenes]);
 
   const editingScene = scenesView.mode === 'edit' && scenesView.id ? sortedScenes.find((s) => s.id === scenesView.id) ?? null : null;
@@ -239,6 +243,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           </datalist>
         </div>
       </div>
+
+      {showBriefing && <SessionBriefingPanel briefing={briefing} onOpenPlannerEntity={onOpenPlannerEntity} />}
 
       <BlockNoteFreeformField
         value={values.details}

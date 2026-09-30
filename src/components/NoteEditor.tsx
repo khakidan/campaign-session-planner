@@ -2,8 +2,25 @@ import React, { useState } from 'react';
 import type { Block, Note } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
+import { MEMORY_NOTE_TYPES } from '../lib/plannerMemory';
 
-const SUGGESTED_TYPES = ['General', 'Idea', 'Reminder', 'Research', 'Lore', 'Session Note', 'GM Note', 'Player Note', 'Secret'];
+/** Phase 1 "Memory" (ROADMAP.md) adds `MEMORY_NOTE_TYPES` to the
+ * datalist alongside the original suggestions — a Note tagged with one
+ * of those types is what `useSessionBriefing`/`SessionBriefingPanel`
+ * surface as "previously established" context. Purely additive to the
+ * existing free-text `type` field; no schema change. */
+const SUGGESTED_TYPES = [
+  'General',
+  'Idea',
+  'Reminder',
+  'Research',
+  'Lore',
+  'Session Note',
+  'GM Note',
+  'Player Note',
+  'Secret',
+  ...MEMORY_NOTE_TYPES,
+];
 
 export interface NoteFormValues {
   title: string;

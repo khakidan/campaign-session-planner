@@ -12,58 +12,9 @@ None.
 
 ### 🟡 Features to Add / Test Coverage Gaps
 
-- **Phase 1 "Memory" feature set** (player theories, unresolved questions, NPC attachments, a pre-session "previously established" briefing) is scoped and ready to build. See "Phase 1 Implementation Plan" below.
 - **Template enrichment** (new toggle-headings on existing shipped templates — Scene pacing/collaboration prompts, NPC motivation depth, Thread pressure, Session player-contribution prompts) drawn from `template-proposals.md`'s compatible subset. See "Template Enrichment" below.
 - **Further layout customization beyond the tab bar.** `CampaignSessionPlanner`'s `renderNav` prop (see `CHANGELOG.md`) only overrides the top tab bar. Every editor's own field order/markup (`NoteEditor`, `NpcEditor`, `SessionEditor`, etc.) is still fixed — a host that wants, say, a different field order or extra fields alongside the shipped ones currently has to fork. Needs its own scoping pass (likely a `renderFields`/slot-per-section API, similar in spirit to `renderNav`) once there's a concrete host need driving the shape of it, rather than guessing at an API up front.
 - **The `[[`/`@` *typed-trigger* path (opening BlockNote's `SuggestionMenuController` via real keystrokes) is still untested** — confirmed genuinely impractical in jsdom, not just unattempted. See `CHANGELOG.md` for what was tried and why; `EntityReferenceInlineContent.test.tsx` covers the actual custom logic (render/click-dispatch) via pre-seeded content instead. Real coverage of the typed-trigger path itself would need a real browser (Playwright/Vitest browser mode), not jsdom — worth it only if this path actually breaks in practice, since BlockNote's own `SuggestionMenuController` (not this package's code) owns most of that mechanism.
-
----
-
-## Phase 1 Implementation Plan: Session Memory
-
-This is the "Phase 1 — Memory" subset previously identified as the highest-value, lowest-risk piece of the `chatGPTWorkflowProposal.md` synthesis (player interests, character goals, player theories, NPC attachments, unresolved questions, and a "previously established" pre-session briefing) — scoped down to fit the package's actual architecture rather than the originally-proposed new `SessionObservation` entity/enum schema, which would have undone the Slice 4.2e consolidation to one freeform BlockNote document per entity.
-
-**Core thesis carried forward:** don't make the planner a place where the GM writes what will happen — make it a place that remembers what's already happened and what players care about, and hands that back at the start of the next session. Concretely: extend what `Note` already does (it's a freeform, campaign-scoped, taggable, typed record — exactly the memory-object shape the proposal wanted) rather than inventing new entities, and add one small read-only view that surfaces the active ones.
-
-### Why this needs zero `CampaignPlannerRepository`/`TTRPGHostAdapter` changes
-
-`Note.type` and `Note.status` are already untyped `string | null` fields with UI-suggested (not enum-enforced) values (`NoteEditor.tsx`'s `SUGGESTED_TYPES` + a `<datalist>`). That means every "memory" concept from the proposal can be represented as a `Note` with a new suggested `type`, filtered by `status`. No new tables, no interface changes to propagate into `daggerheart-gm-dashboard-multiuser` or `dnd-gm-dashboard`'s repository implementations — this is a front-end-only, additive change to the already-unpublished, submodule-distributed package.
-
-### File-level plan
-
-1. **`src/components/NoteEditor.tsx`** — extend `SUGGESTED_TYPES` with the memory-specific values the proposal called out: `'Player Theory'`, `'Player Interest'`, `'Character Goal'`, `'NPC Attachment'`, `'Unresolved Question'`, `'Player-Created Fact'`, `'Future Hook'`. Purely additive to the existing datalist — no schema change, no migration.
-
-2. **`src/lib/plannerMemory.ts`** (new, pure functions, no I/O — same shape as `entityTemplates.ts`/`recentEntities.ts`):
-   - `MEMORY_NOTE_TYPES` — the constant list above, shared with `NoteEditor.tsx` (single source of truth instead of duplicating the string list).
-   - `selectActiveMemoryNotes(notes: Note[]): Note[]` — filters to memory types with `status !== 'Resolved' && status !== 'Archived'` (free-text status, so this is a tolerant string check, not an enum match).
-   - `selectActiveThreads(threads: Thread[]): Thread[]` — filters to `status === 'Open'` (or unset), reusing the existing `Thread` entity rather than inventing a new "thread pressure" schema.
-   - `buildSessionBriefing(notes: Note[], threads: Thread[]): SessionBriefing` — groups the above into a small plain object (`{ playerTheories, playerInterests, characterGoals, npcAttachments, unresolvedQuestions, activeThreads }`) ready for a component to render. This is the one new "shape" this plan introduces, and it's a derived view, not a persisted entity.
-
-3. **`src/hooks/useSessionBriefing.ts`** (new hook, same pattern as every other hook in `src/hooks/`):
-   - Takes `repository`/`campaignId`, calls `useNotes` + `useThreads` internally (composition, not duplication), and returns `buildSessionBriefing(notes, threads)` via `useMemo`.
-   - No new repository methods — it's built entirely on `getNotes`/`getThreads`, which already exist.
-
-4. **`src/components/SessionBriefingPanel.tsx`** (new, read-only display component, styled consistently with `EntityLinksPanel.tsx`):
-   - Renders the grouped briefing as labeled lists (e.g. "Player Theories worth revisiting," "Unresolved Questions," "Active Threads"), each item a click-through into the existing entity view (reuses `onOpenPlannerEntity`, already threaded through every editor).
-   - Empty-state per group ("No open threads yet") rather than hiding groups, so a GM learns the feature exists even in a fresh campaign.
-
-5. **`src/components/SessionEditor.tsx`** — mount `<SessionBriefingPanel>` above the session's own `BlockNoteFreeformField` details editor, but only when `session === null` (creating a new session) or `values.status === 'Draft'`/`'Prepared'` — i.e. exactly the pre-session-prep moment the proposal targeted, not during/after a `Running`/`Completed` session where it'd just be noise. Needs `plannerItems`/`onOpenPlannerEntity`, both already passed into `SessionEditor` today.
-
-6. **`src/index.ts`** — export `useSessionBriefing`, `SessionBriefingPanel`, and the `SessionBriefing` type alongside the existing hook/component exports.
-
-### Explicitly out of scope for this pass
-
-- No `Player` entity, no `TTRPGHostAdapter` extension — the proposal's "Player Intent" layer needs that and is a real contract change (see `CHANGELOG.md`'s review notes); this plan only uses entities/interfaces that already exist.
-- No Daggerheart-specific Hope/Fear fields — would require branching on `hostAdapter.getGameSystem()`, which nothing in this package does today and which would break host-agnosticism for the D&D host.
-- No live-session "Table Facilitation" UI (safety tools, pulse meters, one-click buttons) — different subsystem, separate design pass.
-- No new `SessionObservation` entity or closed enum schema — deliberately reuses `Note`'s existing free-text `type`/`status` design from Slice 4.2e instead of reintroducing per-field structure.
-
-### Test coverage for this feature (per `CHANGELOG.md`'s testing conventions)
-
-- `plannerMemory.test.ts` — pure function tests: given a fixture array of `Note`s/`Thread`s with mixed types/statuses, assert `buildSessionBriefing` groups and excludes exactly the right ones (no mocking needed at all).
-- `useSessionBriefing.test.ts` — fake-repository-backed hook test: seed notes/threads, render the hook, assert `result.current` matches the expected grouped shape; then mutate (add a new `Player Theory` note through `useNotes`' own `createNote`) and assert the briefing recomputes.
-- `SessionBriefingPanel.test.tsx` — render with a fixture briefing, assert each group's items are visible via `screen.getByText`, assert clicking an item calls `onOpenPlannerEntity` with the correct `EntityReference`.
-- `SessionEditor.test.tsx` — assert the panel is present when `session === null` and absent/not rendered once `status === 'Completed'`.
 
 ---
 

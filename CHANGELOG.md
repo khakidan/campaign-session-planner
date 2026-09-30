@@ -6,6 +6,21 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Phase 1 "Memory" feature set: Session Briefing
+
+Closes the "Phase 1 Memory feature set" roadmap item — the highest-value subset of the `chatGPTWorkflowProposal.md` synthesis (player theories/interests, character goals, NPC attachments, unresolved questions, a pre-session "previously established" briefing), scoped down to fit the package's existing architecture rather than the originally-proposed new `SessionObservation` entity/enum schema. **No `CampaignPlannerRepository`/`TTRPGHostAdapter` changes** — this is a front-end-only, additive change; nothing propagates into either host's repository implementation.
+
+- **`src/lib/plannerMemory.ts`** (new, pure functions) — `MEMORY_NOTE_TYPES` (`'Player Theory'`, `'Player Interest'`, `'Character Goal'`, `'NPC Attachment'`, `'Unresolved Question'`, `'Player-Created Fact'`, `'Future Hook'`), `selectActiveMemoryNotes`/`selectActiveThreads` (tolerant, case-insensitive free-text status filtering — `Note.status`/`Thread.status` stay untyped strings, not enums), and `buildSessionBriefing(notes, threads)`, which groups the active ones into a `SessionBriefing` object.
+- **`src/hooks/useSessionBriefing.ts`** (new) — composes the existing `useNotes`/`useThreads` hooks (no new I/O) and returns `buildSessionBriefing(...)` via `useMemo`. Reactive to `campaignId` changing (reloads and regroups), but — like every other hook in this package — has no live-update subscription: a mutation made through a *different* mounted `useNotes` instance elsewhere in the app won't be reflected until this hook's own owning component remounts, same as the rest of the package without `subscribeToChanges` wired up.
+- **`src/components/SessionBriefingPanel.tsx`** (new) — read-only display, one labeled group per memory category plus Active Threads, each item clickable via `onOpenPlannerEntity` (the same callback contract every `EntityLinksPanel` already uses). Every group always renders, with its own empty-state text, so a GM discovers the feature in a brand-new campaign instead of seeing nothing.
+- **`src/components/SessionEditor.tsx`** — mounts `<SessionBriefingPanel>` above the Session's own details editor, but only while `session === null` (creating a new Session) or `status` is `'Draft'`/`'Prepared'` — the actual pre-session-prep moment the proposal targeted. Hidden once a session is `Running`/`Completed`, where it would just be noise alongside the real running notes/debrief.
+- **`src/components/NoteEditor.tsx`** — `SUGGESTED_TYPES`' datalist now also offers `MEMORY_NOTE_TYPES`, sourced from `plannerMemory.ts` (single list, not duplicated).
+- **`src/index.ts`** — exports `useSessionBriefing`, `SessionBriefingPanel` (+ its props type), `MEMORY_NOTE_TYPES`/`selectActiveMemoryNotes`/`selectActiveThreads`/`buildSessionBriefing`, and the `MemoryNoteType`/`SessionBriefing` types.
+
+**Explicitly out of scope** (unchanged from the roadmap plan): no `Player` entity or `TTRPGHostAdapter` extension, no Daggerheart-specific Hope/Fear fields, no live-session "Table Facilitation" UI, no new `SessionObservation` entity/enum — all deliberately deferred, each for a reason recorded in the roadmap plan this closes.
+
+**Test coverage** (11 new tests, 185 total): `plannerMemory.test.ts` (pure grouping/filtering logic, no mocking), `useSessionBriefing.test.ts` (fake-repository-backed, including a campaign-switch reload/regroup case), `SessionBriefingPanel.test.tsx` (empty-state per group, click-through calls `onOpenPlannerEntity` with the right `EntityReference`), and two new `SessionEditor.test.tsx` cases (briefing shown while creating/Draft, hidden once Completed).
+
 ## Build step: compiled `dist/` output via `tsup`
 
 **Action needed for both host apps — see `MIGRATION.md`.** Closes the "No build step" roadmap item. `package.json`'s `main`/`module`/`types`/`exports` now point at compiled `dist/index.js` (ESM) + `dist/index.d.ts` + `dist/index.css`, built by `tsup` (`tsup.config.ts`), instead of pointing straight at raw `src/index.ts` and relying on the host's own bundler to transpile TypeScript from a workspace member directly — which only ever worked for a Vite/esbuild-based host.

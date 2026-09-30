@@ -106,4 +106,17 @@ describe('SessionEditor', () => {
       expect(updatedB?.order).toBe(0);
     });
   });
+
+  it('shows the "Previously Established" briefing while creating a new Session', () => {
+    render(<SessionEditor session={null} onSave={vi.fn()} {...baseProps()} />);
+
+    expect(screen.getByText('Previously Established')).toBeInTheDocument();
+  });
+
+  it('keeps showing the briefing for a Draft/Prepared Session, but hides it once Completed', () => {
+    const completed = makeSession({ id: 'session-1', status: 'Completed' });
+    render(<SessionEditor session={completed} onSave={vi.fn()} {...baseProps()} />);
+
+    expect(screen.queryByText('Previously Established')).not.toBeInTheDocument();
+  });
 });

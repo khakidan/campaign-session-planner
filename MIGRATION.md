@@ -6,6 +6,12 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: Phase 1 "Memory" feature set (Session Briefing)
+
+**Action needed: none.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, no new required props. `NoteEditor`'s Type datalist now suggests a few new values (`Player Theory`, `Player Interest`, `Character Goal`, `NPC Attachment`, `Unresolved Question`, `Player-Created Fact`, `Future Hook`) and `SessionEditor` now shows a "Previously Established" briefing panel while a Session is new/Draft/Prepared. See `CHANGELOG.md` for the full rationale.
+
+**What to check if you want to use it:** nothing required, but if you have existing Notes you'd like the briefing to pick up, edit their `type` field to one of the new suggested values above — anything already saved is unaffected otherwise.
+
 ### ⚠️ Build step: compiled `dist/` output — real action needed in both `daggerheart-gm-dashboard-multiuser` and `dnd-gm-dashboard-multiuser`
 
 This is the one change in this batch that isn't a no-op. `main`/`types` no longer point at raw `src/index.ts` — they point at compiled `dist/index.js`/`dist/index.d.ts`, produced by `npm run build` (via a new `"prepare"` script, which `npm install` runs automatically). Full rationale in `CHANGELOG.md`.

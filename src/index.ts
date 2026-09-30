@@ -21,6 +21,11 @@ export { useQuests } from './hooks/useQuests';
 export { useEvents } from './hooks/useEvents';
 export { useEntityLinks } from './hooks/useEntityLinks';
 export { useTemplates } from './hooks/useTemplates';
+export { useSessionBriefing } from './hooks/useSessionBriefing';
+export { SessionBriefingPanel } from './components/SessionBriefingPanel';
+export type { SessionBriefingPanelProps } from './components/SessionBriefingPanel';
+export { MEMORY_NOTE_TYPES, selectActiveMemoryNotes, selectActiveThreads, buildSessionBriefing } from './lib/plannerMemory';
+export type { MemoryNoteType, SessionBriefing } from './lib/plannerMemory';
 export type {
   Block,
   CampaignId,
