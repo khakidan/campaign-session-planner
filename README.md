@@ -125,6 +125,8 @@ git add packages/campaign-session-planner
 git commit -m "Update campaign-session-planner submodule"
 ```
 
+Check `MIGRATION.md` after pulling — it lists anything a host app needs to *do* in response to a change (most updates require nothing, but it says so explicitly rather than leaving you to infer it from the diff).
+
 ## Theming & layout customization
 
 This package is meant to be wired into any TTRPG-like host and restyled
