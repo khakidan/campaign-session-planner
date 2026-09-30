@@ -12,3 +12,19 @@ import '@testing-library/jest-dom/vitest';
 afterEach(() => {
   cleanup();
 });
+
+// jsdom doesn't implement `elementsFromPoint`/`elementFromPoint` (real
+// browsers do) — BlockNote's SideMenu extension calls the former on
+// every `mousemove` over the editor (tracking which block to show a
+// drag handle next to), which user-event's pointer simulation can
+// trigger incidentally from an unrelated click. Without this, that
+// throws as an unhandled exception during otherwise-passing tests, per
+// Vitest's own "might cause false positive tests" warning — this
+// polyfills the browser behavior BlockNote assumes, not a workaround
+// for a bug in this package's code.
+if (!document.elementsFromPoint) {
+  document.elementsFromPoint = () => [];
+}
+if (!document.elementFromPoint) {
+  document.elementFromPoint = () => null;
+}

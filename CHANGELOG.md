@@ -6,6 +6,20 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Test coverage: remaining editors, integration components, and BlockNote itself
+
+Closes out every gap the Testing Plan and its follow-ups had left open. Adds 51 tests across 9 new files (169 total, up from 118, across 27 files):
+
+- **The remaining six structurally-identical editors** — `GroupEditor`, `LocationEditor`, `StorylineEditor`, `ThreadEditor`, `QuestEditor`, `EventEditor` — each get the same seam-test treatment as `NpcEditor.test.tsx` (exact `onSave` payload, empty-name validation). `LocationEditor` additionally covers its Parent Location `<select>` (defaults to "None," offers every `otherLocations` entry by name, reports the chosen id).
+- **`TemplateSettingsPanel.test.tsx`** — kind-switching loads that kind's own effective blocks (a saved override, or the shipped default) rather than leaking the previous kind's draft; the customized-kind indicator dot; Save/Reset call `saveTemplate`/`deleteTemplate` with the right arguments; Reset re-populates the editor with the shipped default afterward.
+- **`QuickReferenceDrawer.test.tsx`** — the full non-modal, stacking Drawer: opening to search, filtering the planner search index, selecting a result to view it (title/badges/content/linked entities), clicking a linked entity *pushing* a new stacked panel rather than replacing the current one, "Back to search," recording to Recents, and closing. `ReadOnlyBlockNoteView` is mocked here (it's the thing under test in its own file below), everything else is real.
+- **`EntityListView.test.tsx`** — loading/empty/no-matches states, title+tag search, and the create/select callbacks.
+- **`EditorFormControls.test.tsx`** — `Field`'s controlled input/textarea behavior and `Section`'s rendering.
+- **`BlockNoteFreeformField.test.tsx` and `ReadOnlyBlockNoteView.test.tsx`** — real, unmocked BlockNote, not stubbed. Turned out to render and behave correctly under jsdom once actually attempted (this package's own prior assumption, and the testing philosophy's own allowance to stub "heavy third-party engines," turned out to be more conservative than necessary here). Covers: the "+ Use starter template" button's visibility rules (only when a template is given *and* the document is still empty) and its apply behavior, working Undo/Redo, and `ReadOnlyBlockNoteView`'s empty-state placeholder vs. rendering real non-editable content.
+  - One real environment gap found and fixed along the way: jsdom doesn't implement `elementsFromPoint`/`elementFromPoint` (real browsers do), which BlockNote's SideMenu extension calls on every `mousemove` over the editor — surfaced as an unhandled exception during an otherwise-passing test. `src/test/setup.ts` now polyfills both as harmless no-ops, matching real browser presence rather than working around a bug in this package.
+
+Not attempted: `EntityReferenceInlineContent.tsx`'s actual `[[`/`@` suggestion-menu interaction (real ProseMirror input-rule/plugin behavior, not just render/click) — see `ROADMAP.md`.
+
 ## Layout customization: `renderNav` slot on `CampaignSessionPlanner`
 
 `CampaignSessionPlanner`'s top tab bar — the single most opinionated piece of layout it owns — is now overridable via a `renderNav` prop. Omit it to keep the shipped horizontal tab bar; pass a function to render a sidebar, dropdown, or anything else instead, built from the same underlying data (`CampaignSessionPlannerNavProps`: `kinds`, `labels`, `activeKind`, `onSelectKind`, `onOpenTemplateSettings`) rather than fighting the shipped markup/CSS. Both the type and prop are exported from `src/index.ts`. Covered by 3 new tests in `CampaignSessionPlanner.test.tsx` (default nav renders, a custom `renderNav` fully replaces it, and the props it receives are correct and wired to working callbacks). Documented in README.md's new "Theming & layout customization" section.
