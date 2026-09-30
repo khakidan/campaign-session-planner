@@ -307,6 +307,21 @@ published package still ships zero Tailwind CSS, per "What a host app
 must provide" above; this demo just needs its own Tailwind pipeline to
 render realistically, the same way any real host does.
 
+## Testing
+
+`npm test` runs the full jsdom-based suite (fast, no real browser
+needed) — this is what you want day to day.
+
+`npm run test:browser` runs a second, separate suite
+(`vitest.browser.config.ts`) in real Chromium via Playwright, currently
+just `EntityReferenceInlineContent.browser.test.tsx` — the one thing
+jsdom genuinely can't drive (BlockNote's `[[`/`@` typed-trigger path,
+which depends on real browser geometry APIs). One-time setup on a new
+machine: `npx playwright install chromium` (standard Playwright setup,
+nothing specific to this repo). You don't need this for most changes —
+only if you're touching `EntityReferenceInlineContent.tsx` or
+`BlockNoteFreeformField.tsx`'s `[[`/`@` wiring itself.
+
 ## Known gaps / things to know before extending this further
 
 - **Single game-system assumption isn't hardcoded, but isn't exercised

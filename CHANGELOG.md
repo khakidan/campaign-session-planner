@@ -6,6 +6,17 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Real-browser test coverage for the `[[`/`@` typed-trigger path
+
+Closes the one remaining test-coverage gap ROADMAP.md had been carrying since the BlockNote work: whether typing `[[` or `@` actually opens BlockNote's `SuggestionMenuController` and inserts a real `entityReference` node. Previously judged "genuinely impractical in jsdom, not merely unattempted" — true as stated, but not the end of the story: jsdom was the blocker, not a real browser, and this environment already had one (Playwright/Chromium) available for the demo harness. Set up as permanent project infrastructure rather than a one-off:
+
+- **`vitest.browser.config.ts`** (new, separate from `vitest.config.ts`) — runs only `**/*.browser.test.tsx` files, in real Chromium via `@vitest/browser`'s Playwright provider, headless. Kept apart from the default `npm test` run so the fast jsdom suite (235 tests) isn't slowed down or made flaky by spinning up a real browser for the one path that actually needs it. `vitest.config.ts` now explicitly excludes `*.browser.test.tsx` (extending Vitest's own default exclude list, not replacing it) so the two configs never double-run the same file.
+- **`src/test/browserSetup.ts`** (new) — deliberately *not* `src/test/setup.ts`'s jsdom polyfills (`elementsFromPoint`, `Range.getClientRects`, `DOMRect.toJSON`) — a real browser already implements all of them correctly, which is the entire reason this was worth doing.
+- **`src/components/EntityReferenceInlineContent.browser.test.tsx`** (new, 2 tests) — real, unmocked `BlockNoteFreeformField`, real keystrokes via `@testing-library/user-event`: typing `@Sister` opens the real suggestion menu (`role="option"`), selecting the result inserts a real `entityReference` node (verified via the same render assertions `EntityReferenceInlineContent.test.tsx` already uses for pre-seeded content) and calls `onAddLink` with the right target — and confirms `[[` opens it too.
+- One real gotcha worth recording: **`userEvent.type`'s string syntax treats `[` as its own special-key delimiter** — `'[[Sister'` types one literal `[` (BlockNote's `[[` trigger never completes), not two; the fix is `'[[[[Sister'` (each `[[` pair is userEvent's own escape for one literal bracket). This looked exactly like a BlockNote input-rule quirk at first and cost real debugging time before the actual cause (a testing-library string-escaping rule, unrelated to this package or BlockNote) turned up.
+- New devDependencies, `test:browser` npm script: `@vitest/browser`, `playwright`. A host machine needs the one-time, standard Playwright setup step (`npx playwright install chromium`) before running it — same as any Playwright-based project, nothing specific to this repo. `vitest.browser.config.ts` also accepts a `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` env var for a sandboxed/CI image with Chromium pre-installed at a non-standard path; unset on a normal machine.
+- **Verified**: both tests pass against real Chromium; the default jsdom suite (`npm test`) still reports exactly 235 tests, confirming no overlap between the two configs.
+
 ## Layout customization beyond the tab bar: `renderFields` + fully-exported building blocks
 
 Closes ROADMAP.md's "further layout customization beyond the tab bar" item. Scoped against three concrete needs (adding a custom field, reordering/hiding shipped fields, replacing an editor's layout entirely), each answered without guessing at a bigger API than needed:

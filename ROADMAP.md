@@ -12,12 +12,11 @@ None.
 
 ### 🟡 Features to Add / Test Coverage Gaps
 
-- **The `[[`/`@` *typed-trigger* path (opening BlockNote's `SuggestionMenuController` via real keystrokes) is still untested** — confirmed genuinely impractical in jsdom, not just unattempted. See `CHANGELOG.md` for what was tried and why; `EntityReferenceInlineContent.test.tsx` covers the actual custom logic (render/click-dispatch) via pre-seeded content instead. Real coverage of the typed-trigger path itself would need a real browser (Playwright/Vitest browser mode), not jsdom — worth it only if this path actually breaks in practice, since BlockNote's own `SuggestionMenuController` (not this package's code) owns most of that mechanism.
-- **Daggerheart-specific Hope/Fear "Scene Pressure" content** — the one item from `chatGPTWorkflowProposal.md` still deliberately left out. Game-system-specific; nothing in this package branches on `hostAdapter.getGameSystem()` today, and adding Hope/Fear-flavored template content would either be wrong for the D&D host or require that branch, which is a real, deliberate architecture decision this package hasn't made yet.
+None currently open.
 
 ---
 
 ## Source documents referenced elsewhere
 
-- `chatGPTWorkflowProposal.md` — a synthesis of ideas from the *Rolling with the Youth* GMing book. Every numbered idea in it now maps to something already shipped (see `CHANGELOG.md`) or the one item above still out of scope.
+- `chatGPTWorkflowProposal.md` — a synthesis of ideas from the *Rolling with the Youth* GMing book. Every numbered idea in it now maps to something already shipped (see `CHANGELOG.md`), with one deliberately left out as game-system-specific (Daggerheart's Hope/Fear mechanic — not relevant to this host-agnostic package).
 - `template-proposals.md` — a templated restatement of the same ideas; fully folded into the shipped starter templates (`src/lib/entityTemplates.ts`) — see `CHANGELOG.md` for the heading-level mapping.
