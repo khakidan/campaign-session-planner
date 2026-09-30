@@ -266,6 +266,47 @@ the same set of building blocks `CampaignSessionPlanner` itself
 composes — nothing about it is held back from a host that wants to
 assemble its own screen instead of using the shipped one.
 
+## Run Mode: reference support while actually running a session
+
+This package is a reference tool, not where you manage your players —
+that's your own app's job (initiative, character sheets, combat).
+`SessionRunPanel` and `QuickCaptureComposer` are small, non-modal
+pieces meant to sit *alongside* your own live-session screen, not
+replace or navigate away from it — the same principle
+`SessionSafetyControls` already follows.
+
+```tsx
+<YourLiveSessionScreen>
+  {/* Your own initiative tracker, character sheets, combat UI. */}
+  <aside>
+    <SessionRunPanel
+      repository={repository}
+      campaignId={campaignId}
+      onOpenPlannerEntity={(ref) => quickReferenceDrawer.push(ref)}
+      onOpenHostEntity={(type, id) => /* open your own page for it */}
+    />
+    <QuickCaptureComposer repository={repository} campaignId={campaignId} />
+  </aside>
+</YourLiveSessionScreen>
+```
+
+`SessionRunPanel` renders nothing unless a Session has
+`status === 'Running'`. It shows that Session's Scenes as a prev/next
+strip, the active Scene's content read-only, and its linked entities as
+tappable chips — wiring `onOpenPlannerEntity` to
+`useQuickReferenceDrawer().push()` is the natural choice, so tapping a
+chip opens it in the Drawer instead of navigating anywhere.
+
+`QuickCaptureComposer` is a type dropdown plus one text field — two
+taps to record a `Player Theory`/`Unresolved Question`/etc. mid-scene
+without pulling up the full `NoteEditor`. It creates a real `Note`
+through the same `CampaignPlannerRepository` everything else uses. If
+you want it to show up immediately in `CampaignSessionPlanner`'s own
+Notes list without the GM switching away and back, implement
+`CampaignPlannerRepository.subscribeToChanges` — `CampaignSessionPlanner`
+already reloads all its lists when that fires; this needs nothing
+extra from you beyond having it wired at all.
+
 ## Build step
 
 `package.json`'s `main`/`types`/`exports` point at compiled `dist/`

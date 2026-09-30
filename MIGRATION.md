@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: "Run Mode" (`SessionRunPanel`, `QuickCaptureComposer`)
+
+**Action needed: none unless you want to use them.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, nothing mounted automatically. If you do want them, they're meant to sit in your own live-session screen (not a new route this package dictates) — see README.md's "Run Mode" section for how to wire them in, including `onOpenPlannerEntity`/`onOpenHostEntity` and the optional `subscribeToChanges` note for live list updates.
+
 ### New: real-browser test coverage (`@vitest/browser`, `playwright`)
 
 **Action needed: none.** Dev/test-only, same as the rest of the test suite — not part of what your app imports or bundles, and excluded already by a production install. See `CHANGELOG.md` for what this covers and why.

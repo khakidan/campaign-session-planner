@@ -113,7 +113,22 @@ export { EntityLinksPanel } from './components/EntityLinksPanel';
 export type { EntityLinksPanelProps, EntityEditorLinksProps } from './components/EntityLinksPanel';
 export { EntityLinkPicker } from './components/EntityLinkPicker';
 export type { EntityLinkPickerProps, PlannerSearchItem } from './components/EntityLinkPicker';
+export { ReadOnlyBlockNoteView } from './components/ReadOnlyBlockNoteView';
+export type { ReadOnlyBlockNoteViewProps } from './components/ReadOnlyBlockNoteView';
+export { EntityReferenceLinkingContext } from './components/EntityReferenceInlineContent';
+export type { EntityReferenceLinkingHandlers } from './components/EntityReferenceInlineContent';
 export type { PartialBlock } from '@blocknote/core';
+
+// "Run Mode" (ROADMAP.md) — small, non-modal, composable pieces for
+// the moment of actually running a session, meant to sit alongside a
+// host's own live-session screen (initiative, character sheets,
+// combat), never to replace or navigate away from it. Neither of these
+// is a route or a modal; a host places them wherever its own layout
+// has room, the same way `SessionSafetyControls` already works.
+export { SessionRunPanel } from './components/SessionRunPanel';
+export type { SessionRunPanelProps } from './components/SessionRunPanel';
+export { QuickCaptureComposer } from './components/QuickCaptureComposer';
+export type { QuickCaptureComposerProps } from './components/QuickCaptureComposer';
 export type {
   Block,
   CampaignId,

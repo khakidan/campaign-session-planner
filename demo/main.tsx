@@ -4,6 +4,8 @@ import {
   CampaignSessionPlanner,
   QuickReferenceDrawerProvider,
   SessionSafetyControls,
+  SessionRunPanel,
+  QuickCaptureComposer,
   useQuickReferenceDrawer,
   type NoteFormValues,
 } from '../src/index';
@@ -13,6 +15,7 @@ import {
   makeNote,
   makeThread,
   makeSession,
+  makeScene,
   makeEntityLink,
   TEST_CAMPAIGN_ID,
 } from '../src/test/fixtures';
@@ -95,6 +98,35 @@ const runningSession = makeSession({
   sessionNumber: 8,
 });
 
+const sceneArrival = makeScene({
+  id: 'scene-1',
+  sessionId: 'session-2',
+  title: 'Arrival at the Sunken Temple',
+  status: 'Active',
+  order: 0,
+  details: [
+    { type: 'heading', props: { level: 3 }, content: [{ type: 'text', text: 'Situation', styles: {} }] },
+    {
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'The temple entrance is half-submerged; the party arrives at low tide.', styles: {} }],
+    },
+  ] as never,
+});
+const sceneConfrontation = makeScene({
+  id: 'scene-2',
+  sessionId: 'session-2',
+  title: 'Confrontation with the Cultists',
+  status: null,
+  order: 1,
+  details: [
+    { type: 'heading', props: { level: 3 }, content: [{ type: 'text', text: 'Situation', styles: {} }] },
+    {
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Cultists guard the inner sanctum, mid-ritual.', styles: {} }],
+    },
+  ] as never,
+});
+
 const npc: Npc = { id: 'npc-1', campaignId: TEST_CAMPAIGN_ID, name: 'Sister Mariel', details: [], createdAt: twoWeeksAgo, updatedAt: now };
 const group: Group = {
   id: 'group-1',
@@ -124,7 +156,17 @@ const repository = createFakeRepository({
   npcs: [npc],
   groups: [group],
   locations: [location],
+  scenes: [sceneArrival, sceneConfrontation],
   links: [
+    // Run Mode: the active Scene has an NPC linked to it, shown as a chip.
+    makeEntityLink({
+      id: 'link-scene-npc',
+      sourceType: 'scene',
+      sourceId: 'scene-1',
+      targetType: 'npc',
+      targetId: 'npc-1',
+      metadata: { label: npc.name },
+    }),
     // Player Intent: the Character Goal note is linked to a host Character.
     makeEntityLink({
       id: 'link-goal-char',
@@ -222,13 +264,34 @@ const App: React.FC = () => {
           Open Quick Reference
         </button>
       </header>
-      <main className="p-6">
-        <CampaignSessionPlanner
-          campaignId={TEST_CAMPAIGN_ID}
-          repository={repository}
-          hostAdapter={hostAdapter}
-          renderFields={{ note: NoteFieldsWithDemoPriority }}
-        />
+      <main className="p-6 flex gap-6 items-start">
+        <div className="flex-1 min-w-0">
+          <CampaignSessionPlanner
+            campaignId={TEST_CAMPAIGN_ID}
+            repository={repository}
+            hostAdapter={hostAdapter}
+            renderFields={{ note: NoteFieldsWithDemoPriority }}
+          />
+        </div>
+
+        {/* Stands in for the HOST APP's own live-session screen (its
+            initiative tracker, character sheets, combat UI — none of
+            which this package owns or renders). Run Mode's pieces sit
+            in a sidebar *next to* that, never replacing or navigating
+            away from it — see ROADMAP.md's "Run Mode" entry. */}
+        <aside className="w-80 shrink-0 space-y-4 sticky top-6">
+          <div className="p-3 border border-dashed border-[var(--csp-neutral-300)] rounded-lg text-xs text-[var(--csp-neutral-400)] italic">
+            (Stand-in for the host app's own live-session screen — initiative, character sheets, combat. This package
+            never renders that.)
+          </div>
+          <SessionRunPanel
+            repository={repository}
+            campaignId={TEST_CAMPAIGN_ID}
+            onOpenPlannerEntity={(ref) => drawer.push(ref)}
+            onOpenHostEntity={(type, id) => alert(`Host app would open its own ${type} page for ${id}`)}
+          />
+          <QuickCaptureComposer repository={repository} campaignId={TEST_CAMPAIGN_ID} />
+        </aside>
       </main>
       <SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} />
     </div>
