@@ -12,53 +12,21 @@ None.
 
 ### 🟡 Features to Add / Test Coverage Gaps
 
-- **No test infrastructure exists in this package at all** — no `vitest`/testing-library in `package.json`, no `tests/` dir. See "Testing Plan" below.
 - **Phase 1 "Memory" feature set** (player theories, unresolved questions, NPC attachments, a pre-session "previously established" briefing) is scoped and ready to build. See "Phase 1 Implementation Plan" below.
-- **Template enrichment** (new toggle-headings on existing shipped templates — Scene pacing/collaboration prompts, NPC motivation depth, Thread pressure, Session player-contribution prompts) drawn from `template-proposals.md`'s compatible subset. See "Template Enrichment" below — this is the cheapest of the three and can land independent of the other two.
+- **Template enrichment** (new toggle-headings on existing shipped templates — Scene pacing/collaboration prompts, NPC motivation depth, Thread pressure, Session player-contribution prompts) drawn from `template-proposals.md`'s compatible subset. See "Template Enrichment" below — this is the cheapest of the two remaining items and can land independent of the other.
 
 ---
 
-## Testing Plan
+## ✅ Done: Test Infrastructure
 
-This package currently ships zero tests of its own (README's "Known gaps" confirms: coverage today only exists indirectly, via `daggerheart-gm-dashboard-multiuser`'s `tests/components/CampaignSessionPlanner.test.tsx`). Before adding the Phase 1 feature set below — or anything else — this package needs its own test suite, following the same testing philosophy already established in the host repo (`docs/markdown/testing-philosophy.md`, referenced from its root `AGENTS.md`): tests must resemble real usage, assert on outcomes, and would actually fail if behavior broke. No shallow "was it called" assertions, no circular mock assertions, no asserting on internal state.
+The Testing Plan previously tracked here is built and passing (115 tests, 14 files) — `npm test` runs `vitest run`. Kept here as a short reference for how to extend it, not as open work.
 
-### 1. Add test tooling
-
-`package.json` gets new `devDependencies` (this package has no runtime test deps today):
-
-- `vitest` + `jsdom` (test runner/environment)
-- `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`
-- A `vitest.config.ts` at the package root (mirror the shape of the host repo's, since hosts already run Vite/esbuild against this package directly per the README)
-- A `test` script in `package.json`
-
-### 2. What counts as a "seam" in this package
-
-The host repo's Seam Test Standard is about UI → service layer. In this package, the equivalent seam is **UI/hook → `CampaignPlannerRepository`**. Every hook in `src/hooks/*` and every editor in `src/components/*Editor.tsx` exists specifically to shape data before it crosses that interface, so that's where the highest-value tests live. `TTRPGHostAdapter` calls are the second seam (search/reference resolution).
-
-Concretely, "don't mock the thing under test" means: build one small **fake `CampaignPlannerRepository`** (a plain object with in-memory arrays behind each method, not `vi.fn()` stubs returning fixed values), and use it directly in hook/component tests. Assert on what the fake actually received/returned, not on whether a mock function was "called." A real fake also means `useNotes`' `reload()`-after-mutation behavior gets validated for free, instead of asserted via call-count.
-
-### 3. Priority order (highest-value first)
-
-1. **`src/hooks/*.ts` (useNotes, useThreads, useNpcs, useSessions, useScenes, useEntityLinks, etc.)** — same shape, so one pattern covers all of them:
-   - Seed the fake repository with fixture rows, render the hook, assert `result.current.notes` (etc.) equals the seeded data.
-   - Call `createNote`/`updateNote`/`deleteNote` and assert the **exact object** now sitting in the fake repository's backing store (not just that `saveNote` "was called") — mirrors the "assert on the exact row data" rule for service tests.
-   - `useEntityLinks` additionally needs a case asserting `sourceLabel`/`label` are captured correctly at link-creation time (this is a real, previously-noted fragility — see the `types/index.ts` comment about pre-4.2c links lacking `sourceLabel`).
-
-2. **`src/components/*Editor.tsx` (NoteEditor, NpcEditor, SessionEditor, ThreadEditor, etc.)** — true seam tests:
-   - Render the real editor with a fake repository/hostAdapter.
-   - Use `@testing-library/user-event` to type into fields exactly as a GM would (title, type via the datalist input, tags, BlockNote content where feasible).
-   - Click Save, and assert on the **complete values object** passed to `onSave` (every field, not just that it was called) — e.g. for `NoteEditor`, assert `title`, `type`, `status`, `tags` (as the parsed array, not the raw comma string), and `content` all match what was typed.
-   - `SessionEditor` additionally needs a scene-reorder test: add two scenes, click "move down," and assert the resulting `order` values are swapped correctly (this is real bespoke logic in `handleReorder`, not framework behavior).
-   - Cover the validation path (empty title → `onSave` never called, error text visible via `screen.getByText`), since that's user-observable behavior, not an implementation detail.
-
-3. **`src/lib/*.ts` (entityTemplates, blockNoteUtils, recentEntities, entityQuickView)** — pure functions, no mocking needed at all. Feed them realistic inputs, assert on outputs.
-
-4. **`src/components/EntityLinkPicker.tsx` / `EntityLinksPanel.tsx`** — search-and-link flow: type a query, assert the right results render (backed by a fake `hostAdapter.searchEntities`/`plannerItems`), pick one, assert `onAddLink` receives the correct `EntityReference` shape.
-
-### 4. Explicit non-goals (per the testing philosophy's mocking rules)
-
-- Don't mock `CampaignPlannerRepository` or `TTRPGHostAdapter` methods individually with `vi.fn()` returning canned values when a fixture-backed fake object does the same job more realistically — reserve real mocking for things this package can't run in a test at all (BlockNote's editor internals may need light mocking/stubbing since it's a heavy third-party rich-text engine, not because it's "the thing under test").
-- Don't test `Block[]` (BlockNote document) internals — treat BlockNote content as an opaque value in hook/repository tests; only editor-level tests that render `BlockNoteFreeformField` need to touch it, and even then assert on the resulting `content` array reaching `onSave`, not the editor's internal state.
+- **Tooling**: `vitest`, `jsdom`, `@testing-library/react`/`user-event`/`jest-dom` as `devDependencies`; `vitest.config.ts` at the package root. Note: this package's own `tsconfig.json` deliberately `extends "../../tsconfig.json"` (resolves against a host app's root tsconfig when consumed as a submodule — see README) — standalone, that path doesn't exist, so `vitest.config.ts` sets `esbuild.tsconfigRaw` to a JSON **string** (not object — Vite only skips its own, otherwise-failing tsconfig.json file lookup when it's a string) to bypass it for test runs.
+- **`src/test/fixtures.ts`**: a real, in-memory `createFakeRepository(seed?)` implementing the full `CampaignPlannerRepository` interface, plus `createFakeHostAdapter(overrides?)` and fixture builders (`makeNote`, `makeThread`, `makeSession`, `makeScene`, `makeEntityLink`). Every hook/component test uses this instead of mocking individual repository methods — assertions check what the fake actually stored, not whether a mock "was called."
+- **`src/test/setup.ts`**: registers `@testing-library/react`'s `cleanup()` in `afterEach` — required because this project's tests import `describe`/`it`/`expect` explicitly rather than using vitest's `globals: true`, and RTL's own auto-cleanup only self-registers when it detects a global `afterEach`.
+- **Coverage landed**: all 9 campaign-scoped CRUD hooks via one table-driven suite (`crudHooks.test.ts`) plus `useScenes`, `useEntityLinks`, `useTemplates`, `usePlannerSearchIndex` individually; `NoteEditor`/`NpcEditor`/`SessionEditor` as true seam tests (exact `onSave` payload, validation, `SessionEditor`'s scene-add and scene-reorder logic); `EntityLinksPanel`/`EntityLinkPicker`'s link flow; and the pure `lib/` functions (`blockNoteUtils`, `entityTemplates`, `entityQuickView`, `recentEntities`).
+- **BlockNote is stubbed, not tested, in editor tests**: `NoteEditor.test.tsx`/`NpcEditor.test.tsx`/`SessionEditor.test.tsx` `vi.mock('./BlockNoteFreeformField', ...)` with a one-button stub that calls `onChange` with a fixed `Block[]`, per the testing philosophy's rule that a heavy third-party engine that isn't the thing under test is fine to stub. `BlockNoteFreeformField` itself, `EntityReferenceInlineContent`, `ReadOnlyBlockNoteView`, and the remaining simple editors (`GroupEditor`/`LocationEditor`/`StorylineEditor`/`ThreadEditor`/`QuestEditor`/`EventEditor`, all structurally identical to `NpcEditor`) are not yet covered — same pattern as `NpcEditor.test.tsx` applies directly to each.
+- **Not yet covered**: `CampaignSessionPlanner.tsx`, `QuickReferenceDrawer.tsx`, and `TemplateSettingsPanel.tsx` — the top-level integration components that wire everything above together. These are the next-highest-value target once the roadmap items below land, since they'll otherwise be the only place Phase 1's new `SessionBriefingPanel` wiring gets exercised.
 
 ---
 
