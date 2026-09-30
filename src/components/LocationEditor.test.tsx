@@ -68,4 +68,24 @@ describe('LocationEditor', () => {
     expect(screen.getByRole('option', { name: 'The Coastal Reach' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'None' })).toBeInTheDocument();
   });
+
+  it('renderFields: replaces the default field block, and defaultFields lets a host wrap instead of replace', () => {
+    render(
+      <LocationEditor
+        location={null}
+        otherLocations={[]}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+        renderFields={({ defaultFields }) => (
+          <div data-testid="wrapper">
+            {defaultFields}
+            <input aria-label="Extra Field" />
+          </div>
+        )}
+      />
+    );
+
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Extra Field')).toBeInTheDocument();
+  });
 });

@@ -190,9 +190,81 @@ to match it — it doesn't assume it owns your app's visual identity.
     )}
   />
   ```
-  Every other editor's field order/markup is currently fixed (not yet
-  slotted) — see `ROADMAP.md` if you need to go further than the tab
-  bar.
+- **Individual editor fields** — every entity editor (`NoteEditor`,
+  `NpcEditor`, `SessionEditor`, etc., each also exported directly — see
+  "Building a fully custom editor" below) takes a `renderFields` prop
+  that replaces its own top field block (Title/Type/Status and similar
+  — never the content editor, entity links, or Save/Cancel/Delete,
+  which stay fixed). It receives `values`, `onChange`, and
+  `defaultFields` (the shipped block, pre-rendered) — wrap
+  `defaultFields` to add a field alongside the shipped ones without
+  reimplementing anything, or ignore it to render your own fields in
+  whatever order/subset you want:
+  ```tsx
+  <NoteEditor
+    {...otherProps}
+    renderFields={({ defaultFields, values, onChange }) => (
+      <>
+        {defaultFields}
+        <MyPriorityField
+          value={myPriority}
+          onChange={setMyPriority} // your own state — see the note below
+        />
+      </>
+    )}
+  />
+  ```
+  Through `CampaignSessionPlanner` itself, these are one prop, keyed by
+  kind (`CampaignSessionPlannerRenderFields`), so you only ever have to
+  override the kinds you actually want to change:
+  ```tsx
+  <CampaignSessionPlanner
+    {...otherProps}
+    renderFields={{
+      note: ({ defaultFields }) => (
+        <>
+          {defaultFields}
+          <MyPriorityField />
+        </>
+      ),
+      // scene, npc, group, location, session, storyline, thread, quest,
+      // event — each independent and optional.
+    }}
+  />
+  ```
+  **A custom field's data is yours to store.** This package's entities
+  (`Note`, `Npc`, etc.) have no generic "extra fields" bag, and adding
+  one would be a real `CampaignPlannerRepository` schema change — so a
+  custom field's value lives in your own component state (or your own
+  side table, keyed by the entity's id) and is saved through your own
+  mechanism, entirely independent of this package's `onSave`. The
+  `values`/`onChange` passed into `renderFields` are only ever this
+  package's own typed form values (`NoteFormValues` and so on) — they
+  never carry fields this package doesn't know about.
+
+## Building a fully custom editor
+
+If `renderFields` isn't enough — you want a fundamentally different
+layout for one entity kind, not just a different field block — every
+per-kind editor component (`NoteEditor`, `NpcEditor`, `GroupEditor`,
+`LocationEditor`, `SceneEditor`, `SessionEditor`, `StorylineEditor`,
+`ThreadEditor`, `QuestEditor`, `EventEditor`) is exported directly, so
+you can mount one yourself outside `CampaignSessionPlanner` — same
+validation, same BlockNote content field, same entity-linking, same
+Save/Cancel/Delete, in whatever page/layout you build around it.
+
+For a screen built from scratch entirely, the lower-level pieces these
+editors themselves are built from are exported too:
+`BlockNoteFreeformField` (the rich-text content field with `[[`/`@`
+linking), `EntityLinksPanel`/`EntityLinkPicker` (the "Linked Entities"
+UI and its search-and-link picker), and the starter-template exports
+from `src/lib/entityTemplates.ts` (`TEMPLATE_DEFAULTS`,
+`TEMPLATE_LABELS`, each named template, and the `heading`/`section`/
+`checklistSection` helpers they're built from). Combined with the
+already-exported hooks (`useNotes`, `useEntityLinks`, etc.), this is
+the same set of building blocks `CampaignSessionPlanner` itself
+composes — nothing about it is held back from a host that wants to
+assemble its own screen instead of using the shipped one.
 
 ## Build step
 

@@ -29,6 +29,16 @@ export interface NpcEditorProps {
    * template, if any (from the Template Settings panel). Falls back to
    * the shipped default when omitted. */
   template?: PartialBlock[];
+  /** Layout customization (ROADMAP.md's "further layout customization
+   * beyond the tab bar") — replaces the default Name field with
+   * host-rendered markup. `defaultFields` is that shipped block; wrap
+   * it to add a field alongside it, or ignore it to render your own
+   * from `values`/`onChange`. Omit to keep the shipped layout. */
+  renderFields?: (ctx: {
+    values: NpcFormValues;
+    onChange: React.Dispatch<React.SetStateAction<NpcFormValues>>;
+    defaultFields: React.ReactNode;
+  }) => React.ReactNode;
 }
 
 /**
@@ -41,7 +51,7 @@ export interface NpcEditorProps {
  * `EntityLink`s (the "Linked Entities" panel below), not document
  * content.
  */
-export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onDelete, onCancel, isSaving = false, links, template }) => {
+export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onDelete, onCancel, isSaving = false, links, template, renderFields }) => {
   const [values, setValues] = useState<NpcFormValues>(() => npcToFormValues(npc));
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +63,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onDelete, onC
     setError(null);
     await onSave(values);
   };
+
+  const defaultFields = <Field id="npc-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />;
 
   return (
     <div className="space-y-4">
@@ -66,7 +78,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onDelete, onC
 
       {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
 
-      <Field id="npc-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
+      {renderFields ? renderFields({ values, onChange: setValues, defaultFields }) : defaultFields}
 
       <BlockNoteFreeformField
         value={values.details}

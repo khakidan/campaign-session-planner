@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   CampaignSessionPlanner,
   QuickReferenceDrawerProvider,
   SessionSafetyControls,
   useQuickReferenceDrawer,
+  type NoteFormValues,
 } from '../src/index';
 import {
   createFakeRepository,
@@ -163,6 +164,50 @@ const hostAdapter = createFakeHostAdapter({
   },
 });
 
+/**
+ * Demonstrates the `renderFields` layout-customization prop: adds a
+ * "Priority" field alongside the shipped Note fields. Its value lives
+ * in this component's own local state, not in `NoteFormValues` — the
+ * point of the demo is that a host's custom field data doesn't need to
+ * round-trip through this package at all; it's saved by whatever the
+ * host's own `onSave` does, entirely independent of `CampaignPlannerRepository`.
+ */
+const notePriorities = new Map<string, string>();
+
+function NoteFieldsWithDemoPriority({
+  defaultFields,
+}: {
+  values: NoteFormValues;
+  onChange: React.Dispatch<React.SetStateAction<NoteFormValues>>;
+  defaultFields: React.ReactNode;
+}) {
+  const [priority, setPriority] = useState(() => notePriorities.get('draft') ?? '');
+
+  return (
+    <>
+      {defaultFields}
+      <div>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="demo-priority">
+          Priority (demo custom field — host-owned, not persisted by this package)
+        </label>
+        <select
+          id="demo-priority"
+          value={priority}
+          onChange={(e) => {
+            setPriority(e.target.value);
+            notePriorities.set('draft', e.target.value);
+          }}
+          className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
+        >
+          <option value="">Unset</option>
+          <option value="low">Low</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+    </>
+  );
+}
+
 const App: React.FC = () => {
   const drawer = useQuickReferenceDrawer();
   return (
@@ -178,7 +223,12 @@ const App: React.FC = () => {
         </button>
       </header>
       <main className="p-6">
-        <CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={repository} hostAdapter={hostAdapter} />
+        <CampaignSessionPlanner
+          campaignId={TEST_CAMPAIGN_ID}
+          repository={repository}
+          hostAdapter={hostAdapter}
+          renderFields={{ note: NoteFieldsWithDemoPriority }}
+        />
       </main>
       <SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} />
     </div>

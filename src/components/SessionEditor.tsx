@@ -7,7 +7,7 @@ import { useSessions } from '../hooks/useSessions';
 import { useSessionBriefing } from '../hooks/useSessionBriefing';
 import { useCampaignChanges } from '../hooks/useCampaignChanges';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { SceneEditor, type SceneFormValues } from './SceneEditor';
+import { SceneEditor, type SceneEditorProps, type SceneFormValues } from './SceneEditor';
 import { SessionBriefingPanel } from './SessionBriefingPanel';
 import { SessionReadinessChecklist } from './SessionReadinessChecklist';
 import { CampaignChangesPanel } from './CampaignChangesPanel';
@@ -68,6 +68,20 @@ export interface SessionEditorProps {
   template?: PartialBlock[];
   debriefTemplate?: PartialBlock[];
   sceneTemplate?: PartialBlock[];
+  /** Layout customization (ROADMAP.md's "further layout customization
+   * beyond the tab bar") — replaces the default Title/Number/Date/
+   * Status field block with host-rendered markup. `defaultFields` is
+   * that shipped block; wrap it to add a field alongside it, or ignore
+   * it to render your own from `values`/`onChange`. Omit to keep the
+   * shipped layout. */
+  renderFields?: (ctx: {
+    values: SessionFormValues;
+    onChange: React.Dispatch<React.SetStateAction<SessionFormValues>>;
+    defaultFields: React.ReactNode;
+  }) => React.ReactNode;
+  /** Same idea, forwarded to the nested `SceneEditor` shown while
+   * adding/editing one of this Session's Scenes. */
+  renderSceneFields?: SceneEditorProps['renderFields'];
 }
 
 type ScenesView = { mode: 'list' } | { mode: 'edit'; id: string | null };
@@ -110,6 +124,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   template,
   debriefTemplate,
   sceneTemplate,
+  renderFields,
+  renderSceneFields,
 }) => {
   const [values, setValues] = useState<SessionFormValues>(() => sessionToFormValues(session));
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +189,52 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
     await onSave(values);
   };
 
+  const defaultFields = (
+    <>
+      <Field id="session-title" label="Title" value={values.title} onChange={(v) => setValues((p) => ({ ...p, title: v }))} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Field
+          id="session-number"
+          label="Session Number"
+          value={values.sessionNumber}
+          onChange={(v) => setValues((p) => ({ ...p, sessionNumber: v }))}
+        />
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="session-date">
+            Date
+          </label>
+          <input
+            id="session-date"
+            type="date"
+            value={values.date ? values.date.slice(0, 10) : ''}
+            onChange={(e) => setValues((prev) => ({ ...prev, date: e.target.value }))}
+            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="session-status">
+            Status
+          </label>
+          <input
+            id="session-status"
+            type="text"
+            list="session-status-suggestions"
+            value={values.status}
+            onChange={(e) => setValues((prev) => ({ ...prev, status: e.target.value }))}
+            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
+            placeholder="Draft"
+          />
+          <datalist id="session-status-suggestions">
+            {SUGGESTED_STATUSES.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+        </div>
+      </div>
+    </>
+  );
+
   const handleReorder = async (scene: Scene, direction: 'up' | 'down') => {
     const index = sortedScenes.findIndex((s) => s.id === scene.id);
     const swapIndex = direction === 'up' ? index - 1 : index + 1;
@@ -189,6 +251,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         scene={editingScene}
         links={sceneLinks}
         template={sceneTemplate}
+        renderFields={renderSceneFields}
         isSaving={isSaving}
         onCancel={() => setScenesView({ mode: 'list' })}
         onDelete={
@@ -229,42 +292,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
 
       {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
 
-      <Field id="session-title" label="Title" value={values.title} onChange={(v) => setValues((p) => ({ ...p, title: v }))} />
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Field id="session-number" label="Session Number" value={values.sessionNumber} onChange={(v) => setValues((p) => ({ ...p, sessionNumber: v }))} />
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="session-date">
-            Date
-          </label>
-          <input
-            id="session-date"
-            type="date"
-            value={values.date ? values.date.slice(0, 10) : ''}
-            onChange={(e) => setValues((prev) => ({ ...prev, date: e.target.value }))}
-            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="session-status">
-            Status
-          </label>
-          <input
-            id="session-status"
-            type="text"
-            list="session-status-suggestions"
-            value={values.status}
-            onChange={(e) => setValues((prev) => ({ ...prev, status: e.target.value }))}
-            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
-            placeholder="Draft"
-          />
-          <datalist id="session-status-suggestions">
-            {SUGGESTED_STATUSES.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-        </div>
-      </div>
+      {renderFields ? renderFields({ values, onChange: setValues, defaultFields }) : defaultFields}
 
       {showCampaignChanges && <CampaignChangesPanel changes={campaignChanges} onOpenPlannerEntity={onOpenPlannerEntity} />}
 

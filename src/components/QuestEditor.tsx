@@ -33,6 +33,16 @@ export interface QuestEditorProps {
   /** Slice 4.2f — this campaign's saved override of the Quest starter
    * template, if any. Falls back to the shipped default when omitted. */
   template?: PartialBlock[];
+  /** Layout customization (ROADMAP.md's "further layout customization
+   * beyond the tab bar") — replaces the default Name/Status field block
+   * with host-rendered markup. `defaultFields` is that shipped block;
+   * wrap it to add a field alongside it, or ignore it to render your
+   * own from `values`/`onChange`. Omit to keep the shipped layout. */
+  renderFields?: (ctx: {
+    values: QuestFormValues;
+    onChange: React.Dispatch<React.SetStateAction<QuestFormValues>>;
+    defaultFields: React.ReactNode;
+  }) => React.ReactNode;
 }
 
 /**
@@ -46,7 +56,16 @@ export interface QuestEditorProps {
  * Threads/People & Places/Encounters are `EntityLink`s (the "Linked
  * Entities" panel below), not document content.
  */
-export const QuestEditor: React.FC<QuestEditorProps> = ({ quest, onSave, onDelete, onCancel, isSaving = false, links, template }) => {
+export const QuestEditor: React.FC<QuestEditorProps> = ({
+  quest,
+  onSave,
+  onDelete,
+  onCancel,
+  isSaving = false,
+  links,
+  template,
+  renderFields,
+}) => {
   const [values, setValues] = useState<QuestFormValues>(() => questToFormValues(quest));
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +77,13 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({ quest, onSave, onDelet
     setError(null);
     await onSave(values);
   };
+
+  const defaultFields = (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Field id="quest-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
+      <Field id="quest-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -71,10 +97,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({ quest, onSave, onDelet
 
       {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field id="quest-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
-        <Field id="quest-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
-      </div>
+      {renderFields ? renderFields({ values, onChange: setValues, defaultFields }) : defaultFields}
 
       <BlockNoteFreeformField
         value={values.details}

@@ -33,4 +33,23 @@ describe('NpcEditor', () => {
     expect(onSave).not.toHaveBeenCalled();
     expect(screen.getByText('Name is required.')).toBeInTheDocument();
   });
+
+  it('renderFields: replaces the default field block, and defaultFields lets a host wrap instead of replace', () => {
+    render(
+      <NpcEditor
+        npc={null}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+        renderFields={({ defaultFields }) => (
+          <div data-testid="wrapper">
+            {defaultFields}
+            <input aria-label="Extra Field" />
+          </div>
+        )}
+      />
+    );
+
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Extra Field')).toBeInTheDocument();
+  });
 });

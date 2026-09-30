@@ -54,4 +54,23 @@ describe('GroupEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Delete Group' }));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
+
+  it('renderFields: replaces the default field block, and defaultFields lets a host wrap instead of replace', () => {
+    render(
+      <GroupEditor
+        group={null}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+        renderFields={({ defaultFields }) => (
+          <div data-testid="wrapper">
+            {defaultFields}
+            <input aria-label="Extra Field" />
+          </div>
+        )}
+      />
+    );
+
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Extra Field')).toBeInTheDocument();
+  });
 });

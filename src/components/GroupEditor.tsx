@@ -46,6 +46,17 @@ export interface GroupEditorProps {
   /** Slice 4.2f — this campaign's saved override of the Group starter
    * template, if any. Falls back to the shipped default when omitted. */
   template?: PartialBlock[];
+  /** Layout customization (ROADMAP.md's "further layout customization
+   * beyond the tab bar") — replaces the default Name/Type/Status field
+   * block with host-rendered markup. `defaultFields` is that shipped
+   * block; wrap it to add a field alongside it, or ignore it to render
+   * your own from `values`/`onChange`. Omit to keep the shipped
+   * layout. */
+  renderFields?: (ctx: {
+    values: GroupFormValues;
+    onChange: React.Dispatch<React.SetStateAction<GroupFormValues>>;
+    defaultFields: React.ReactNode;
+  }) => React.ReactNode;
 }
 
 /**
@@ -69,6 +80,7 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
   isSaving = false,
   links,
   template,
+  renderFields,
 }) => {
   const [values, setValues] = useState<GroupFormValues>(() => groupToFormValues(group));
   const [error, setError] = useState<string | null>(null);
@@ -82,18 +94,8 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
     await onSave(values);
   };
 
-  return (
-    <div className="space-y-4">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] cursor-pointer"
-      >
-        &larr; Back to Groups
-      </button>
-
-      {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
-
+  const defaultFields = (
+    <>
       <Field id="group-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -118,6 +120,22 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
         </div>
         <Field id="group-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
       </div>
+    </>
+  );
+
+  return (
+    <div className="space-y-4">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] cursor-pointer"
+      >
+        &larr; Back to Groups
+      </button>
+
+      {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
+
+      {renderFields ? renderFields({ values, onChange: setValues, defaultFields }) : defaultFields}
 
       <BlockNoteFreeformField
         value={values.details}

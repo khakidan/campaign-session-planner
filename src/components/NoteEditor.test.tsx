@@ -136,4 +136,47 @@ describe('NoteEditor', () => {
 
     expect(screen.getByLabelText('Confidence')).toHaveValue('inferred');
   });
+
+  it('renderFields: replaces the default field block, receiving values/onChange/defaultFields', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(
+      <NoteEditor
+        note={null}
+        onSave={onSave}
+        onCancel={vi.fn()}
+        renderFields={({ values, onChange }) => (
+          <button type="button" onClick={() => onChange((prev) => ({ ...prev, title: `custom-${values.title}` }))}>
+            Set Custom Title
+          </button>
+        )}
+      />
+    );
+
+    expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Set Custom Title' }));
+    await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
+    await user.click(screen.getByRole('button', { name: 'Save Note' }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'custom-' }));
+  });
+
+  it('renderFields: defaultFields lets a host wrap the shipped fields instead of replacing them', () => {
+    render(
+      <NoteEditor
+        note={null}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+        renderFields={({ defaultFields }) => (
+          <div data-testid="wrapper">
+            {defaultFields}
+            <input aria-label="Extra Field" />
+          </div>
+        )}
+      />
+    );
+
+    expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    expect(screen.getByLabelText('Extra Field')).toBeInTheDocument();
+  });
 });

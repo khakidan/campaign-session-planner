@@ -71,3 +71,35 @@ describe('CampaignSessionPlanner nav customization', () => {
     await waitFor(() => expect(screen.getByText('Starter Templates')).toBeInTheDocument());
   });
 });
+
+describe('CampaignSessionPlanner field customization', () => {
+  it('renderFields.note reaches NoteEditor; other kinds keep their shipped fields', async () => {
+    const user = userEvent.setup();
+    render(
+      <CampaignSessionPlanner
+        campaignId={TEST_CAMPAIGN_ID}
+        repository={createFakeRepository()}
+        hostAdapter={createFakeHostAdapter()}
+        renderFields={{
+          note: ({ defaultFields }) => (
+            <>
+              {defaultFields}
+              <input aria-label="Extra Note Field" />
+            </>
+          ),
+        }}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New Note' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'New Note' }));
+    await waitFor(() => expect(screen.getByLabelText('Extra Note Field')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: '← Back to Notes' }));
+    await user.click(screen.getByRole('button', { name: 'NPCs' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New NPC' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'New NPC' }));
+    await waitFor(() => expect(screen.getByLabelText('Name')).toBeInTheDocument());
+    expect(screen.queryByLabelText('Extra Note Field')).not.toBeInTheDocument();
+  });
+});

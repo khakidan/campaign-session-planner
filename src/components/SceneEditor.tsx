@@ -39,6 +39,17 @@ export interface SceneEditorProps {
   /** Slice 4.2f — this campaign's saved override of the Scene starter
    * template, if any. Falls back to the shipped default when omitted. */
   template?: PartialBlock[];
+  /** Layout customization (ROADMAP.md's "further layout customization
+   * beyond the tab bar") — replaces the default Title/Number/Status
+   * field block with host-rendered markup. `defaultFields` is that
+   * shipped block; wrap it to add a field alongside it, or ignore it to
+   * render your own from `values`/`onChange`. Omit to keep the shipped
+   * layout. */
+  renderFields?: (ctx: {
+    values: SceneFormValues;
+    onChange: React.Dispatch<React.SetStateAction<SceneFormValues>>;
+    defaultFields: React.ReactNode;
+  }) => React.ReactNode;
 }
 
 /**
@@ -53,7 +64,16 @@ export interface SceneEditorProps {
  * are `EntityLink`s (the "Linked Entities" panel below), not document
  * content.
  */
-export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onSave, onDelete, onCancel, isSaving = false, links, template }) => {
+export const SceneEditor: React.FC<SceneEditorProps> = ({
+  scene,
+  onSave,
+  onDelete,
+  onCancel,
+  isSaving = false,
+  links,
+  template,
+  renderFields,
+}) => {
   const [values, setValues] = useState<SceneFormValues>(() => sceneToFormValues(scene));
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +85,23 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onSave, onDelet
     setError(null);
     await onSave(values);
   };
+
+  const defaultFields = (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="sm:col-span-2">
+          <Field id="scene-title" label="Title" value={values.title} onChange={(v) => setValues((p) => ({ ...p, title: v }))} />
+        </div>
+        <Field
+          id="scene-number"
+          label="Scene Number"
+          value={values.sceneNumber}
+          onChange={(v) => setValues((p) => ({ ...p, sceneNumber: v }))}
+        />
+      </div>
+      <Field id="scene-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
+    </>
+  );
 
   return (
     <div className="space-y-4 border border-[var(--csp-neutral-200)] rounded-xl p-4 bg-[var(--csp-neutral-50)]">
@@ -78,18 +115,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onSave, onDelet
 
       {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="sm:col-span-2">
-          <Field id="scene-title" label="Title" value={values.title} onChange={(v) => setValues((p) => ({ ...p, title: v }))} />
-        </div>
-        <Field
-          id="scene-number"
-          label="Scene Number"
-          value={values.sceneNumber}
-          onChange={(v) => setValues((p) => ({ ...p, sceneNumber: v }))}
-        />
-      </div>
-      <Field id="scene-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
+      {renderFields ? renderFields({ values, onChange: setValues, defaultFields }) : defaultFields}
 
       <BlockNoteFreeformField
         value={values.details}

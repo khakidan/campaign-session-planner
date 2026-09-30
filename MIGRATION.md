@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: `renderFields` layout customization + fully-exported editor building blocks
+
+**Action needed: none.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, no new required props, and every existing prop keeps its current behavior when the new ones are omitted. Adds an optional `renderFields` prop to every per-kind editor and to `CampaignSessionPlanner` (keyed by kind), plus new direct exports: each editor component + its `Props`/`FormValues` types, `BlockNoteFreeformField`, `EntityLinksPanel`/`EntityLinkPicker`, and everything in `src/lib/entityTemplates.ts`. See `CHANGELOG.md` for the full rundown, and README.md's "Theming & layout customization" and "Building a fully custom editor" sections for how to use them.
+
 ### New: Phase 2 "Workflow, Collaboration & Facilitation" feature set
 
 **Action needed: none.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, no new required props. Adds several new UI panels (Session Readiness, Campaign Changes, a "Why This Session Matters" section in the existing briefing, a floating Session Safety Controls widget for a Running Session), a Confidence field on Notes, several new suggested `Note.type` values, and enriched starter templates (Complication Bank, Scene Truth/Player Prompts, GM/Player/Shared Canon, etc.). See `CHANGELOG.md` for the full rundown. If you want to try any of it visually before pulling it into your host app, run `npm run demo` from inside this package's own directory (new, dev-only — see README.md's "Local demo").

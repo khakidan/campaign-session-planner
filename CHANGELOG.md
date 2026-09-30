@@ -6,6 +6,19 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Layout customization beyond the tab bar: `renderFields` + fully-exported building blocks
+
+Closes ROADMAP.md's "further layout customization beyond the tab bar" item. Scoped against three concrete needs (adding a custom field, reordering/hiding shipped fields, replacing an editor's layout entirely), each answered without guessing at a bigger API than needed:
+
+- **`renderFields` on every per-kind editor** (`NoteEditor`, `NpcEditor`, `GroupEditor`, `LocationEditor`, `SceneEditor`, `SessionEditor`, `StorylineEditor`, `ThreadEditor`, `QuestEditor`, `EventEditor`) — replaces that editor's own top field block (Title/Type/Status and similar; never the content editor, entity links, or footer buttons, which stay fixed). Receives `{ values, onChange, defaultFields }`: wrap `defaultFields` to add a field, or ignore it to fully reorder/hide the shipped ones. `SessionEditor` additionally takes `renderSceneFields`, forwarded into the nested `SceneEditor` shown while adding/editing a Scene.
+- **`CampaignSessionPlanner`'s `renderFields` prop** — one prop, keyed by entity kind (`CampaignSessionPlannerRenderFields`), threading each kind's override to the right editor. Every key is independent; omit any (or all) to keep that kind's shipped layout.
+- **No new persisted data.** A custom field's value is explicitly the host's own to store (own component state or a side table keyed by entity id, saved through the host's own `onSave` logic) — `values`/`onChange` only ever carry this package's existing typed form values, never host-defined fields. Adding a generic "extra fields" bag to `Note`/`Npc`/etc. would have been a real `CampaignPlannerRepository` schema change; this avoids that entirely.
+- **Full editor-replacement path**: every per-kind editor component, its `Props` type, and its `FormValues` type are now exported directly from `src/index.ts` (previously internal to `CampaignSessionPlanner.tsx`), so a host can mount one standalone outside `CampaignSessionPlanner` for a fundamentally different layout, reusing the real validation/content-editor/entity-linking/footer rather than reimplementing them. For a screen built from scratch, the lower-level pieces those editors are built from are exported too: `BlockNoteFreeformField`, `EntityLinksPanel`/`EntityLinkPicker`, and everything from `src/lib/entityTemplates.ts` (`TEMPLATE_DEFAULTS`, `TEMPLATE_LABELS`, each named template, and the `heading`/`section`/`linkSection`/`checklistSection` helpers).
+- **Verified in the local demo** (`demo/main.tsx`) — added a `renderFields.note` example (a "Priority" field with its own local state, explicitly not round-tripped through this package), confirmed in a real browser that it renders alongside the shipped Note fields while every other kind (NPC, etc.) keeps its unmodified layout.
+- **Test coverage**: a `renderFields` test on all 10 editors (default-block replacement + `defaultFields`-wrapping), a `renderSceneFields` test on `SessionEditor`, and a `CampaignSessionPlanner`-level wiring test confirming `renderFields.note` reaches `NoteEditor` while other kinds are unaffected — 235 tests total, all passing.
+
+---
+
 ## Phase 2 "Workflow, Collaboration & Facilitation" feature set
 
 Implements ROADMAP.md's full Phase 2 plan (all 10 items) plus the "Template Enrichment" pass — the corrected, complete follow-through on `chatGPTWorkflowProposal.md`, including `SessionObservation`'s confidence dimension, which an earlier pass had wrongly written off. **No `CampaignPlannerRepository`/`TTRPGHostAdapter` changes anywhere in this batch.**

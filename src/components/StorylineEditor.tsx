@@ -38,6 +38,17 @@ export interface StorylineEditorProps {
    * starter template, if any. Falls back to the shipped default when
    * omitted. */
   template?: PartialBlock[];
+  /** Layout customization (ROADMAP.md's "further layout customization
+   * beyond the tab bar") — replaces the default Name/Status/Priority
+   * field block with host-rendered markup. `defaultFields` is that
+   * shipped block; wrap it to add a field alongside it, or ignore it to
+   * render your own from `values`/`onChange`. Omit to keep the shipped
+   * layout. */
+  renderFields?: (ctx: {
+    values: StorylineFormValues;
+    onChange: React.Dispatch<React.SetStateAction<StorylineFormValues>>;
+    defaultFields: React.ReactNode;
+  }) => React.ReactNode;
 }
 
 /**
@@ -57,6 +68,7 @@ export const StorylineEditor: React.FC<StorylineEditorProps> = ({
   isSaving = false,
   links,
   template,
+  renderFields,
 }) => {
   const [values, setValues] = useState<StorylineFormValues>(() => storylineToFormValues(storyline));
   const [error, setError] = useState<string | null>(null);
@@ -70,18 +82,8 @@ export const StorylineEditor: React.FC<StorylineEditorProps> = ({
     await onSave(values);
   };
 
-  return (
-    <div className="space-y-4">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] cursor-pointer"
-      >
-        &larr; Back to Storylines
-      </button>
-
-      {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
-
+  const defaultFields = (
+    <>
       <Field id="storyline-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -106,6 +108,22 @@ export const StorylineEditor: React.FC<StorylineEditorProps> = ({
         </div>
         <Field id="storyline-priority" label="Priority" value={values.priority} onChange={(v) => setValues((p) => ({ ...p, priority: v }))} />
       </div>
+    </>
+  );
+
+  return (
+    <div className="space-y-4">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] cursor-pointer"
+      >
+        &larr; Back to Storylines
+      </button>
+
+      {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
+
+      {renderFields ? renderFields({ values, onChange: setValues, defaultFields }) : defaultFields}
 
       <BlockNoteFreeformField
         value={values.details}

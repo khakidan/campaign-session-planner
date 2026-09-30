@@ -152,4 +152,47 @@ describe('SessionEditor', () => {
     render(<SessionEditor session={existing} onSave={vi.fn()} {...baseProps()} />);
     expect(screen.queryByText('What Changed Since Last Session')).not.toBeInTheDocument();
   });
+
+  it('renderFields: replaces the Session\'s own default field block, and defaultFields lets a host wrap instead of replace', () => {
+    render(
+      <SessionEditor
+        session={null}
+        onSave={vi.fn()}
+        {...baseProps()}
+        renderFields={({ defaultFields }) => (
+          <div data-testid="wrapper">
+            {defaultFields}
+            <input aria-label="Extra Field" />
+          </div>
+        )}
+      />
+    );
+
+    expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    expect(screen.getByLabelText('Extra Field')).toBeInTheDocument();
+  });
+
+  it('renderSceneFields: forwarded into the nested SceneEditor for adding/editing a Scene', async () => {
+    const user = userEvent.setup();
+    const session = makeSession({ id: 'session-1' });
+
+    render(
+      <SessionEditor
+        session={session}
+        onSave={vi.fn()}
+        {...baseProps()}
+        renderSceneFields={({ defaultFields }) => (
+          <div data-testid="scene-wrapper">
+            {defaultFields}
+            <input aria-label="Extra Scene Field" />
+          </div>
+        )}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: '+ Add Scene' }));
+
+    expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    expect(screen.getByLabelText('Extra Scene Field')).toBeInTheDocument();
+  });
 });

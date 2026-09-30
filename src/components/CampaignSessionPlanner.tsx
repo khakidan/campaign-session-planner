@@ -12,15 +12,15 @@ import { useQuests } from '../hooks/useQuests';
 import { useEvents } from '../hooks/useEvents';
 import { useEntityLinks } from '../hooks/useEntityLinks';
 import { useTemplates } from '../hooks/useTemplates';
-import { NoteEditor, type NoteFormValues } from './NoteEditor';
-import { NpcEditor, type NpcFormValues } from './NpcEditor';
-import { GroupEditor, type GroupFormValues } from './GroupEditor';
-import { LocationEditor, type LocationFormValues } from './LocationEditor';
-import { SessionEditor, type SessionFormValues } from './SessionEditor';
-import { StorylineEditor, type StorylineFormValues } from './StorylineEditor';
-import { ThreadEditor, type ThreadFormValues } from './ThreadEditor';
-import { QuestEditor, type QuestFormValues } from './QuestEditor';
-import { EventEditor, type EventFormValues } from './EventEditor';
+import { NoteEditor, type NoteEditorProps, type NoteFormValues } from './NoteEditor';
+import { NpcEditor, type NpcEditorProps, type NpcFormValues } from './NpcEditor';
+import { GroupEditor, type GroupEditorProps, type GroupFormValues } from './GroupEditor';
+import { LocationEditor, type LocationEditorProps, type LocationFormValues } from './LocationEditor';
+import { SessionEditor, type SessionEditorProps, type SessionFormValues } from './SessionEditor';
+import { StorylineEditor, type StorylineEditorProps, type StorylineFormValues } from './StorylineEditor';
+import { ThreadEditor, type ThreadEditorProps, type ThreadFormValues } from './ThreadEditor';
+import { QuestEditor, type QuestEditorProps, type QuestFormValues } from './QuestEditor';
+import { EventEditor, type EventEditorProps, type EventFormValues } from './EventEditor';
 import { EntityListView, type EntityListItem } from './EntityListView';
 import { TemplateSettingsPanel } from './TemplateSettingsPanel';
 import type { PlannerSearchItem } from './EntityLinkPicker';
@@ -40,6 +40,25 @@ export interface CampaignSessionPlannerNavProps {
   onOpenTemplateSettings: () => void;
 }
 
+/** Per-entity-kind field-layout overrides (ROADMAP.md's "further layout
+ * customization beyond the tab bar") — each editor's own `renderFields`
+ * prop, keyed the same way `TemplateEntityKind`/template overrides are.
+ * Every key is independent and optional: customize one kind's fields
+ * without touching any other. `scene` covers the `SceneEditor` shown
+ * inline from `SessionEditor`'s own Scenes sub-section. */
+export interface CampaignSessionPlannerRenderFields {
+  note?: NoteEditorProps['renderFields'];
+  npc?: NpcEditorProps['renderFields'];
+  group?: GroupEditorProps['renderFields'];
+  location?: LocationEditorProps['renderFields'];
+  session?: SessionEditorProps['renderFields'];
+  scene?: SessionEditorProps['renderSceneFields'];
+  storyline?: StorylineEditorProps['renderFields'];
+  thread?: ThreadEditorProps['renderFields'];
+  quest?: QuestEditorProps['renderFields'];
+  event?: EventEditorProps['renderFields'];
+}
+
 export interface CampaignSessionPlannerProps {
   campaignId: CampaignId;
   repository: CampaignPlannerRepository;
@@ -53,6 +72,9 @@ export interface CampaignSessionPlannerProps {
    * to render a sidebar, dropdown, or any other navigation shape from
    * the same underlying state instead of overriding its markup/CSS. */
   renderNav?: (props: CampaignSessionPlannerNavProps) => React.ReactNode;
+  /** Per-kind field-layout overrides — see `CampaignSessionPlannerRenderFields`.
+   * Omit any (or all) keys to keep that kind's shipped field layout. */
+  renderFields?: CampaignSessionPlannerRenderFields;
 }
 
 /** Slice 4.2c gave Notes/NPCs/Groups/Locations each their own tab;
@@ -112,6 +134,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   hostAdapter,
   onOpenHostEntity,
   renderNav,
+  renderFields,
 }) => {
   const { notes, error: notesError, reload: reloadNotes, createNote, updateNote, deleteNote } = useNotes(repository, campaignId);
   const { npcs, error: npcsError, reload: reloadNpcs, createNpc, updateNpc, deleteNpc } = useNpcs(repository, campaignId);
@@ -277,6 +300,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         note={note}
         isSaving={isSaving}
         links={linksProp}
+        renderFields={renderFields?.note}
         onCancel={() => setView('note', { mode: 'list' })}
         onDelete={note ? () => runSaving(async () => {
           await deleteNote(note.id);
@@ -309,6 +333,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         template={templateOverride('npc')}
+        renderFields={renderFields?.npc}
         onCancel={() => setView('npc', { mode: 'list' })}
         onDelete={npc ? () => runSaving(async () => {
           await deleteNpc(npc.id);
@@ -335,6 +360,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         template={templateOverride('group')}
+        renderFields={renderFields?.group}
         onCancel={() => setView('group', { mode: 'list' })}
         onDelete={group ? () => runSaving(async () => {
           await deleteGroup(group.id);
@@ -367,6 +393,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         template={templateOverride('location')}
+        renderFields={renderFields?.location}
         onCancel={() => setView('location', { mode: 'list' })}
         onDelete={location ? () => runSaving(async () => {
           await deleteLocation(location.id);
@@ -404,6 +431,8 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         template={templateOverride('session')}
         debriefTemplate={templateOverride('sessionDebrief')}
         sceneTemplate={templateOverride('scene')}
+        renderFields={renderFields?.session}
+        renderSceneFields={renderFields?.scene}
         onOpenPlannerEntity={openPlannerEntity}
         onOpenHostEntity={onOpenHostEntity}
         onCancel={() => setView('session', { mode: 'list' })}
@@ -439,6 +468,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         template={templateOverride('storyline')}
+        renderFields={renderFields?.storyline}
         onCancel={() => setView('storyline', { mode: 'list' })}
         onDelete={storyline ? () => runSaving(async () => {
           await deleteStoryline(storyline.id);
@@ -470,6 +500,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         template={templateOverride('thread')}
+        renderFields={renderFields?.thread}
         onCancel={() => setView('thread', { mode: 'list' })}
         onDelete={thread ? () => runSaving(async () => {
           await deleteThread(thread.id);
@@ -501,6 +532,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         template={templateOverride('quest')}
+        renderFields={renderFields?.quest}
         onCancel={() => setView('quest', { mode: 'list' })}
         onDelete={quest ? () => runSaving(async () => {
           await deleteQuest(quest.id);
@@ -527,6 +559,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         template={templateOverride('event')}
+        renderFields={renderFields?.event}
         onCancel={() => setView('event', { mode: 'list' })}
         onDelete={event ? () => runSaving(async () => {
           await deleteEvent(event.id);
