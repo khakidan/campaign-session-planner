@@ -1,5 +1,12 @@
+// Every component's color classes resolve through the CSS custom
+// properties this defines (see theme.css's own doc comment) — imported
+// here, at the one entry point every consumer already goes through, so
+// a host gets the default palette for free and can override it without
+// needing to know this file exists.
+import './theme.css';
+
 export { CampaignSessionPlanner } from './components/CampaignSessionPlanner';
-export type { CampaignSessionPlannerProps } from './components/CampaignSessionPlanner';
+export type { CampaignSessionPlannerProps, CampaignSessionPlannerNavProps } from './components/CampaignSessionPlanner';
 export { QuickReferenceDrawerProvider, useQuickReferenceDrawer } from './components/QuickReferenceDrawer';
 export type { QuickReferenceDrawerProviderProps } from './components/QuickReferenceDrawer';
 export { useNotes } from './hooks/useNotes';

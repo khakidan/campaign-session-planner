@@ -50,7 +50,7 @@ export const entityReferenceInlineContentSpec = createReactInlineContentSpec(
         <span
           onClick={handleClick}
           contentEditable={false}
-          className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-emerald-50 text-emerald-700 text-sm font-medium cursor-pointer hover:bg-emerald-100 select-none"
+          className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-[var(--csp-accent-50)] text-[var(--csp-accent-700)] text-sm font-medium cursor-pointer hover:bg-[var(--csp-accent-100)] select-none"
         >
           {label || `${refType}:${refId}`}
         </span>

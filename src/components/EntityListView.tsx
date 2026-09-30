@@ -51,21 +51,21 @@ export const EntityListView: React.FC<EntityListViewProps> = ({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={searchPlaceholder}
-          className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
+          className="flex-1 px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
         />
         <button
           type="button"
           onClick={onCreate}
-          className="px-3 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg whitespace-nowrap cursor-pointer"
+          className="px-3 py-2 text-xs font-semibold text-white bg-[var(--csp-accent-600)] hover:bg-[var(--csp-accent-700)] rounded-lg whitespace-nowrap cursor-pointer"
         >
           {createLabel}
         </button>
       </div>
 
       {items === null ? (
-        <div className="text-xs text-slate-500">Loading…</div>
+        <div className="text-xs text-[var(--csp-neutral-500)]">Loading…</div>
       ) : filtered.length === 0 ? (
-        <div className="p-8 border border-dashed border-slate-300 rounded-xl text-center text-xs text-slate-500">
+        <div className="p-8 border border-dashed border-[var(--csp-neutral-300)] rounded-xl text-center text-xs text-[var(--csp-neutral-500)]">
           {items.length === 0 ? emptyLabel : 'No matches.'}
         </div>
       ) : (
@@ -75,21 +75,21 @@ export const EntityListView: React.FC<EntityListViewProps> = ({
               key={item.id}
               type="button"
               onClick={() => onSelect(item.id)}
-              className="w-full text-left p-3 border border-slate-200 rounded-xl hover:border-slate-300 hover:bg-slate-50 transition cursor-pointer"
+              className="w-full text-left p-3 border border-[var(--csp-neutral-200)] rounded-xl hover:border-[var(--csp-neutral-300)] hover:bg-[var(--csp-neutral-50)] transition cursor-pointer"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-bold text-slate-900">{item.title}</span>
+                <span className="text-sm font-bold text-[var(--csp-neutral-900)]">{item.title}</span>
                 {item.badge && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--csp-accent-700)] bg-[var(--csp-accent-50)] px-2 py-0.5 rounded-full shrink-0">
                     {item.badge}
                   </span>
                 )}
               </div>
-              {item.subtitle && <div className="mt-1 text-[11px] text-slate-500">{item.subtitle}</div>}
+              {item.subtitle && <div className="mt-1 text-[11px] text-[var(--csp-neutral-500)]">{item.subtitle}</div>}
               {item.tags && item.tags.length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-1">
                   {item.tags.map((tag) => (
-                    <span key={tag} className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                    <span key={tag} className="text-[10px] text-[var(--csp-neutral-500)] bg-[var(--csp-neutral-100)] px-1.5 py-0.5 rounded">
                       {tag}
                     </span>
                   ))}

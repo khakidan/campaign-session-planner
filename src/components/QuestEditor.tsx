@@ -64,12 +64,12 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({ quest, onSave, onDelet
       <button
         type="button"
         onClick={onCancel}
-        className="text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+        className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] cursor-pointer"
       >
         &larr; Back to Quests
       </button>
 
-      {error && <div className="text-xs font-semibold text-rose-600">{error}</div>}
+      {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field id="quest-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
@@ -90,7 +90,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({ quest, onSave, onDelet
           <button
             type="button"
             onClick={() => onDelete()}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
+            className="text-xs font-semibold text-[var(--csp-danger-600)] hover:text-[var(--csp-danger-800)] cursor-pointer"
           >
             Delete Quest
           </button>
@@ -101,7 +101,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({ quest, onSave, onDelet
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-[var(--csp-neutral-600)] border border-[var(--csp-neutral-300)] rounded-lg hover:bg-[var(--csp-neutral-50)] cursor-pointer"
           >
             Cancel
           </button>
@@ -109,7 +109,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({ quest, onSave, onDelet
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-white bg-[var(--csp-accent-600)] hover:bg-[var(--csp-accent-700)] rounded-lg disabled:opacity-50 cursor-pointer"
           >
             {isSaving ? 'Saving…' : 'Save Quest'}
           </button>

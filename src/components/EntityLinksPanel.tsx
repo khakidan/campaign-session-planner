@@ -66,20 +66,20 @@ export const EntityLinksPanel: React.FC<EntityLinksPanelProps> = ({
   };
 
   return (
-    <div className="space-y-4 pt-2 border-t border-slate-200">
+    <div className="space-y-4 pt-2 border-t border-[var(--csp-neutral-200)]">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Linked Entities</h4>
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)]">Linked Entities</h4>
           <button
             type="button"
             onClick={() => setIsPickerOpen(true)}
-            className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 cursor-pointer"
+            className="text-xs font-semibold text-[var(--csp-accent-600)] hover:text-[var(--csp-accent-800)] cursor-pointer"
           >
             + Add Link
           </button>
         </div>
         {outgoing.length === 0 ? (
-          <p className="text-xs text-slate-400 italic">No links yet.</p>
+          <p className="text-xs text-[var(--csp-neutral-400)] italic">No links yet.</p>
         ) : (
           <ul className="space-y-1">
             {outgoing.map((link) => (
@@ -87,7 +87,7 @@ export const EntityLinksPanel: React.FC<EntityLinksPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => openTarget(link.targetType, link.targetId)}
-                  className="text-left text-emerald-700 hover:underline cursor-pointer truncate"
+                  className="text-left text-[var(--csp-accent-700)] hover:underline cursor-pointer truncate"
                 >
                   {linkLabel(link, plannerItems, true)}
                 </button>
@@ -95,7 +95,7 @@ export const EntityLinksPanel: React.FC<EntityLinksPanelProps> = ({
                   type="button"
                   onClick={() => onRemoveLink(link.id)}
                   aria-label={`Remove link to ${linkLabel(link, plannerItems, true)}`}
-                  className="text-slate-400 hover:text-rose-600 text-xs shrink-0 cursor-pointer"
+                  className="text-[var(--csp-neutral-400)] hover:text-[var(--csp-danger-600)] text-xs shrink-0 cursor-pointer"
                 >
                   &times;
                 </button>
@@ -106,9 +106,9 @@ export const EntityLinksPanel: React.FC<EntityLinksPanelProps> = ({
       </div>
 
       <div>
-        <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Backlinks</h4>
+        <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-2">Backlinks</h4>
         {incoming.length === 0 ? (
-          <p className="text-xs text-slate-400 italic">Nothing links here yet.</p>
+          <p className="text-xs text-[var(--csp-neutral-400)] italic">Nothing links here yet.</p>
         ) : (
           <ul className="space-y-1">
             {incoming.map((link) => (
@@ -116,7 +116,7 @@ export const EntityLinksPanel: React.FC<EntityLinksPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => openTarget(link.sourceType, link.sourceId)}
-                  className="text-left text-sm text-emerald-700 hover:underline cursor-pointer truncate"
+                  className="text-left text-sm text-[var(--csp-accent-700)] hover:underline cursor-pointer truncate"
                 >
                   {linkLabel(link, plannerItems, false)}
                 </button>

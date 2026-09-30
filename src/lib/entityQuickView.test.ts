@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { fetchEntityQuickView, plannerTypeLabel } from './entityQuickView';
 import { createFakeRepository } from '../test/fixtures';
-import type { Note, Npc, Session } from '../types';
+import type { Block, Note, Npc, Session } from '../types';
 
-const paragraph = (text: string) => [{ type: 'paragraph' as const, content: [{ type: 'text' as const, text, styles: {} }] }];
+// Test fixtures only ever round-trip `Block[]` through the fake
+// repository as opaque JSON (same as production code — see
+// `types/index.ts`'s comment on why `Block` is typed `any`-generic) —
+// a real, fully-populated BlockNote `Block` also carries `id`/`props`/
+// `children` that nothing here reads, so the cast keeps fixtures
+// readable instead of hand-writing every internal field.
+const paragraph = (text: string): Block[] =>
+  [{ type: 'paragraph' as const, content: [{ type: 'text' as const, text, styles: {} }] }] as unknown as Block[];
 
 describe('fetchEntityQuickView', () => {
   it('returns the title, filtered badges, and content section for a Note', async () => {

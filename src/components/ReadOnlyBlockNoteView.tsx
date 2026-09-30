@@ -43,7 +43,7 @@ export const ReadOnlyBlockNoteView: React.FC<ReadOnlyBlockNoteViewProps> = ({ bl
   const editor = useCreateBlockNote({ schema, initialContent }, [initialContent]);
 
   if (!initialContent) {
-    return <p className="text-xs text-slate-400 italic">Nothing written here yet.</p>;
+    return <p className="text-xs text-[var(--csp-neutral-400)] italic">Nothing written here yet.</p>;
   }
 
   return (

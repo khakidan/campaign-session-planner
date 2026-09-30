@@ -24,7 +24,7 @@ export function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1" htmlFor={id}>
+      <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor={id}>
         {label}
       </label>
       {multiline ? (
@@ -33,7 +33,7 @@ export function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+          className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
         />
       ) : (
         <input
@@ -41,7 +41,7 @@ export function Field({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+          className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
         />
       )}
     </div>
@@ -50,8 +50,8 @@ export function Field({
 
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <fieldset className="space-y-3 border-t border-slate-200 pt-4">
-      <legend className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">{title}</legend>
+    <fieldset className="space-y-3 border-t border-[var(--csp-neutral-200)] pt-4">
+      <legend className="text-xs font-bold uppercase tracking-wider text-[var(--csp-neutral-600)] mb-1">{title}</legend>
       {children}
     </fieldset>
   );

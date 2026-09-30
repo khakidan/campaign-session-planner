@@ -26,6 +26,20 @@ import { TemplateSettingsPanel } from './TemplateSettingsPanel';
 import type { PlannerSearchItem } from './EntityLinkPicker';
 import type { TemplateEntityKind } from '../types';
 
+/** What the default tab-bar nav renders from, and what a `renderNav`
+ * override receives instead — every browsable kind's label, which one
+ * is active, a setter for it, and the "Templates" trigger. Deliberately
+ * plain data/callbacks, not JSX, so a host can build a sidebar, a
+ * dropdown, or anything else entirely from the same inputs rather than
+ * restyling the shipped tab bar. */
+export interface CampaignSessionPlannerNavProps {
+  kinds: PlannerEntityType[];
+  labels: Record<PlannerEntityType, string>;
+  activeKind: PlannerEntityType;
+  onSelectKind: (kind: PlannerEntityType) => void;
+  onOpenTemplateSettings: () => void;
+}
+
 export interface CampaignSessionPlannerProps {
   campaignId: CampaignId;
   repository: CampaignPlannerRepository;
@@ -33,6 +47,12 @@ export interface CampaignSessionPlannerProps {
    * (`hostAdapter.searchEntities`). */
   hostAdapter: TTRPGHostAdapter;
   onOpenHostEntity?: (type: EntityType, id: EntityId) => void;
+  /** Replaces the default horizontal tab bar (kind switcher +
+   * "Templates" trigger) — the single most opinionated piece of layout
+   * this component owns. Omit to keep the shipped tab bar; provide this
+   * to render a sidebar, dropdown, or any other navigation shape from
+   * the same underlying state instead of overriding its markup/CSS. */
+  renderNav?: (props: CampaignSessionPlannerNavProps) => React.ReactNode;
 }
 
 /** Slice 4.2c gave Notes/NPCs/Groups/Locations each their own tab;
@@ -91,6 +111,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   repository,
   hostAdapter,
   onOpenHostEntity,
+  renderNav,
 }) => {
   const { notes, error: notesError, reload: reloadNotes, createNote, updateNote, deleteNote } = useNotes(repository, campaignId);
   const { npcs, error: npcsError, reload: reloadNpcs, createNpc, updateNpc, deleteNpc } = useNpcs(repository, campaignId);
@@ -547,35 +568,47 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   const listItems = listConfig[activeKind as Exclude<PlannerEntityType, 'scene'>].items;
   const tabLabel = TAB_LABELS[activeKind];
 
+  const navProps: CampaignSessionPlannerNavProps = {
+    kinds: BROWSABLE_KINDS,
+    labels: TAB_LABELS,
+    activeKind,
+    onSelectKind: setActiveKind,
+    onOpenTemplateSettings: () => setShowTemplateSettings(true),
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-1 border-b border-slate-200">
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {BROWSABLE_KINDS.map((kind) => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => setActiveKind(kind)}
-              className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
-                activeKind === kind
-                  ? 'border-emerald-600 text-emerald-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              {TAB_LABELS[kind]}
-            </button>
-          ))}
+      {renderNav ? (
+        renderNav(navProps)
+      ) : (
+        <div className="flex items-center justify-between gap-1 border-b border-[var(--csp-neutral-200)]">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {BROWSABLE_KINDS.map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                onClick={() => setActiveKind(kind)}
+                className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
+                  activeKind === kind
+                    ? 'border-[var(--csp-accent-600)] text-[var(--csp-accent-700)]'
+                    : 'border-transparent text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)]'
+                }`}
+              >
+                {TAB_LABELS[kind]}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowTemplateSettings(true)}
+            className="px-3 py-2 text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] whitespace-nowrap cursor-pointer"
+          >
+            Templates
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowTemplateSettings(true)}
-          className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 whitespace-nowrap cursor-pointer"
-        >
-          Templates
-        </button>
-      </div>
+      )}
 
-      {listError && <div className="text-xs font-semibold text-rose-600">{listError}</div>}
+      {listError && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{listError}</div>}
 
       <EntityListView
         items={listItems}

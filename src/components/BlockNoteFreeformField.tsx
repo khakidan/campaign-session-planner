@@ -128,7 +128,7 @@ export const BlockNoteFreeformField: React.FC<BlockNoteFreeformFieldProps> = ({ 
           <button
             type="button"
             onClick={applyTemplate}
-            className="text-left text-emerald-700 hover:underline cursor-pointer"
+            className="text-left text-[var(--csp-accent-700)] hover:underline cursor-pointer"
           >
             + Use starter template
           </button>
@@ -145,7 +145,7 @@ export const BlockNoteFreeformField: React.FC<BlockNoteFreeformFieldProps> = ({ 
             onClick={() => editor.undo()}
             title="Undo (Cmd/Ctrl+Z)"
             aria-label="Undo"
-            className="px-2 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded cursor-pointer"
+            className="px-2 py-1 text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] hover:bg-[var(--csp-neutral-100)] rounded cursor-pointer"
           >
             ↺ Undo
           </button>
@@ -154,7 +154,7 @@ export const BlockNoteFreeformField: React.FC<BlockNoteFreeformFieldProps> = ({ 
             onClick={() => editor.redo()}
             title="Redo (Cmd/Ctrl+Shift+Z)"
             aria-label="Redo"
-            className="px-2 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded cursor-pointer"
+            className="px-2 py-1 text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] hover:bg-[var(--csp-neutral-100)] rounded cursor-pointer"
           >
             ↻ Redo
           </button>

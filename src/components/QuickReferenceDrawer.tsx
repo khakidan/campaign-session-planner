@@ -237,7 +237,7 @@ const DrawerPanel: React.FC<DrawerPanelProps> = ({
           // confirmed live: the popup rendered at the full viewport
           // size, `top-4`/`bottom-4` no longer constraining its height
           // at all).
-          className="fixed top-4 bottom-4 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-xl outline-none"
+          className="fixed top-4 bottom-4 flex flex-col bg-white border border-[var(--csp-neutral-200)] rounded-2xl shadow-xl outline-none"
           aria-label={index === 0 && stackSize === 1 && !ref ? 'Quick reference search' : 'Quick reference'}
         >
           <ResizeHandle width={width} onResizeWidth={onResizeWidth} />
@@ -318,8 +318,8 @@ const ResizeHandle: React.FC<{ width: number; onResizeWidth: (next: number) => v
       onPointerCancel={endDrag}
       className="group absolute left-0 top-0 bottom-0 w-3 -ml-1.5 cursor-col-resize flex items-center justify-center touch-none z-10"
     >
-      <div className="w-px h-full bg-transparent group-hover:bg-emerald-400 transition-colors" />
-      <div className="absolute w-1 h-10 rounded-full bg-slate-300 group-hover:bg-emerald-500 transition-colors" />
+      <div className="w-px h-full bg-transparent group-hover:bg-[var(--csp-accent-400)] transition-colors" />
+      <div className="absolute w-1 h-10 rounded-full bg-[var(--csp-neutral-300)] group-hover:bg-[var(--csp-accent-500)] transition-colors" />
     </div>
   );
 };
@@ -329,23 +329,23 @@ const PanelHeader: React.FC<{ title: string; onClose: () => void; onBack?: () =>
   onClose,
   onBack,
 }) => (
-  <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200 shrink-0">
+  <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--csp-neutral-200)] shrink-0">
     {onBack && (
       <button
         type="button"
         onClick={onBack}
         aria-label="Back to search"
-        className="text-slate-400 hover:text-slate-700 cursor-pointer text-sm shrink-0"
+        className="text-[var(--csp-neutral-400)] hover:text-[var(--csp-neutral-700)] cursor-pointer text-sm shrink-0"
       >
         &larr;
       </button>
     )}
-    <h3 className="flex-1 min-w-0 truncate text-sm font-bold text-slate-800">{title}</h3>
+    <h3 className="flex-1 min-w-0 truncate text-sm font-bold text-[var(--csp-neutral-800)]">{title}</h3>
     <button
       type="button"
       onClick={onClose}
       aria-label="Close"
-      className="text-slate-400 hover:text-rose-600 cursor-pointer text-sm shrink-0"
+      className="text-[var(--csp-neutral-400)] hover:text-[var(--csp-danger-600)] cursor-pointer text-sm shrink-0"
     >
       &times;
     </button>
@@ -370,18 +370,18 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ repository, campaignId, onSel
   return (
     <>
       <PanelHeader title="Quick Reference" onClose={onClose} />
-      <div className="p-3 border-b border-slate-200 shrink-0">
+      <div className="p-3 border-b border-[var(--csp-neutral-200)] shrink-0">
         <input
           autoFocus
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search Notes, NPCs, Locations, Sessions..."
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+          className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
         />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
-        {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
+        {error && <p className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</p>}
         {q ? (
           <ResultList
             heading={`Results (${results?.length ?? 0})`}
@@ -412,11 +412,11 @@ const ResultList: React.FC<{
   onSelect: (item: PlannerSearchItem) => void;
 }> = ({ heading, items, loading, emptyLabel, onSelect }) => (
   <div>
-    <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">{heading}</h4>
+    <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-2">{heading}</h4>
     {loading ? (
-      <p className="text-xs text-slate-400 italic">Loading&hellip;</p>
+      <p className="text-xs text-[var(--csp-neutral-400)] italic">Loading&hellip;</p>
     ) : !items || items.length === 0 ? (
-      <p className="text-xs text-slate-400 italic">{emptyLabel}</p>
+      <p className="text-xs text-[var(--csp-neutral-400)] italic">{emptyLabel}</p>
     ) : (
       <ul className="space-y-1">
         {items.map((item) => (
@@ -424,10 +424,10 @@ const ResultList: React.FC<{
             <button
               type="button"
               onClick={() => onSelect(item)}
-              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer flex items-center justify-between gap-2"
+              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-[var(--csp-neutral-50)] cursor-pointer flex items-center justify-between gap-2"
             >
-              <span className="text-sm text-slate-800 truncate">{item.label}</span>
-              <span className="text-[10px] uppercase tracking-wide text-slate-400 shrink-0">
+              <span className="text-sm text-[var(--csp-neutral-800)] truncate">{item.label}</span>
+              <span className="text-[10px] uppercase tracking-wide text-[var(--csp-neutral-400)] shrink-0">
                 {plannerTypeLabel(item.type)}
               </span>
             </button>
@@ -487,9 +487,9 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
         onBack={() => onChangeRef(null)}
       />
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-        {view === undefined && <p className="text-xs text-slate-400 italic">Loading&hellip;</p>}
+        {view === undefined && <p className="text-xs text-[var(--csp-neutral-400)] italic">Loading&hellip;</p>}
         {view === null && (
-          <p className="text-xs text-slate-400 italic">
+          <p className="text-xs text-[var(--csp-neutral-400)] italic">
             This {plannerTypeLabel(entityRef.type as PlannerEntityType)} no longer exists.
           </p>
         )}
@@ -500,7 +500,7 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
                 {view.badges.map((badge) => (
                   <span
                     key={badge}
-                    className="px-2 py-0.5 rounded-full bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                    className="px-2 py-0.5 rounded-full bg-[var(--csp-neutral-50)] text-[10px] font-semibold uppercase tracking-wide text-[var(--csp-neutral-500)]"
                   >
                     {badge}
                   </span>
@@ -510,7 +510,7 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
             {view.sections.map((section, i) => (
               <div key={section.label ?? i}>
                 {section.label && (
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-2">
                     {section.label}
                   </h4>
                 )}
@@ -518,13 +518,13 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
               </div>
             ))}
 
-            <div className="pt-3 border-t border-slate-200 space-y-3">
+            <div className="pt-3 border-t border-[var(--csp-neutral-200)] space-y-3">
               <div>
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-2">
                   Linked Entities
                 </h4>
                 {outgoing.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">No links yet.</p>
+                  <p className="text-xs text-[var(--csp-neutral-400)] italic">No links yet.</p>
                 ) : (
                   <ul className="space-y-1">
                     {outgoing.map((link) => {
@@ -534,7 +534,7 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
                           <button
                             type="button"
                             onClick={() => onOpenTarget(link.targetType, link.targetId)}
-                            className="text-left text-sm text-emerald-700 hover:underline cursor-pointer truncate"
+                            className="text-left text-sm text-[var(--csp-accent-700)] hover:underline cursor-pointer truncate"
                           >
                             {metadata?.label ?? `${link.targetType}:${link.targetId}`}
                           </button>
@@ -545,9 +545,9 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
                 )}
               </div>
               <div>
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Backlinks</h4>
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-2">Backlinks</h4>
                 {incoming.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">Nothing links here yet.</p>
+                  <p className="text-xs text-[var(--csp-neutral-400)] italic">Nothing links here yet.</p>
                 ) : (
                   <ul className="space-y-1">
                     {incoming.map((link) => {
@@ -557,7 +557,7 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
                           <button
                             type="button"
                             onClick={() => onOpenTarget(link.sourceType, link.sourceId)}
-                            className="text-left text-sm text-emerald-700 hover:underline cursor-pointer truncate"
+                            className="text-left text-sm text-[var(--csp-accent-700)] hover:underline cursor-pointer truncate"
                           >
                             {metadata?.sourceLabel ?? `${link.sourceType}:${link.sourceId}`}
                           </button>

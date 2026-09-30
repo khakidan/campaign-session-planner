@@ -1,6 +1,6 @@
 # Roadmap
 
-This file tracks **only currently-open work** — pending features/bugs and in-progress/scoped-but-not-yet-built plans.
+This file tracks **only currently-open work** — pending features/bugs and in-progress/scoped-but-not-yet-built plans. See `CHANGELOG.md` for everything already implemented.
 
 ---
 
@@ -13,20 +13,10 @@ None.
 ### 🟡 Features to Add / Test Coverage Gaps
 
 - **Phase 1 "Memory" feature set** (player theories, unresolved questions, NPC attachments, a pre-session "previously established" briefing) is scoped and ready to build. See "Phase 1 Implementation Plan" below.
-- **Template enrichment** (new toggle-headings on existing shipped templates — Scene pacing/collaboration prompts, NPC motivation depth, Thread pressure, Session player-contribution prompts) drawn from `template-proposals.md`'s compatible subset. See "Template Enrichment" below — this is the cheapest of the two remaining items and can land independent of the other.
-
----
-
-## ✅ Done: Test Infrastructure
-
-The Testing Plan previously tracked here is built and passing (115 tests, 14 files) — `npm test` runs `vitest run`. Kept here as a short reference for how to extend it, not as open work.
-
-- **Tooling**: `vitest`, `jsdom`, `@testing-library/react`/`user-event`/`jest-dom` as `devDependencies`; `vitest.config.ts` at the package root. Note: this package's own `tsconfig.json` deliberately `extends "../../tsconfig.json"` (resolves against a host app's root tsconfig when consumed as a submodule — see README) — standalone, that path doesn't exist, so `vitest.config.ts` sets `esbuild.tsconfigRaw` to a JSON **string** (not object — Vite only skips its own, otherwise-failing tsconfig.json file lookup when it's a string) to bypass it for test runs.
-- **`src/test/fixtures.ts`**: a real, in-memory `createFakeRepository(seed?)` implementing the full `CampaignPlannerRepository` interface, plus `createFakeHostAdapter(overrides?)` and fixture builders (`makeNote`, `makeThread`, `makeSession`, `makeScene`, `makeEntityLink`). Every hook/component test uses this instead of mocking individual repository methods — assertions check what the fake actually stored, not whether a mock "was called."
-- **`src/test/setup.ts`**: registers `@testing-library/react`'s `cleanup()` in `afterEach` — required because this project's tests import `describe`/`it`/`expect` explicitly rather than using vitest's `globals: true`, and RTL's own auto-cleanup only self-registers when it detects a global `afterEach`.
-- **Coverage landed**: all 9 campaign-scoped CRUD hooks via one table-driven suite (`crudHooks.test.ts`) plus `useScenes`, `useEntityLinks`, `useTemplates`, `usePlannerSearchIndex` individually; `NoteEditor`/`NpcEditor`/`SessionEditor` as true seam tests (exact `onSave` payload, validation, `SessionEditor`'s scene-add and scene-reorder logic); `EntityLinksPanel`/`EntityLinkPicker`'s link flow; and the pure `lib/` functions (`blockNoteUtils`, `entityTemplates`, `entityQuickView`, `recentEntities`).
-- **BlockNote is stubbed, not tested, in editor tests**: `NoteEditor.test.tsx`/`NpcEditor.test.tsx`/`SessionEditor.test.tsx` `vi.mock('./BlockNoteFreeformField', ...)` with a one-button stub that calls `onChange` with a fixed `Block[]`, per the testing philosophy's rule that a heavy third-party engine that isn't the thing under test is fine to stub. `BlockNoteFreeformField` itself, `EntityReferenceInlineContent`, `ReadOnlyBlockNoteView`, and the remaining simple editors (`GroupEditor`/`LocationEditor`/`StorylineEditor`/`ThreadEditor`/`QuestEditor`/`EventEditor`, all structurally identical to `NpcEditor`) are not yet covered — same pattern as `NpcEditor.test.tsx` applies directly to each.
-- **Not yet covered**: `CampaignSessionPlanner.tsx`, `QuickReferenceDrawer.tsx`, and `TemplateSettingsPanel.tsx` — the top-level integration components that wire everything above together. These are the next-highest-value target once the roadmap items below land, since they'll otherwise be the only place Phase 1's new `SessionBriefingPanel` wiring gets exercised.
+- **Template enrichment** (new toggle-headings on existing shipped templates — Scene pacing/collaboration prompts, NPC motivation depth, Thread pressure, Session player-contribution prompts) drawn from `template-proposals.md`'s compatible subset. See "Template Enrichment" below.
+- **Further layout customization beyond the tab bar.** `CampaignSessionPlanner`'s `renderNav` prop (see `CHANGELOG.md`) only overrides the top tab bar. Every editor's own field order/markup (`NoteEditor`, `NpcEditor`, `SessionEditor`, etc.) is still fixed — a host that wants, say, a different field order or extra fields alongside the shipped ones currently has to fork. Needs its own scoping pass (likely a `renderFields`/slot-per-section API, similar in spirit to `renderNav`) once there's a concrete host need driving the shape of it, rather than guessing at an API up front.
+- **No build step** (`package.json`'s `main`/`types` point straight at `src/index.ts`). Works today because every consumer is a Vite/esbuild-based bundler that transpiles TypeScript from a workspace member directly — a host on a different toolchain (plain `tsc`+Node, webpack without workspace-source transpilation, etc.) can't consume this package at all yet. Fixing this means adding a real build step (`tsup` or Vite library mode) emitting `dist/` + `.d.ts`, plus deciding how the CSS this package imports (BlockNote's own stylesheets, `theme.css`) gets shipped to a host that isn't already running this package's raw `.tsx` through its own CSS-aware bundler — a real design decision (a separate `dist/style.css` a host must import explicitly is the common pattern for React UI libraries) worth deciding deliberately rather than guessing at, since it changes how every host consumes this package. See README.md's "Known gaps" section.
+- **Test coverage gaps**: `BlockNoteFreeformField` itself, the remaining structurally-identical editors (`GroupEditor`/`LocationEditor`/`StorylineEditor`/`ThreadEditor`/`QuestEditor`/`EventEditor` — same pattern as `NpcEditor.test.tsx` applies directly), and `QuickReferenceDrawer.tsx`/`TemplateSettingsPanel.tsx`.
 
 ---
 
@@ -64,12 +54,12 @@ This is the "Phase 1 — Memory" subset previously identified as the highest-val
 
 ### Explicitly out of scope for this pass
 
-- No `Player` entity, no `TTRPGHostAdapter` extension — the proposal's "Player Intent" layer needs that and is a real contract change (see the earlier review); this plan only uses entities/interfaces that already exist.
+- No `Player` entity, no `TTRPGHostAdapter` extension — the proposal's "Player Intent" layer needs that and is a real contract change (see `CHANGELOG.md`'s review notes); this plan only uses entities/interfaces that already exist.
 - No Daggerheart-specific Hope/Fear fields — would require branching on `hostAdapter.getGameSystem()`, which nothing in this package does today and which would break host-agnosticism for the D&D host.
 - No live-session "Table Facilitation" UI (safety tools, pulse meters, one-click buttons) — different subsystem, separate design pass.
 - No new `SessionObservation` entity or closed enum schema — deliberately reuses `Note`'s existing free-text `type`/`status` design from Slice 4.2e instead of reintroducing per-field structure.
 
-### Test coverage for this feature (per the Testing Plan above)
+### Test coverage for this feature (per `CHANGELOG.md`'s testing conventions)
 
 - `plannerMemory.test.ts` — pure function tests: given a fixture array of `Note`s/`Thread`s with mixed types/statuses, assert `buildSessionBriefing` groups and excludes exactly the right ones (no mocking needed at all).
 - `useSessionBriefing.test.ts` — fake-repository-backed hook test: seed notes/threads, render the hook, assert `result.current` matches the expected grouped shape; then mutate (add a new `Player Theory` note through `useNotes`' own `createNote`) and assert the briefing recomputes.
@@ -90,7 +80,7 @@ This is the "Phase 1 — Memory" subset previously identified as the highest-val
 - `sessionTemplate` — extend "Outcomes" guidance to prompt for "Things Players Were Excited About" / "Things Players Disengaged From" (from the Aftermath and Session Pulse templates), and add a "Player Hooks" heading near the existing "Anticipated Content" link-section.
 - `groupTemplate`/`storylineTemplate`/`questTemplate`/`eventTemplate`/`locationTemplate` — each gets one small "Player Contributions" or "Player-Created Details" heading, matching the corresponding template-proposals.md section, in the same additive, no-schema-change way.
 
-This is the cheapest of the three items on this roadmap: it's edits to string literals in one file (`entityTemplates.ts`), ships independent of the Testing Plan or the Phase 1 plan, and needs only the pure-function tests already scoped for `entityTemplates` in the Testing Plan's priority-3 tier (assert the new headings appear in the exported `PartialBlock[]` arrays).
+This is the cheapest of the remaining items on this roadmap: it's edits to string literals in one file (`entityTemplates.ts`), ships independent of the Phase 1 plan, and needs only pure-function tests (assert the new headings appear in the exported `PartialBlock[]` arrays) — same pattern as `entityTemplates.test.ts` already uses.
 
 **Not compatible without a real design pass — templates for entity kinds that don't exist:** `Player Intent`, `Player Preferences`, `Observation`, `Collaboration Opportunity` (as its own entity, distinct from the Scene heading above), `Session Safety`, `Complication Bank`, `Next Session Briefing`, `Campaign Changes`, and `Story Possibility` aren't templates for anything in `TemplateEntityKind` — there's no `Player`, `Observation`, etc. entity to attach a template to. Templating them doesn't avoid the underlying issue:
 
@@ -100,7 +90,7 @@ This is the cheapest of the three items on this roadmap: it's edits to string li
 
 ---
 
-## Design Proposition
+## Source documents referenced above
 
-- `chatGPTWorkflowProposal.md` — one attempt at incorporating concepts from the *Rolling with the Youth* book. Reviewed; see conversation history for the full critique (it conflicts with the Slice 4.2e freeform-document design in places, invents entities/contracts not discussed, and — checked against the actual PDF — generalizes several youth-safety-specific recommendations as if they were generic GM advice). The Phase 1 subset above is the part of it judged worth building, rescoped to fit the existing architecture.
+- `chatGPTWorkflowProposal.md` — a synthesis of ideas from the *Rolling with the Youth* GMing book. See `CHANGELOG.md` for the review outcome; the Phase 1 plan above is the part of it judged worth building.
 - `template-proposals.md` — a templated restatement of the same ideas; see "Template Enrichment" above for the compatible/incompatible split.

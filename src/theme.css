@@ -1,0 +1,38 @@
+/**
+ * Every color this package's components use resolves through these
+ * custom properties instead of a literal Tailwind color class. A host
+ * app restyles the whole package by overriding these variables in its
+ * own stylesheet (scoped to `:root`, or to whatever wrapper element it
+ * mounts the planner inside, e.g. `.my-app-theme { --csp-accent-600:
+ * #7c3aed; }`) — no component code needs to change, and no host-side
+ * Tailwind config is required to do it.
+ *
+ * The three roles (`neutral`/`accent`/`danger`) and shade numbers
+ * mirror Tailwind's own scale (50 lightest → 900 darkest) so the
+ * defaults below are exactly this package's previous hardcoded
+ * slate/emerald/rose classes, just centralized. Only the shades this
+ * package actually uses are defined.
+ */
+:root {
+  --csp-neutral-50: #f8fafc;
+  --csp-neutral-100: #f1f5f9;
+  --csp-neutral-200: #e2e8f0;
+  --csp-neutral-300: #cbd5e1;
+  --csp-neutral-400: #94a3b8;
+  --csp-neutral-500: #64748b;
+  --csp-neutral-600: #475569;
+  --csp-neutral-700: #334155;
+  --csp-neutral-800: #1e293b;
+  --csp-neutral-900: #0f172a;
+
+  --csp-accent-50: #ecfdf5;
+  --csp-accent-100: #d1fae5;
+  --csp-accent-400: #34d399;
+  --csp-accent-500: #10b981;
+  --csp-accent-600: #059669;
+  --csp-accent-700: #047857;
+  --csp-accent-800: #065f46;
+
+  --csp-danger-600: #e11d48;
+  --csp-danger-800: #9f1239;
+}

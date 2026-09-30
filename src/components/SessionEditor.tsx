@@ -196,19 +196,19 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       <button
         type="button"
         onClick={onCancel}
-        className="text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+        className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] cursor-pointer"
       >
         &larr; Back to Sessions
       </button>
 
-      {error && <div className="text-xs font-semibold text-rose-600">{error}</div>}
+      {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
 
       <Field id="session-title" label="Title" value={values.title} onChange={(v) => setValues((p) => ({ ...p, title: v }))} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Field id="session-number" label="Session Number" value={values.sessionNumber} onChange={(v) => setValues((p) => ({ ...p, sessionNumber: v }))} />
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1" htmlFor="session-date">
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="session-date">
             Date
           </label>
           <input
@@ -216,11 +216,11 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             type="date"
             value={values.date ? values.date.slice(0, 10) : ''}
             onChange={(e) => setValues((prev) => ({ ...prev, date: e.target.value }))}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
           />
         </div>
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1" htmlFor="session-status">
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="session-status">
             Status
           </label>
           <input
@@ -229,7 +229,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             list="session-status-suggestions"
             value={values.status}
             onChange={(e) => setValues((prev) => ({ ...prev, status: e.target.value }))}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
             placeholder="Draft"
           />
           <datalist id="session-status-suggestions">
@@ -247,21 +247,21 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         template={template ?? defaultSessionTemplate}
       />
 
-      <fieldset className="space-y-3 border-t border-slate-200 pt-4">
-        <legend className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Scenes</legend>
+      <fieldset className="space-y-3 border-t border-[var(--csp-neutral-200)] pt-4">
+        <legend className="text-xs font-bold uppercase tracking-wider text-[var(--csp-neutral-600)] mb-1">Scenes</legend>
         {sortedScenes.length === 0 ? (
-          <p className="text-xs text-slate-400 italic">No Scenes yet.</p>
+          <p className="text-xs text-[var(--csp-neutral-400)] italic">No Scenes yet.</p>
         ) : (
           <ul className="space-y-1">
             {sortedScenes.map((scene, index) => (
-              <li key={scene.id} className="flex items-center justify-between gap-2 p-2 border border-slate-200 rounded-lg text-sm">
+              <li key={scene.id} className="flex items-center justify-between gap-2 p-2 border border-[var(--csp-neutral-200)] rounded-lg text-sm">
                 <button
                   type="button"
                   onClick={() => setScenesView({ mode: 'edit', id: scene.id })}
-                  className="text-left text-slate-800 hover:text-emerald-700 cursor-pointer truncate flex-1"
+                  className="text-left text-[var(--csp-neutral-800)] hover:text-[var(--csp-accent-700)] cursor-pointer truncate flex-1"
                 >
                   {scene.title}
-                  {scene.status && <span className="ml-2 text-[10px] uppercase text-slate-400">{scene.status}</span>}
+                  {scene.status && <span className="ml-2 text-[10px] uppercase text-[var(--csp-neutral-400)]">{scene.status}</span>}
                 </button>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
@@ -269,7 +269,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
                     aria-label={`Move ${scene.title} up`}
                     disabled={index === 0}
                     onClick={() => handleReorder(scene, 'up')}
-                    className="px-1.5 py-0.5 text-xs text-slate-500 hover:text-slate-800 disabled:opacity-30 cursor-pointer"
+                    className="px-1.5 py-0.5 text-xs text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] disabled:opacity-30 cursor-pointer"
                   >
                     ↑
                   </button>
@@ -278,7 +278,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
                     aria-label={`Move ${scene.title} down`}
                     disabled={index === sortedScenes.length - 1}
                     onClick={() => handleReorder(scene, 'down')}
-                    className="px-1.5 py-0.5 text-xs text-slate-500 hover:text-slate-800 disabled:opacity-30 cursor-pointer"
+                    className="px-1.5 py-0.5 text-xs text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] disabled:opacity-30 cursor-pointer"
                   >
                     ↓
                   </button>
@@ -291,20 +291,20 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           type="button"
           disabled={!session}
           onClick={() => setScenesView({ mode: 'edit', id: null })}
-          className="px-3 py-1.5 text-xs font-semibold text-emerald-700 border border-emerald-600 rounded-lg hover:bg-emerald-50 disabled:opacity-40 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-semibold text-[var(--csp-accent-700)] border border-[var(--csp-accent-600)] rounded-lg hover:bg-[var(--csp-accent-50)] disabled:opacity-40 cursor-pointer"
         >
           + Add Scene
         </button>
-        {!session && <p className="text-[11px] text-slate-400 italic">Save this Session before adding Scenes.</p>}
+        {!session && <p className="text-[11px] text-[var(--csp-neutral-400)] italic">Save this Session before adding Scenes.</p>}
       </fieldset>
 
-      <p className="text-xs text-slate-400 italic">
+      <p className="text-xs text-[var(--csp-neutral-400)] italic">
         Active Storylines/Threads/Quests, Anticipated NPCs/Locations/Factions/Events — link them via "Linked Entities" below.
       </p>
 
       {values.status === 'Completed' && (
-        <fieldset className="space-y-3 border-t border-slate-200 pt-4">
-          <legend className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Debrief</legend>
+        <fieldset className="space-y-3 border-t border-[var(--csp-neutral-200)] pt-4">
+          <legend className="text-xs font-bold uppercase tracking-wider text-[var(--csp-neutral-600)] mb-1">Debrief</legend>
           <BlockNoteFreeformField
             value={values.debrief}
             onChange={(blocks) => setValues((prev) => ({ ...prev, debrief: blocks }))}
@@ -321,7 +321,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           <button
             type="button"
             onClick={() => onDelete()}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
+            className="text-xs font-semibold text-[var(--csp-danger-600)] hover:text-[var(--csp-danger-800)] cursor-pointer"
           >
             Delete Session
           </button>
@@ -332,7 +332,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-[var(--csp-neutral-600)] border border-[var(--csp-neutral-300)] rounded-lg hover:bg-[var(--csp-neutral-50)] cursor-pointer"
           >
             Cancel
           </button>
@@ -340,7 +340,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-white bg-[var(--csp-accent-600)] hover:bg-[var(--csp-accent-700)] rounded-lg disabled:opacity-50 cursor-pointer"
           >
             {isSaving ? 'Saving…' : 'Save Session'}
           </button>

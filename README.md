@@ -125,6 +125,50 @@ git add packages/campaign-session-planner
 git commit -m "Update campaign-session-planner submodule"
 ```
 
+## Theming & layout customization
+
+This package is meant to be wired into any TTRPG-like host and restyled
+to match it — it doesn't assume it owns your app's visual identity.
+
+- **Colors** — every component resolves its colors through CSS custom
+  properties (`src/theme.css`, imported once from this package's own
+  entry point) instead of literal Tailwind color classes. Three
+  semantic roles, each a full `50`–`900` Tailwind-style shade scale:
+  `--csp-neutral-*` (borders/backgrounds/body text), `--csp-accent-*`
+  (the primary/interactive color), `--csp-danger-*` (destructive
+  actions/errors). Override any of them in your own stylesheet — no
+  Tailwind config, build step, or component change needed on your side:
+  ```css
+  :root {
+    --csp-accent-600: #7c3aed; /* swap the accent from emerald to violet */
+  }
+  ```
+- **Layout** — `CampaignSessionPlanner`'s top tab bar (the single most
+  opinionated piece of layout it owns) is overridable via the
+  `renderNav` prop. Omit it to keep the shipped horizontal tab bar; pass
+  a function to render a sidebar, dropdown, or anything else instead,
+  built from the same underlying data (`kinds`, `labels`, `activeKind`,
+  `onSelectKind`, `onOpenTemplateSettings` —
+  `CampaignSessionPlannerNavProps`) rather than fighting the shipped
+  markup/CSS:
+  ```tsx
+  <CampaignSessionPlanner
+    {...otherProps}
+    renderNav={({ kinds, labels, activeKind, onSelectKind }) => (
+      <MyAppSidebar>
+        {kinds.map((kind) => (
+          <MyAppSidebarItem key={kind} active={kind === activeKind} onClick={() => onSelectKind(kind)}>
+            {labels[kind]}
+          </MyAppSidebarItem>
+        ))}
+      </MyAppSidebar>
+    )}
+  />
+  ```
+  Every other editor's field order/markup is currently fixed (not yet
+  slotted) — see `ROADMAP.md` if you need to go further than the tab
+  bar.
+
 ## Known gaps / things to know before extending this further
 
 - **No build step.** `package.json`'s `main`/`types` point straight at
@@ -134,11 +178,6 @@ git commit -m "Update campaign-session-planner submodule"
   that (e.g. a plain `tsc`+Node consumer with no bundler), add a real
   build step (`tsup` or Vite library mode) emitting `dist/` + `.d.ts`
   before that host can consume it.
-- **No tests live in this package.** Its only test coverage today is
-  in the Daggerheart host repo's `tests/`, exercising it through that
-  host's wiring (`tests/components/CampaignSessionPlanner.test.tsx`).
-  A regression here won't be caught until whichever host app's test
-  suite happens to run next.
 - **Single game-system assumption isn't hardcoded, but isn't exercised
   either.** `TTRPGHostAdapter.getGameSystem()` exists so the planner
   could theoretically branch UI copy/behavior per system in the future,

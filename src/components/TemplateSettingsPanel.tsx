@@ -90,7 +90,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ initialBlocks, defaultB
           type="button"
           onClick={handleReset}
           disabled={isSaving || !isCustomized}
-          className="text-xs font-semibold text-slate-500 hover:text-slate-800 disabled:opacity-40 cursor-pointer"
+          className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] disabled:opacity-40 cursor-pointer"
         >
           Reset to Default
         </button>
@@ -98,7 +98,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ initialBlocks, defaultB
           type="button"
           onClick={handleSave}
           disabled={isSaving}
-          className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-semibold text-white bg-[var(--csp-accent-600)] hover:bg-[var(--csp-accent-700)] rounded-lg disabled:opacity-50 cursor-pointer"
         >
           {isSaving ? 'Saving…' : 'Save Template'}
         </button>
@@ -132,21 +132,21 @@ export const TemplateSettingsPanel: React.FC<TemplateSettingsPanelProps> = ({
 
   return (
     <div className="space-y-4">
-      <button type="button" onClick={onClose} className="text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer">
+      <button type="button" onClick={onClose} className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] cursor-pointer">
         &larr; Back to Campaign Planner
       </button>
 
       <div>
-        <h3 className="text-sm font-bold text-slate-800">Starter Templates</h3>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <h3 className="text-sm font-bold text-[var(--csp-neutral-800)]">Starter Templates</h3>
+        <p className="text-xs text-[var(--csp-neutral-500)] mt-0.5">
           Customize the headings each entity kind's "+ Use starter template" button inserts into a brand-new document. Changes
           apply only to this campaign.
         </p>
       </div>
 
-      {error && <div className="text-xs font-semibold text-rose-600">{error}</div>}
+      {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
 
-      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
+      <div className="flex gap-1 border-b border-[var(--csp-neutral-200)] overflow-x-auto">
         {KINDS.map((kind) => (
           <button
             key={kind}
@@ -154,12 +154,12 @@ export const TemplateSettingsPanel: React.FC<TemplateSettingsPanelProps> = ({
             onClick={() => setSelectedKind(kind)}
             className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
               selectedKind === kind
-                ? 'border-emerald-600 text-emerald-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-[var(--csp-accent-600)] text-[var(--csp-accent-700)]'
+                : 'border-transparent text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)]'
             }`}
           >
             {TEMPLATE_LABELS[kind]}
-            {overrideFor(kind) && <span className="ml-1 text-emerald-600">&bull;</span>}
+            {overrideFor(kind) && <span className="ml-1 text-[var(--csp-accent-600)]">&bull;</span>}
           </button>
         ))}
       </div>

@@ -68,12 +68,12 @@ export const EventEditor: React.FC<EventEditorProps> = ({ event, onSave, onDelet
       <button
         type="button"
         onClick={onCancel}
-        className="text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+        className="text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] cursor-pointer"
       >
         &larr; Back to Events
       </button>
 
-      {error && <div className="text-xs font-semibold text-rose-600">{error}</div>}
+      {error && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</div>}
 
       <Field id="event-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
 
@@ -81,7 +81,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({ event, onSave, onDelet
         <Field id="event-type" label="Event Type" value={values.eventType} onChange={(v) => setValues((p) => ({ ...p, eventType: v }))} />
         <Field id="event-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1" htmlFor="event-date">
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="event-date">
             Date / Time
           </label>
           <input
@@ -89,7 +89,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({ event, onSave, onDelet
             type="date"
             value={values.date ? values.date.slice(0, 10) : ''}
             onChange={(e) => setValues((prev) => ({ ...prev, date: e.target.value }))}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
           />
         </div>
       </div>
@@ -108,7 +108,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({ event, onSave, onDelet
           <button
             type="button"
             onClick={() => onDelete()}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
+            className="text-xs font-semibold text-[var(--csp-danger-600)] hover:text-[var(--csp-danger-800)] cursor-pointer"
           >
             Delete Event
           </button>
@@ -119,7 +119,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({ event, onSave, onDelet
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-[var(--csp-neutral-600)] border border-[var(--csp-neutral-300)] rounded-lg hover:bg-[var(--csp-neutral-50)] cursor-pointer"
           >
             Cancel
           </button>
@@ -127,7 +127,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({ event, onSave, onDelet
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-white bg-[var(--csp-accent-600)] hover:bg-[var(--csp-accent-700)] rounded-lg disabled:opacity-50 cursor-pointer"
           >
             {isSaving ? 'Saving…' : 'Save Event'}
           </button>
