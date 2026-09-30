@@ -3,17 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThreadEditor } from './ThreadEditor';
+import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange([{ type: 'paragraph', content: [{ type: 'text', text: 'The Duke is hiding something.', styles: {} }] }])}
-    >
-      Simulate typing content
-    </button>
-  ),
-}));
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 describe('ThreadEditor', () => {
   it('save: passes the complete, exact form values to onSave', async () => {
@@ -32,7 +24,7 @@ describe('ThreadEditor', () => {
       name: "The Duke's Secret",
       status: 'Open',
       priority: 'High',
-      details: [{ type: 'paragraph', content: [{ type: 'text', text: 'The Duke is hiding something.', styles: {} }] }],
+      details: MOCK_TYPED_CONTENT,
     });
   });
 

@@ -3,17 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EventEditor } from './EventEditor';
+import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange([{ type: 'paragraph', content: [{ type: 'text', text: 'The bridge collapses.', styles: {} }] }])}
-    >
-      Simulate typing content
-    </button>
-  ),
-}));
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 describe('EventEditor', () => {
   it('save: passes the complete, exact form values to onSave', async () => {
@@ -34,7 +26,7 @@ describe('EventEditor', () => {
       eventType: 'Disaster',
       status: 'Occurred',
       date: '2024-03-15',
-      details: [{ type: 'paragraph', content: [{ type: 'text', text: 'The bridge collapses.', styles: {} }] }],
+      details: MOCK_TYPED_CONTENT,
     });
   });
 

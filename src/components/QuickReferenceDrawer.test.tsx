@@ -6,13 +6,7 @@ import { QuickReferenceDrawerProvider, useQuickReferenceDrawer } from './QuickRe
 import { createFakeHostAdapter, createFakeRepository, makeEntityLink, makeNote, TEST_CAMPAIGN_ID } from '../test/fixtures';
 import type { Npc } from '../types';
 
-vi.mock('./ReadOnlyBlockNoteView', () => ({
-  ReadOnlyBlockNoteView: ({ blocks }: { blocks: Array<{ content?: Array<{ text: string }> }> }) => (
-    <div data-testid="readonly-content">
-      {blocks.flatMap((b) => b.content?.map((c) => c.text) ?? []).join(' ')}
-    </div>
-  ),
-}));
+vi.mock('./ReadOnlyBlockNoteView', async () => (await import('../test/mocks/blockNote')).mockReadOnlyBlockNoteView());
 
 const paragraph = (text: string) => [{ type: 'paragraph', content: [{ type: 'text', text, styles: {} }] }] as never;
 

@@ -6,6 +6,27 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Shared BlockNote test mocks, and `EntityReferenceInlineContent` coverage
+
+Two related pieces of test-suite cleanup/completion:
+
+**Deduplicated the `BlockNoteFreeformField`/`ReadOnlyBlockNoteView` mocks.** 10 test files each redefined their own near-identical inline `vi.mock('./BlockNoteFreeformField', ...)` stub (a button that fires one fixed, per-file flavor-text payload). Factored into `src/test/mocks/blockNote.tsx`: `mockBlockNoteFreeformField()` (shared `MOCK_TYPED_CONTENT` constant instead of bespoke text per file — the seam being tested was always "whatever BlockNote reports reaches `onSave`," not the wording) and `mockReadOnlyBlockNoteView()`. `TemplateSettingsPanel.test.tsx` keeps its own inline mock since it genuinely needs to assert on the incoming `value` prop, which the shared one doesn't take.
+
+One real gotcha hit doing this, worth recording: `vi.mock('./X', () => helperFn())` — referencing a normally-imported helper inside the factory — throws `Cannot access '...' before initialization`, because `vi.mock` calls are hoisted above the file's own `import` statements, not just above local `const`s. The fix is a dynamic import *inside* the factory: `vi.mock('./X', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField())`. Every call site uses this form now.
+
+**`EntityReferenceInlineContent.test.tsx`** (5 tests) — the one file `ROADMAP.md` had flagged as untested. It has no standalone-testable API (a BlockNote inline content spec, not a mountable component), so these tests render `BlockNoteFreeformField` with a document that already contains an inserted `entityReference` node and exercise its real render/click-dispatch behavior: label rendering (and the `type:id` fallback when unlabeled), `contenteditable="false"`, and — the actual logic this package owns — dispatching to `onOpenPlannerEntity` vs. `onOpenHostEntity` based on `refSource`, and doing nothing (not throwing) with no linking context at all.
+
+What this does *not* cover, deliberately: actually typing `[[`/`@` to trigger BlockNote's `SuggestionMenuController` through real keystrokes. Attempting it surfaced a cascade of missing jsdom browser-geometry APIs, each fix uncovering the next, all inside ProseMirror's live cursor-positioning code (`coordsAtPos`/`scrollToSelection`, run on every keystroke to decide things like whether to scroll the caret into view):
+
+1. `document.elementsFromPoint` (BlockNote's SideMenu, per the earlier BlockNote-testing changelog entry).
+2. `Range.prototype.getClientRects`.
+3. `DOMRect.prototype.toJSON` (called by BlockNote's SuggestionMenu extension when computing the menu's anchor position).
+4. A fourth, `target.getBoundingClientRect is not a function` on what ProseMirror treats as a text-node target — where this was stopped rather than chased further.
+
+The first three are polyfilled in `src/test/setup.ts` as harmless no-ops (real browsers implement all of them; jsdom doesn't) since they were blocking otherwise-legitimate interaction. The fourth is the point this was judged genuinely impractical in jsdom rather than just unattempted: this is real browser geometry a DOM-emulation library was never going to fully replicate, the mechanism belongs to BlockNote/ProseMirror rather than this package's own code, and the actual custom logic in `EntityReferenceInlineContent.tsx` is fully covered via the pre-seeded-content approach above regardless.
+
+174 tests across 28 files, all passing; `tsc --noEmit` clean.
+
 ## Test coverage: remaining editors, integration components, and BlockNote itself
 
 Closes out every gap the Testing Plan and its follow-ups had left open. Adds 51 tests across 9 new files (169 total, up from 118, across 27 files):

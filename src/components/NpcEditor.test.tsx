@@ -3,17 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NpcEditor } from './NpcEditor';
+import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange([{ type: 'paragraph', content: [{ type: 'text', text: 'Motivated by revenge.', styles: {} }] }])}
-    >
-      Simulate typing content
-    </button>
-  ),
-}));
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 describe('NpcEditor', () => {
   it('save: passes the exact name and content to onSave', async () => {
@@ -27,7 +19,7 @@ describe('NpcEditor', () => {
 
     expect(onSave).toHaveBeenCalledWith({
       name: 'Sister Mariel',
-      details: [{ type: 'paragraph', content: [{ type: 'text', text: 'Motivated by revenge.', styles: {} }] }],
+      details: MOCK_TYPED_CONTENT,
     });
   });
 

@@ -3,17 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GroupEditor } from './GroupEditor';
+import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange([{ type: 'paragraph', content: [{ type: 'text', text: 'A cult of ash-worshippers.', styles: {} }] }])}
-    >
-      Simulate typing content
-    </button>
-  ),
-}));
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 describe('GroupEditor', () => {
   it('save: passes the complete, exact form values to onSave', async () => {
@@ -32,7 +24,7 @@ describe('GroupEditor', () => {
       name: 'The Ashen Circle',
       type: 'CULT',
       status: 'Active',
-      details: [{ type: 'paragraph', content: [{ type: 'text', text: 'A cult of ash-worshippers.', styles: {} }] }],
+      details: MOCK_TYPED_CONTENT,
     });
   });
 

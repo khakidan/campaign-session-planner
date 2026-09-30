@@ -4,17 +4,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LocationEditor } from './LocationEditor';
 import type { Location } from '../types';
+import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange([{ type: 'paragraph', content: [{ type: 'text', text: 'A fishing village.', styles: {} }] }])}
-    >
-      Simulate typing content
-    </button>
-  ),
-}));
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 const otherLocation: Location = {
   id: 'location-parent',
@@ -44,7 +36,7 @@ describe('LocationEditor', () => {
       name: 'Blackwater Village',
       type: 'Village',
       parentLocationId: 'location-parent',
-      details: [{ type: 'paragraph', content: [{ type: 'text', text: 'A fishing village.', styles: {} }] }],
+      details: MOCK_TYPED_CONTENT,
     });
   });
 

@@ -3,17 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuestEditor } from './QuestEditor';
+import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange([{ type: 'paragraph', content: [{ type: 'text', text: 'Recover the Oortgard Amulet.', styles: {} }] }])}
-    >
-      Simulate typing content
-    </button>
-  ),
-}));
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 describe('QuestEditor', () => {
   it('save: passes the complete, exact form values to onSave', async () => {
@@ -30,7 +22,7 @@ describe('QuestEditor', () => {
     expect(onSave).toHaveBeenCalledWith({
       name: 'The Oortgard Amulet',
       status: 'Active',
-      details: [{ type: 'paragraph', content: [{ type: 'text', text: 'Recover the Oortgard Amulet.', styles: {} }] }],
+      details: MOCK_TYPED_CONTENT,
     });
   });
 

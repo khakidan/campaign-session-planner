@@ -4,17 +4,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SessionEditor } from './SessionEditor';
 import { createFakeHostAdapter, createFakeRepository, makeScene, makeSession, TEST_CAMPAIGN_ID } from '../test/fixtures';
+import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange([{ type: 'paragraph', content: [{ type: 'text', text: 'Session write-up.', styles: {} }] }])}
-    >
-      Simulate typing content
-    </button>
-  ),
-}));
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 function baseProps() {
   return {
@@ -45,7 +37,7 @@ describe('SessionEditor', () => {
       sessionNumber: '4',
       date: '',
       status: 'Draft',
-      details: [{ type: 'paragraph', content: [{ type: 'text', text: 'Session write-up.', styles: {} }] }],
+      details: MOCK_TYPED_CONTENT,
       debrief: [],
     });
   });

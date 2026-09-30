@@ -5,13 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { CampaignSessionPlanner, type CampaignSessionPlannerNavProps } from './CampaignSessionPlanner';
 import { createFakeHostAdapter, createFakeRepository, TEST_CAMPAIGN_ID } from '../test/fixtures';
 
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button type="button" onClick={() => onChange([])}>
-      Simulate typing content
-    </button>
-  ),
-}));
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 describe('CampaignSessionPlanner nav customization', () => {
   it('renders the default tab bar (kind labels as clickable tabs) when renderNav is omitted', async () => {

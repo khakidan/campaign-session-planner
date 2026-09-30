@@ -28,3 +28,25 @@ if (!document.elementsFromPoint) {
 if (!document.elementFromPoint) {
   document.elementFromPoint = () => null;
 }
+
+// jsdom's `Range` also doesn't implement `getClientRects` (ProseMirror
+// calls it, via `coordsAtPos`, to compute on-screen cursor position
+// after every keystroke dispatched into the editor — e.g. to decide
+// whether to scroll the caret into view). Same rationale as the
+// `elementsFromPoint` polyfill above: this is jsdom lacking real
+// browser geometry, not a bug to work around in this package's code.
+if (!Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = function getClientRects() {
+    return [] as unknown as DOMRectList;
+  };
+}
+
+// jsdom's `DOMRect` (the return type of `getBoundingClientRect`) has no
+// `toJSON`, which real browsers provide — BlockNote's SuggestionMenu
+// extension calls it when computing the menu's anchor position.
+if (typeof DOMRect !== 'undefined' && !DOMRect.prototype.toJSON) {
+  DOMRect.prototype.toJSON = function toJSON(this: DOMRect) {
+    const { x, y, width, height, top, right, bottom, left } = this;
+    return { x, y, width, height, top, right, bottom, left };
+  };
+}

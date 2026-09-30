@@ -3,23 +3,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NoteEditor } from './NoteEditor';
+import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
 // `BlockNoteFreeformField` wraps a real ProseMirror-based rich-text
 // engine (BlockNote) — per ROADMAP.md's Testing Plan, that's exactly
 // the kind of heavy third-party dependency this project's testing
 // philosophy says is fine to stub, since it is not the thing under
 // test here (NoteEditor's own field-wiring/validation/save behavior
-// is). The stub still exercises the real `value`/`onChange` contract.
-vi.mock('./BlockNoteFreeformField', () => ({
-  BlockNoteFreeformField: ({ onChange }: { onChange: (blocks: unknown[]) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange([{ type: 'paragraph', content: [{ type: 'text', text: 'Typed content', styles: {} }] }])}
-    >
-      Simulate typing content
-    </button>
-  ),
-}));
+// is). The shared mock still exercises the real `onChange` contract.
+// Dynamically imported inside the factory — `vi.mock` is hoisted above
+// this file's own top-level imports, so referencing a statically
+// imported binding here hits a "before initialization" error.
+vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
 describe('NoteEditor', () => {
   it('save: passes the complete, exact form values to onSave', async () => {
@@ -41,7 +36,7 @@ describe('NoteEditor', () => {
       type: 'Secret',
       status: 'Active',
       tags: 'ebon-sigil, pandemonium',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Typed content', styles: {} }] }],
+      content: MOCK_TYPED_CONTENT,
     });
   });
 
