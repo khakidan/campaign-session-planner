@@ -127,7 +127,20 @@ const sceneConfrontation = makeScene({
   ] as never,
 });
 
-const npc: Npc = { id: 'npc-1', campaignId: TEST_CAMPAIGN_ID, name: 'Sister Mariel', details: [], createdAt: twoWeeksAgo, updatedAt: now };
+const npc: Npc = {
+  id: 'npc-1',
+  campaignId: TEST_CAMPAIGN_ID,
+  name: 'Sister Mariel',
+  details: [
+    { type: 'heading', props: { level: 3 }, content: [{ type: 'text', text: 'Secrets', styles: {} }] },
+    {
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Secretly loyal to the Fey Court, not the temple she claims to serve.', styles: {} }],
+    },
+  ] as never,
+  createdAt: twoWeeksAgo,
+  updatedAt: now,
+};
 const group: Group = {
   id: 'group-1',
   campaignId: TEST_CAMPAIGN_ID,

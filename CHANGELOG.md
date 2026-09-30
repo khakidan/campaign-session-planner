@@ -6,6 +6,16 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Full-content search in the Quick Reference Drawer
+
+Closes ROADMAP.md's "Full-content search" idea — judged the highest-value of the four brainstormed ideas, since it matters most exactly when it's needed most: mid-session, trying to recall one buried detail. Scoped to the naive client-side approach the open question there flagged, deliberately: every entity's document is already fully loaded into memory by the hooks `usePlannerSearchIndex` composes, so this needed no new indexing dependency, repository change, or second fetch pass — a pure-function text extraction plus a small filter-predicate change.
+
+- **`extractBlockText`** (new, `src/lib/blockNoteUtils.ts`) — walks a stored BlockNote document (`Block[]`) into one plain-text string: recurses into nested `children` (used pervasively by `entityTemplates.ts`'s toggle-heading pattern), concatenates every inline text run's `.text`, and — since the custom `entityReference` inline node has no `.text` field at all — includes its `label` instead, so a document that only *mentions* an NPC via a `[[`/`@` reference is still searchable by that NPC's name. Returns `''` for anything that isn't a real `Block[]` array (`null`, the legacy flat-object shape, etc.) — content search simply finds nothing extra on that data, the same graceful fallback `toBlocksValue` already established for it.
+- **`usePlannerSearchIndex`** now attaches each item's extracted text as a new `content` field on `PlannerSearchItem` — from `Note.content`, `details` for every other kind, and (for Session) `details` + `debrief` concatenated, since a session's own recap is exactly the kind of buried detail this is for.
+- **`QuickReferenceDrawer`'s `SearchPanel`** now matches a typed query against `content` as well as `label`, so "vampire" finds a Note titled "A Secret" whose body mentions it, not just a Note titled "Vampire."
+- **`PlannerSearchItem.content` is optional** — the `EntityLinkPicker`'s own separate, label-only search (a different, deliberate use of the same shared type: choosing something to link *to* doesn't need content matching) is unaffected and doesn't populate it.
+- **Test coverage**: `extractBlockText` (`blockNoteUtils.test.ts`, 5 new tests — flat paragraphs, nested `children`, the `entityReference`-label case, non-array/null input, empty documents), `usePlannerSearchIndex.test.ts` (2 new tests — content extraction, Session's details+debrief concatenation), `QuickReferenceDrawer.test.tsx` (1 new test — a query matching only buried content, not the label, still surfaces the result) — 252 tests total, all passing.
+
 ## "Run Mode": non-modal reference pieces for actually running a session
 
 Closes ROADMAP.md's "Run Mode" idea — scoped, after discussion, against a hard boundary: this package is a *reference* tool, not where a GM manages players (that's the host app's own live-session screen — initiative, character sheets, combat). Nothing here is a route or a modal; both pieces are small and composable, meant to sit *alongside* a host's own live-session UI, the same way `SessionSafetyControls` already floats over the host's page without taking it over.

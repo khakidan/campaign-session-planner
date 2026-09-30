@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CampaignId, CampaignPlannerRepository } from '../types';
 import type { PlannerSearchItem } from '../components/EntityLinkPicker';
+import { extractBlockText } from '../lib/blockNoteUtils';
 
 /**
  * Slice 4.2g — every Note/NPC/Group/Location/Session/Storyline/Thread/
@@ -13,6 +14,13 @@ import type { PlannerSearchItem } from '../components/EntityLinkPicker';
  * `CampaignSessionPlanner`'s own equivalent computation — the Drawer is
  * mounted independently, at the app-shell level, and may be summoned
  * without that component ever having mounted.
+ *
+ * Full-content search (ROADMAP.md): each item's `content` is a plain-
+ * text extraction of that entity's BlockNote document body (`details`,
+ * or `content`/`debrief` for Note/Session respectively) via
+ * `extractBlockText` — every kind's document is already fully loaded
+ * here to build `label`, so this is a pure-function addition, not a
+ * second fetch pass or a new indexing dependency.
  */
 export function usePlannerSearchIndex(repository: CampaignPlannerRepository, campaignId: CampaignId) {
   const [items, setItems] = useState<PlannerSearchItem[] | null>(null);
@@ -35,15 +43,20 @@ export function usePlannerSearchIndex(repository: CampaignPlannerRepository, cam
       .then(([notes, npcs, groups, locations, sessions, storylines, threads, quests, events]) => {
         if (cancelled) return;
         setItems([
-          ...notes.map((n): PlannerSearchItem => ({ type: 'note', id: n.id, label: n.title })),
-          ...npcs.map((n): PlannerSearchItem => ({ type: 'npc', id: n.id, label: n.name })),
-          ...groups.map((g): PlannerSearchItem => ({ type: 'group', id: g.id, label: g.name })),
-          ...locations.map((l): PlannerSearchItem => ({ type: 'location', id: l.id, label: l.name })),
-          ...sessions.map((s): PlannerSearchItem => ({ type: 'session', id: s.id, label: s.title })),
-          ...storylines.map((s): PlannerSearchItem => ({ type: 'storyline', id: s.id, label: s.name })),
-          ...threads.map((t): PlannerSearchItem => ({ type: 'thread', id: t.id, label: t.name })),
-          ...quests.map((q): PlannerSearchItem => ({ type: 'quest', id: q.id, label: q.name })),
-          ...events.map((e): PlannerSearchItem => ({ type: 'event', id: e.id, label: e.name })),
+          ...notes.map((n): PlannerSearchItem => ({ type: 'note', id: n.id, label: n.title, content: extractBlockText(n.content) })),
+          ...npcs.map((n): PlannerSearchItem => ({ type: 'npc', id: n.id, label: n.name, content: extractBlockText(n.details) })),
+          ...groups.map((g): PlannerSearchItem => ({ type: 'group', id: g.id, label: g.name, content: extractBlockText(g.details) })),
+          ...locations.map((l): PlannerSearchItem => ({ type: 'location', id: l.id, label: l.name, content: extractBlockText(l.details) })),
+          ...sessions.map((s): PlannerSearchItem => ({
+            type: 'session',
+            id: s.id,
+            label: s.title,
+            content: [extractBlockText(s.details), extractBlockText(s.debrief)].filter(Boolean).join(' '),
+          })),
+          ...storylines.map((s): PlannerSearchItem => ({ type: 'storyline', id: s.id, label: s.name, content: extractBlockText(s.details) })),
+          ...threads.map((t): PlannerSearchItem => ({ type: 'thread', id: t.id, label: t.name, content: extractBlockText(t.details) })),
+          ...quests.map((q): PlannerSearchItem => ({ type: 'quest', id: q.id, label: q.name, content: extractBlockText(q.details) })),
+          ...events.map((e): PlannerSearchItem => ({ type: 'event', id: e.id, label: e.name, content: extractBlockText(e.details) })),
         ]);
       })
       .catch((err: unknown) => {

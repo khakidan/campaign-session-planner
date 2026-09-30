@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: full-content search in the Quick Reference Drawer
+
+**Action needed: none.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes. The Drawer's search box now also matches against each entity's document content, not just its title; `PlannerSearchItem` gained a new optional `content` field. See `CHANGELOG.md` for detail.
+
 ### New: "Run Mode" (`SessionRunPanel`, `QuickCaptureComposer`)
 
 **Action needed: none unless you want to use them.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, nothing mounted automatically. If you do want them, they're meant to sit in your own live-session screen (not a new route this package dictates) — see README.md's "Run Mode" section for how to wire them in, including `onOpenPlannerEntity`/`onOpenHostEntity` and the optional `subscribeToChanges` note for live list updates.

@@ -365,7 +365,11 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ repository, campaignId, onSel
   const recents = useMemo(() => loadRecents(), []);
 
   const q = query.trim().toLowerCase();
-  const results = q ? (items ?? []).filter((i) => i.label.toLowerCase().includes(q)) : null;
+  const results = q
+    ? (items ?? []).filter(
+        (i) => i.label.toLowerCase().includes(q) || (i.content ?? '').toLowerCase().includes(q)
+      )
+    : null;
 
   return (
     <>
@@ -376,7 +380,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ repository, campaignId, onSel
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Notes, NPCs, Locations, Sessions..."
+          placeholder="Search Notes, NPCs, Locations, Sessions... and their content"
           className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
         />
       </div>

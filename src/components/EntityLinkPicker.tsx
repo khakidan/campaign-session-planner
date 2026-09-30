@@ -9,6 +9,12 @@ export interface PlannerSearchItem {
   type: PlannerEntityType;
   id: string;
   label: string;
+  /** Plain-text extraction of the entity's BlockNote document body
+   * (`usePlannerSearchIndex`'s full-content search) — absent here in
+   * the link picker's own use, which stays label-only: this field
+   * exists so `PlannerSearchItem` can be shared, not so every consumer
+   * has to populate it. */
+  content?: string;
 }
 
 const PLANNER_TYPE_LABELS: Record<PlannerEntityType, string> = {

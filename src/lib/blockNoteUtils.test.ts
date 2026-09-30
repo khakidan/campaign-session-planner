@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toBlocksValue } from './blockNoteUtils';
+import { extractBlockText, toBlocksValue } from './blockNoteUtils';
 
 describe('toBlocksValue', () => {
   it('passes a real Block[] document through unchanged', () => {
@@ -43,5 +43,50 @@ describe('toBlocksValue', () => {
   it('returns an empty array for a number or boolean', () => {
     expect(toBlocksValue(42)).toEqual([]);
     expect(toBlocksValue(true)).toEqual([]);
+  });
+});
+
+describe('extractBlockText', () => {
+  it('joins every text run across paragraphs into one string', () => {
+    const blocks = [
+      { type: 'paragraph', content: [{ type: 'text', text: 'The cult worships', styles: {} }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'a sunken god.', styles: {} }] },
+    ];
+    expect(extractBlockText(blocks)).toBe('The cult worships a sunken god.');
+  });
+
+  it('recurses into nested children blocks', () => {
+    const blocks = [
+      {
+        type: 'heading',
+        content: [{ type: 'text', text: 'Secrets', styles: {} }],
+        children: [{ type: 'paragraph', content: [{ type: 'text', text: 'She is the Duke in disguise.', styles: {} }] }],
+      },
+    ];
+    expect(extractBlockText(blocks)).toBe('Secrets She is the Duke in disguise.');
+  });
+
+  it('includes an entityReference inline node\'s label, which has no .text field', () => {
+    const blocks = [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Ask', styles: {} },
+          { type: 'entityReference', props: { refType: 'npc', refId: 'npc-1', refSource: 'planner', label: 'Sister Mariel' } },
+          { type: 'text', text: 'about it.', styles: {} },
+        ],
+      },
+    ];
+    expect(extractBlockText(blocks)).toBe('Ask Sister Mariel about it.');
+  });
+
+  it('returns an empty string for null/undefined/non-array input', () => {
+    expect(extractBlockText(null)).toBe('');
+    expect(extractBlockText(undefined)).toBe('');
+    expect(extractBlockText({ legacyField: 'text' })).toBe('');
+  });
+
+  it('returns an empty string for an empty document', () => {
+    expect(extractBlockText([])).toBe('');
   });
 });

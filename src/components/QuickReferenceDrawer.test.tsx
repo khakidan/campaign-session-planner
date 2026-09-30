@@ -58,6 +58,19 @@ describe('QuickReferenceDrawer', () => {
     expect(screen.getByText('Results (1)')).toBeInTheDocument();
   });
 
+  it('typing a query also matches a word buried in the entity\'s document content, not just its label', async () => {
+    const user = userEvent.setup();
+    const note = makeNote({ id: 'note-1', title: 'A Secret', content: paragraph('The Duke is secretly a vampire.') });
+    const repository = createFakeRepository({ notes: [note] });
+    render(<Harness repository={repository} hostAdapter={createFakeHostAdapter()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Open Search' }));
+    await user.type(screen.getByPlaceholderText(/Search Notes, NPCs/), 'vampire');
+
+    await waitFor(() => expect(screen.getByText('A Secret')).toBeInTheDocument());
+    expect(screen.getByText('Results (1)')).toBeInTheDocument();
+  });
+
   it('selecting a result shows its quick view: title, badges, content, and linked entities', async () => {
     const user = userEvent.setup();
     const note = makeNote({ id: 'note-1', title: 'A Secret', type: 'Secret', content: paragraph('The Duke is hiding something.') });
