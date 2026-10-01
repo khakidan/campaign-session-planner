@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SessionBriefingPanel } from './SessionBriefingPanel';
@@ -19,6 +19,10 @@ function emptyBriefing(): SessionBriefing {
 }
 
 describe('SessionBriefingPanel', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('shows an empty-state message for every group when there is no data yet', () => {
     render(<SessionBriefingPanel briefing={emptyBriefing()} onOpenPlannerEntity={vi.fn()} />);
 
@@ -28,6 +32,32 @@ describe('SessionBriefingPanel', () => {
     expect(screen.getByText('No noted player interests yet.')).toBeInTheDocument();
     expect(screen.getByText('No noted character goals yet.')).toBeInTheDocument();
     expect(screen.getByText('No noted NPC attachments yet.')).toBeInTheDocument();
+  });
+
+  it('shows the discoverability tip when the briefing is entirely empty, and hides it once anything exists', () => {
+    const { rerender } = render(<SessionBriefingPanel briefing={emptyBriefing()} onOpenPlannerEntity={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Dismiss tip' })).toBeInTheDocument();
+
+    const theory = makeNote({ id: 'n1', title: 'A theory', type: 'Player Theory' });
+    rerender(
+      <SessionBriefingPanel
+        briefing={{ ...emptyBriefing(), playerTheories: [theory] }}
+        onOpenPlannerEntity={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Dismiss tip' })).not.toBeInTheDocument();
+  });
+
+  it('dismissing the tip hides it and remembers the choice across remounts, even while still empty', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<SessionBriefingPanel briefing={emptyBriefing()} onOpenPlannerEntity={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Dismiss tip' }));
+    expect(screen.queryByRole('button', { name: 'Dismiss tip' })).not.toBeInTheDocument();
+
+    unmount();
+    render(<SessionBriefingPanel briefing={emptyBriefing()} onOpenPlannerEntity={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Dismiss tip' })).not.toBeInTheDocument();
   });
 
   it('renders each group\'s items and lets a GM click through to the real entity', async () => {

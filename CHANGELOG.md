@@ -6,6 +6,15 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Discoverability: nudges toward the Confidence/memory-Note/Session-Briefing conventions
+
+Closes ROADMAP.md's "Discoverability of what's already built" idea — a lot of this package's intelligence (Confidence tags, Player Intent via Note↔Character links, the Session Briefing itself) only ever surfaces if a GM adopts specific conventions (tagging a Note's `type` as a memory type, choosing a Confidence level, linking a theory Note to a Character), and nothing in the UI explained any of that. Scoped to two low-noise mechanisms, deliberately not a tour/onboarding flow:
+
+- **`SessionBriefingPanel`'s new dismissible intro tip** — shown only while `isSessionBriefingEmpty` (new, `src/lib/plannerMemory.ts`) is true, i.e. this campaign hasn't used the memory-Note/Thread conventions at all yet, so there's nothing to see and explaining where content comes from can't be noise. Explains tagging a Note's Type, leaving a Thread open, and linking a Note to a Character for "Why This Session Matters." Hides itself automatically the moment any of that exists, regardless of whether it was ever dismissed — and the explicit dismiss (a small `×`, `localStorage`-persisted the same tolerant, best-effort way `recentEntities.ts` already remembers the Drawer's recents) covers a GM who wants it gone before adding anything.
+- **Two inline `NoteEditor` captions**, each appearing only when relevant rather than always-on: one under **Type**, shown only once a memory type (`MEMORY_NOTE_TYPES`) is chosen, naming what it unlocks ("Surfaces automatically in Session Briefing..."); one under **Confidence**, shown only once a level is set, explaining the badge it produces. An experienced GM who already knows the conventions sees these exactly as often as they're setting the field for the first time on a given Note, not on every keystroke or every unrelated field.
+- **Readiness checks were left alone** — `SessionReadinessChecklist`'s own labels ("Session has at least one Scene," etc.) already say plainly what's missing; there was no actual discoverability gap there to close.
+- **Test coverage**: `isSessionBriefingEmpty` (`plannerMemory.test.ts`, 2 new tests), the tip's show/hide/dismiss-persistence behavior (`SessionBriefingPanel.test.tsx`, 2 new tests), and both new captions' conditional visibility (`NoteEditor.test.tsx`, 2 new tests) — 258 tests total, all passing.
+
 ## Full-content search in the Quick Reference Drawer
 
 Closes ROADMAP.md's "Full-content search" idea — judged the highest-value of the four brainstormed ideas, since it matters most exactly when it's needed most: mid-session, trying to recall one buried detail. Scoped to the naive client-side approach the open question there flagged, deliberately: every entity's document is already fully loaded into memory by the hooks `usePlannerSearchIndex` composes, so this needed no new indexing dependency, repository change, or second fetch pass — a pure-function text extraction plus a small filter-predicate change.

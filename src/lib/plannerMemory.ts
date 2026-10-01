@@ -114,6 +114,26 @@ export function buildSessionBriefing(notes: Note[], threads: Thread[]): SessionB
   };
 }
 
+/** ROADMAP.md's "Discoverability of what's already built" — true when
+ * every group `SessionBriefingPanel` renders would be empty, i.e. this
+ * campaign hasn't adopted the Memory-Note-type/Thread conventions at
+ * all yet. Drives the panel's dismissible intro tip: shown while this
+ * is true (a GM genuinely has nothing to see yet, so explaining where
+ * content comes from can't be noise), hidden automatically the moment
+ * the first memory Note or open Thread exists, regardless of whether
+ * the tip was ever dismissed. */
+export function isSessionBriefingEmpty(briefing: SessionBriefing): boolean {
+  return (
+    briefing.activeThreads.length === 0 &&
+    briefing.playerTheories.length === 0 &&
+    briefing.playerInterests.length === 0 &&
+    briefing.characterGoals.length === 0 &&
+    briefing.npcAttachments.length === 0 &&
+    briefing.unresolvedQuestions.length === 0 &&
+    briefing.playerPreferences.length === 0
+  );
+}
+
 /**
  * Phase 2 item 3 (Player Intent) — groups already-active memory Notes
  * by the host-owned `'character'` each is linked to, via the *existing*

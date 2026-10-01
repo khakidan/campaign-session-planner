@@ -3,6 +3,7 @@ import {
   buildSessionBriefing,
   getNoteConfidence,
   groupMemoryByCharacter,
+  isSessionBriefingEmpty,
   selectActiveMemoryNotes,
   selectActiveThreads,
   withConfidence,
@@ -107,6 +108,20 @@ describe('getNoteConfidence / withConfidence', () => {
 
   it('clears the confidence tag when given null', () => {
     expect(withConfidence(['ebon-sigil', 'confidence:proposed'], null)).toEqual(['ebon-sigil']);
+  });
+});
+
+describe('isSessionBriefingEmpty', () => {
+  it('is true when every group is empty', () => {
+    expect(isSessionBriefingEmpty(buildSessionBriefing([], []))).toBe(true);
+  });
+
+  it('is false as soon as any single group has an item', () => {
+    const theory = makeNote({ id: 'n1', type: 'Player Theory' });
+    expect(isSessionBriefingEmpty(buildSessionBriefing([theory], []))).toBe(false);
+
+    const openThread = makeThread({ id: 't1', status: 'Open' });
+    expect(isSessionBriefingEmpty(buildSessionBriefing([], [openThread]))).toBe(false);
   });
 });
 

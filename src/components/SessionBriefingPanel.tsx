@@ -1,8 +1,48 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { EntityReference, Note, Thread } from '../types';
 import type { SessionBriefing } from '../lib/plannerMemory';
-import { getNoteConfidence } from '../lib/plannerMemory';
+import { getNoteConfidence, isSessionBriefingEmpty } from '../lib/plannerMemory';
 import type { CharacterMemoryGroup } from '../hooks/useSessionBriefing';
+
+const TIP_DISMISSED_KEY = 'campaign-planner:session-briefing-tip-dismissed';
+
+function loadTipDismissed(): boolean {
+  try {
+    return window.localStorage.getItem(TIP_DISMISSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ROADMAP.md's "Discoverability of what's already built" — this panel's
+ * groups (Player Theories, Character Goals, ...) only ever populate if
+ * a GM adopts the `Note.type`/Thread-status conventions that feed them,
+ * and nothing before this explained that. Shown only while
+ * `isSessionBriefingEmpty` is true (a campaign that's genuinely used
+ * these conventions has nothing to learn here) and not yet dismissed —
+ * same tolerant, best-effort `localStorage` convention `recentEntities.ts`
+ * already uses, so a private-browsing/quota failure just means the tip
+ * reappears next time rather than breaking anything.
+ */
+const IntroTip: React.FC<{ onDismiss: () => void }> = ({ onDismiss }) => (
+  <div className="flex items-start gap-2 p-2.5 border border-[var(--csp-accent-200)] bg-[var(--csp-accent-50)] rounded-lg text-xs text-[var(--csp-accent-800)]">
+    <p className="flex-1">
+      These sections fill in on their own: tag a Note's <strong>Type</strong> as "Player Theory," "Character Goal," and
+      similar (see the Type field's suggestions), or leave a Thread open, and it'll show up here before your next
+      session — no separate place to enter it. Link one of those Notes to a Character to also see it under "Why This
+      Session Matters," grouped by the player it's about.
+    </p>
+    <button
+      type="button"
+      onClick={onDismiss}
+      aria-label="Dismiss tip"
+      className="shrink-0 text-[var(--csp-accent-600)] hover:text-[var(--csp-accent-900)] cursor-pointer"
+    >
+      &times;
+    </button>
+  </div>
+);
 
 export interface SessionBriefingPanelProps {
   briefing: SessionBriefing;
@@ -59,6 +99,19 @@ const ConfidenceBadge: React.FC<{ item: Note | Thread }> = ({ item }) => {
  * section, one sub-list per PC, when `byCharacter` is supplied.
  */
 export const SessionBriefingPanel: React.FC<SessionBriefingPanelProps> = ({ briefing, onOpenPlannerEntity, byCharacter }) => {
+  const [tipDismissed, setTipDismissed] = useState(loadTipDismissed);
+  const showTip = isSessionBriefingEmpty(briefing) && !tipDismissed;
+
+  const dismissTip = () => {
+    setTipDismissed(true);
+    try {
+      window.localStorage.setItem(TIP_DISMISSED_KEY, '1');
+    } catch {
+      // Best-effort, same as `recentEntities.ts` — worst case the tip
+      // reappears next load, never a reason to block dismissing it now.
+    }
+  };
+
   const groups: Group[] = [
     {
       label: 'Active Threads',
@@ -116,6 +169,8 @@ export const SessionBriefingPanel: React.FC<SessionBriefingPanelProps> = ({ brie
       <h3 className="text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)]">
         Previously Established
       </h3>
+
+      {showTip && <IntroTip onDismiss={dismissTip} />}
 
       {byCharacter && byCharacter.length > 0 && (
         <div>

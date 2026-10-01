@@ -158,6 +158,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, 
               <option key={t} value={t} />
             ))}
           </datalist>
+          {(MEMORY_NOTE_TYPES as readonly string[]).includes(values.type) && (
+            <p className="mt-1 text-[11px] text-[var(--csp-neutral-500)]">
+              Surfaces automatically in Session Briefing before your next session.
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="note-status">
@@ -204,6 +209,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, 
               </option>
             ))}
           </select>
+          {confidence && (
+            <p className="mt-1 text-[11px] text-[var(--csp-neutral-500)]">
+              Shown as a badge wherever this Note surfaces as GM context, so it's never mistaken for a confirmed fact.
+            </p>
+          )}
         </div>
       </div>
     </>

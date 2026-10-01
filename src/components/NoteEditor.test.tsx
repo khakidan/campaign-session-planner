@@ -137,6 +137,27 @@ describe('NoteEditor', () => {
     expect(screen.getByLabelText('Confidence')).toHaveValue('inferred');
   });
 
+  it('shows the Session Briefing hint only once Type is set to a memory type, not for a plain type', async () => {
+    const user = userEvent.setup();
+    render(<NoteEditor note={null} onSave={vi.fn()} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Type'), 'General');
+    expect(screen.queryByText(/Surfaces automatically in Session Briefing/)).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Type'));
+    await user.type(screen.getByLabelText('Type'), 'Player Theory');
+    expect(screen.getByText(/Surfaces automatically in Session Briefing/)).toBeInTheDocument();
+  });
+
+  it('shows the confidence-badge hint only once a Confidence level is chosen', async () => {
+    const user = userEvent.setup();
+    render(<NoteEditor note={null} onSave={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.queryByText(/never mistaken for a confirmed fact/)).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Confidence'), 'proposed');
+    expect(screen.getByText(/never mistaken for a confirmed fact/)).toBeInTheDocument();
+  });
+
   it('renderFields: replaces the default field block, receiving values/onChange/defaultFields', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();

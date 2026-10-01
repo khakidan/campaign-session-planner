@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: discoverability nudges (Session Briefing intro tip, NoteEditor hints)
+
+**Action needed: none.** Purely additive UI — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, no new props. `SessionBriefingPanel` may now show a dismissible tip (only while that campaign's briefing is entirely empty), and `NoteEditor` may show a one-line caption under Type/Confidence (only once a relevant value is set). See `CHANGELOG.md` for detail.
+
 ### New: full-content search in the Quick Reference Drawer
 
 **Action needed: none.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes. The Drawer's search box now also matches against each entity's document content, not just its title; `PlannerSearchItem` gained a new optional `content` field. See `CHANGELOG.md` for detail.
