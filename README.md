@@ -307,6 +307,38 @@ Notes list without the GM switching away and back, implement
 already reloads all its lists when that fires; this needs nothing
 extra from you beyond having it wired at all.
 
+## Campaign Hygiene: stale and orphaned entities, campaign-wide
+
+The backward-looking, campaign-wide counterpart to `CampaignChangesPanel`'s
+"what changed since last session" — instead, "what's gone quiet, or
+never got connected to anything, across the whole campaign." Like Run
+Mode's pieces, `CampaignHygienePanel` is a standalone building block,
+not auto-mounted anywhere — place it wherever your own dashboard or
+overview screen has room:
+
+```tsx
+const hygiene = useCampaignHygiene(repository, campaignId);
+
+<CampaignHygienePanel
+  hygiene={hygiene}
+  onOpenPlannerEntity={(ref) => quickReferenceDrawer.push(ref)}
+/>
+```
+
+It flags two things, computed entirely from fields this package already
+tracks (no new repository method):
+
+- **Stale** — NPCs/Groups/Locations/Threads/Quests/Storylines not
+  updated in 30 days (`useCampaignHygiene`'s optional third argument
+  changes the threshold).
+- **Orphaned** — the same kinds with zero `EntityLink` rows pointing in
+  or out. Notes and Events are deliberately left out of this check —
+  plenty of legitimate standalone Notes/one-off Events exist by design.
+
+Either check skips an entity already in a wound-down free-text status
+(`Resolved`/`Archived`/`Abandoned`/`Completed`/`Closed`/`Paused`) — a
+Thread you've already closed out going quiet isn't a hygiene problem.
+
 ## Build step
 
 `package.json`'s `main`/`types`/`exports` point at compiled `dist/`

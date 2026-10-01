@@ -51,6 +51,11 @@ export { checkSessionReadiness } from './lib/sessionReadiness';
 export type { SessionReadinessCheck } from './lib/sessionReadiness';
 export { selectChangedSince, buildCampaignChanges } from './lib/campaignChanges';
 export type { CampaignChanges } from './lib/campaignChanges';
+export { selectStale, selectOrphaned, buildCampaignHygiene, DEFAULT_STALE_DAYS } from './lib/campaignHygiene';
+export type { CampaignHygieneReport } from './lib/campaignHygiene';
+export { useCampaignHygiene } from './hooks/useCampaignHygiene';
+export { CampaignHygienePanel } from './components/CampaignHygienePanel';
+export type { CampaignHygienePanelProps } from './components/CampaignHygienePanel';
 export { NOTE_TYPE_TEMPLATES } from './lib/noteTypeTemplates';
 export {
   heading,

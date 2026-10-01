@@ -6,8 +6,11 @@ import {
   SessionSafetyControls,
   SessionRunPanel,
   QuickCaptureComposer,
+  CampaignHygienePanel,
+  useCampaignHygiene,
   useQuickReferenceDrawer,
   type NoteFormValues,
+  type CampaignPlannerRepository,
 } from '../src/index';
 import {
   createFakeRepository,
@@ -19,7 +22,7 @@ import {
   makeEntityLink,
   TEST_CAMPAIGN_ID,
 } from '../src/test/fixtures';
-import type { Npc, Group, Location } from '../src/types';
+import type { Npc, Group, Location, Quest } from '../src/types';
 
 /**
  * A local-only demo harness — never shipped in `dist` (this whole
@@ -162,6 +165,21 @@ const location: Location = {
   updatedAt: now,
 };
 
+const longAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
+// Campaign Hygiene: an old, never-linked Quest — seeded so the demo
+// shows both the "stale" and "orphaned" sections with real data rather
+// than just the all-clear empty state.
+const forgottenQuest: Quest = {
+  id: 'quest-forgotten',
+  campaignId: TEST_CAMPAIGN_ID,
+  name: 'Investigate the sunken bell',
+  status: null,
+  details: [],
+  createdAt: longAgo,
+  updatedAt: longAgo,
+};
+
 const repository = createFakeRepository({
   notes: [goalNote, theoryNote, interestNote, preferenceNote, questionNote, safetyNote],
   threads: [openThread],
@@ -169,6 +187,7 @@ const repository = createFakeRepository({
   npcs: [npc],
   groups: [group],
   locations: [location],
+  quests: [forgottenQuest],
   scenes: [sceneArrival, sceneConfrontation],
   links: [
     // Run Mode: the active Scene has an NPC linked to it, shown as a chip.
@@ -263,6 +282,18 @@ function NoteFieldsWithDemoPriority({
   );
 }
 
+/**
+ * Campaign Hygiene is a standalone, host-placed building block (like
+ * Run Mode's pieces) rather than something auto-wired into
+ * `CampaignSessionPlanner` — this tiny wrapper is the demo's own
+ * "campaign dashboard" stand-in, not part of the package itself.
+ */
+const CampaignHygieneDemo: React.FC<{ repository: CampaignPlannerRepository }> = ({ repository }) => {
+  const drawer = useQuickReferenceDrawer();
+  const hygiene = useCampaignHygiene(repository, TEST_CAMPAIGN_ID);
+  return <CampaignHygienePanel hygiene={hygiene} onOpenPlannerEntity={(ref) => drawer.push(ref)} />;
+};
+
 const App: React.FC = () => {
   const drawer = useQuickReferenceDrawer();
   return (
@@ -304,6 +335,7 @@ const App: React.FC = () => {
             onOpenHostEntity={(type, id) => alert(`Host app would open its own ${type} page for ${id}`)}
           />
           <QuickCaptureComposer repository={repository} campaignId={TEST_CAMPAIGN_ID} />
+          <CampaignHygieneDemo repository={repository} />
         </aside>
       </main>
       <SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} />

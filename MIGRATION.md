@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: Campaign Hygiene view (`CampaignHygienePanel`, `useCampaignHygiene`)
+
+**Action needed: none unless you want to use it.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, nothing mounted automatically. Like Run Mode's pieces, it's a standalone building block meant for your own dashboard/overview screen, not auto-wired into `CampaignSessionPlanner`. See README.md's "Campaign Hygiene" section for how to wire it in.
+
 ### New: discoverability nudges (Session Briefing intro tip, NoteEditor hints)
 
 **Action needed: none.** Purely additive UI — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, no new props. `SessionBriefingPanel` may now show a dismissible tip (only while that campaign's briefing is entirely empty), and `NoteEditor` may show a one-line caption under Type/Confidence (only once a relevant value is set). See `CHANGELOG.md` for detail.

@@ -6,6 +6,17 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Campaign Hygiene view: stale and orphaned entities, campaign-wide
+
+Closes ROADMAP.md's "Campaign hygiene view" idea — the backward-looking, campaign-wide counterpart to `CampaignChangesPanel`'s "what changed since last session," per the same idea's own framing. Entirely derived from fields/rows this package already has (`updatedAt`, each kind's free-text `status`, the `EntityLink` graph) — no new entity, no snapshot table, no new repository method.
+
+- **`src/lib/campaignHygiene.ts`** (new) — `selectStale` (not updated in `staleDays` days, default 30) and `selectOrphaned` (zero `EntityLink` rows pointing in or out), each excluding entities already in a wound-down free-text status (`resolved`/`archived`/`abandoned`/`completed`/`closed`/`paused`) — a Thread marked Abandoned going quiet isn't a hygiene problem, it's supposed to be quiet. `buildCampaignHygiene` composes both checks across NPCs/Groups/Locations/Threads/Quests/Storylines. Notes and Events are deliberately excluded from the orphan check — plenty of legitimate standalone Notes and one-off Events exist by design, so flagging every unlinked one would be noise, not signal.
+- **`useCampaignHygiene`** (new hook) — composes the existing per-kind hooks (no new repository methods) plus every `EntityLink` in the campaign via `repository.getLinks()` with no `source`, client-filtered to `campaignId` since that call isn't itself campaign-scoped in the interface.
+- **`CampaignHygienePanel`** (new) — unlike `CampaignChangesPanel`, empty groups aren't rendered at all: with up to 12 possible groups across two categories (vs. 6 in one list there), always showing every "No X stale." line would bury the handful that actually matter. A single "Nothing to flag — campaign looks tidy" message covers the fully-tidy case.
+- **A standalone, host-placed building block, not auto-wired anywhere** — same treatment as Run Mode's pieces: "between sessions, campaign-wide" doesn't belong inside any one Session's own editor the way `CampaignChangesPanel` does, so a host mounts it wherever its own dashboard/overview screen has room.
+- **Verified in the local demo** — seeded a long-untouched, never-linked Quest plus an already-unlinked (but recently-updated) Group and Location, confirmed in a real browser that stale-but-linked, orphaned-but-fresh, and both-at-once each land in the right section(s).
+- **Test coverage**: `campaignHygiene.test.ts` (10 tests — staleness/orphan selection, wound-down-status exclusion, all 6 kinds), `useCampaignHygiene.test.ts` (4 tests — composition, campaign-scoped link filtering, custom `staleDays`), `CampaignHygienePanel.test.tsx` (4 tests — all-clear state, per-group rendering, click-through, custom `staleDays` copy) — 276 tests total, all passing.
+
 ## Discoverability: nudges toward the Confidence/memory-Note/Session-Briefing conventions
 
 Closes ROADMAP.md's "Discoverability of what's already built" idea — a lot of this package's intelligence (Confidence tags, Player Intent via Note↔Character links, the Session Briefing itself) only ever surfaces if a GM adopts specific conventions (tagging a Note's `type` as a memory type, choosing a Confidence level, linking a theory Note to a Character), and nothing in the UI explained any of that. Scoped to two low-noise mechanisms, deliberately not a tour/onboarding flow:
