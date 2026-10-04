@@ -12,7 +12,7 @@ None.
 
 ### 🟡 Features to Add / Test Coverage Gaps
 
-None currently open.
+The Safety Tools clickable overlay is implemented in a weird way on the demo page. If this were the real D&D or Daggerheart app it would get in the way of the bug reporting tool. Maybe it should be collapsable? It's also unclear of what the purpose of the UI is for. I mean, I get what each of the options mean, but what is the purpose of clicking on any of the options?
 
 ---
 
