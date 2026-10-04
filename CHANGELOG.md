@@ -6,6 +6,15 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Fix: standalone test suite failing on Node 25+, and an explicit `engines` range
+
+A follow-up to the previous fix — the standalone suite still failed (3 files / 24 tests, all `TypeError: Cannot read properties of undefined (reading 'clear')`) on a machine running Node v26.0.0, even with that fix in place.
+
+- **Root cause**: Node 25+ ships a `localStorage`/`sessionStorage` global that, without the `--localstorage-file` flag, is present on `globalThis` as a real (if non-functional) accessor — confirmed directly via `Object.getOwnPropertyDescriptor(globalThis, 'localStorage')`: `undefined` on Node 22.22.2/22.23.3/23.11.1/24.21.0, a real `{get, set, enumerable: false, configurable: true}` descriptor on 25.9.0/26.10.0. Vitest's own jsdom environment setup copies jsdom's `window` onto `global`, but (confirmed from vitest's bundled source) that copy only touches *enumerable* keys — so it skips Node's own non-enumerable `localStorage`/`sessionStorage`, leaving the non-functional one in place instead of jsdom's real `Storage`-backed implementation. Every `localStorage.clear()`/`.getItem()`/etc. call in a test then fails.
+- **Fix**: `src/test/setup.ts` now explicitly re-binds `globalThis.localStorage`/`sessionStorage` to `globalThis.jsdom.window`'s own (`global.jsdom = dom` is vitest's own jsdom environment instance), guarded so it's a no-op wherever the normal copy already worked — the fix applies on any Node version, but only ever does anything on Node 25+.
+- **`engines.node` added** (`>=22`) and a `.nvmrc` (`22`) — so this doesn't recur silently again. The range reflects exactly what was verified end-to-end (clean install → `npm run build` → `npx vitest run` → `npx tsc --noEmit`, all exiting 0) on real Node 22.22.2, 22.23.3, 23.11.1, 24.21.0, 25.9.0, and 26.10.0 — not a guess, and deliberately no upper bound, since 25/26 are now verified working thanks to the fix above rather than excluded. Node <22 wasn't tested and isn't claimed.
+- **Test coverage**: no new tests — this is a test-environment shim, not application behavior; the existing `recentEntities.test.ts`/`QuickReferenceDrawer.test.tsx`/`SessionBriefingPanel.test.tsx` suites (the three that were failing) are themselves the verification, now passing on every Node version tested.
+
 ## Fix: two missing `--csp-accent-*` theme variables, and the standalone test suite failing under a consumer's hoisted install
 
 Two issues a consumer-side review found in `dnd-gm-dashboard-multiuser`'s own use of this package as a git submodule:

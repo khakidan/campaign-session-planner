@@ -28,6 +28,38 @@ import type {} from '@testing-library/jest-dom/vitest';
 // construction, regardless of hoisting topology.
 expect.extend(jestDomMatchers);
 
+// Node 25+ (verified present on v25.9.0/v26.10.0; verified absent on
+// v22.22.2/v22.23.3/v23.11.1/v24.21.0) ships a non-experimental global
+// `localStorage`/`sessionStorage` descriptor that, without the
+// `--localstorage-file` flag, is present on `globalThis` but
+// non-functional. Because it's already there (as a non-enumerable
+// accessor — `Object.getOwnPropertyDescriptor(globalThis,
+// 'localStorage')`, confirmed directly) before vitest's jsdom
+// environment finishes setting up, vitest's own "copy jsdom's
+// `window` onto `global`" step — which only copies *enumerable* keys —
+// skips it, leaving Node's non-functional one in place instead of
+// overwriting it with jsdom's real, `Storage`-backed implementation
+// (`global.jsdom = dom` is vitest's own jsdom environment, confirmed
+// from its bundled source — `dom.window.localStorage` is the real
+// thing). Every test that calls `localStorage.clear()`/`.getItem()`/
+// etc. then fails with "Cannot read properties of undefined." Re-bind
+// both explicitly to jsdom's own window; the equality check makes
+// this a no-op on Node <25 (or any environment without this global
+// pre-populated), where the normal copy already worked.
+const jsdomWindow = (globalThis as { jsdom?: { window?: Window } }).jsdom?.window;
+if (jsdomWindow && globalThis.localStorage !== jsdomWindow.localStorage) {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: jsdomWindow.localStorage,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    value: jsdomWindow.sessionStorage,
+    writable: true,
+    configurable: true,
+  });
+}
+
 // `globals: false` in vitest.config.ts (this project's tests import
 // `describe`/`it`/`expect` explicitly rather than relying on ambient
 // globals) means `@testing-library/react`'s own auto-cleanup — which

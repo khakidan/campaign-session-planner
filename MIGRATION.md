@@ -6,6 +6,12 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### Fix: standalone test suite on Node 25+, and a new `engines.node` range
+
+**Action needed: none for consuming the built package** — `dist/` output and runtime behavior are unaffected; this only touches `src/test/setup.ts` (test-only) and adds metadata (`engines`, `.nvmrc`) that doesn't change how `npm install`/`npm run build` behave for you.
+
+**One thing that could affect you**: `package.json` now declares `"engines": { "node": ">=22" }`. This is advisory only (no `.npmrc` with `engine-strict` is set, here or assumed in yours) — npm will warn, not fail, if your own Node version is older, and your install won't break. But if your own CI or local machines run Node below 22, you may start seeing that warning, and this package's own test suite (if you ever run it standalone, rather than just consuming `dist/`) is only verified on Node 22–26. If you run this package's tests under Node 18–21, you're in genuinely untested territory as of this change — not something this change asks you to upgrade for, just something it no longer claims to support silently.
+
 ### Fix: `--csp-accent-200`/`--csp-accent-900` theme variables, and the standalone test suite
 
 **Action needed: none.** `--csp-accent-200`/`--csp-accent-900` now have defined defaults (previously undefined, rendering with no color wherever used) — this only adds color that was silently missing, pixel-identical to the rest of the palette's own "matches the previous hardcoded Tailwind class" rule; nothing to override or change unless you'd grown attached to the missing-color appearance. If you do customize the palette (see "Theming & layout customization" below), you can now also override these two shades the same way as any other.
