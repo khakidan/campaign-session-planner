@@ -27,11 +27,13 @@
 
   --csp-accent-50: #ecfdf5;
   --csp-accent-100: #d1fae5;
+  --csp-accent-200: #a7f3d0;
   --csp-accent-400: #34d399;
   --csp-accent-500: #10b981;
   --csp-accent-600: #059669;
   --csp-accent-700: #047857;
   --csp-accent-800: #065f46;
+  --csp-accent-900: #064e3b;
 
   --csp-danger-600: #e11d48;
   --csp-danger-800: #9f1239;

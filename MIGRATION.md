@@ -6,6 +6,12 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### Fix: `--csp-accent-200`/`--csp-accent-900` theme variables, and the standalone test suite
+
+**Action needed: none.** `--csp-accent-200`/`--csp-accent-900` now have defined defaults (previously undefined, rendering with no color wherever used) — this only adds color that was silently missing, pixel-identical to the rest of the palette's own "matches the previous hardcoded Tailwind class" rule; nothing to override or change unless you'd grown attached to the missing-color appearance. If you do customize the palette (see "Theming & layout customization" below), you can now also override these two shades the same way as any other.
+
+The `vitest`/`@vitest/browser`/`@testing-library/jest-dom` devDependency pins got tighter (caret ranges → exact versions already verified working together) to fix the package's own test suite failing under some hoisted-install topologies — devDependencies only, never part of what `dist/` ships or what your app imports. The one case this could change something: if your own workspace's root `package.json` happens to pin a `vitest` version in the same major range as this package's own (`2.x`) and currently relies on your root's version being hoisted down into this submodule's test runs, the new exact pin means npm will now always nest this package's own `vitest`/`@vitest/browser`/`@testing-library/jest-dom` instead — slightly more disk space under this submodule's `node_modules`, no behavior change to anything you'd notice. You only encounter this at all if you run this package's own test suite (`npx vitest run` inside the submodule, or similar) rather than just consuming its built `dist/` output, which is the normal way of using this package.
+
 ### New: GM-side Safety Event alerts (`useSafetyEventAlerts`, `SafetyEventToasts`, `SessionSafetyControls`'s `triggeredBy` prop)
 
 **Action needed: none unless you want to use it.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, nothing mounted automatically. If you want live GM-side notification when a Player uses a safety tool, wire `useSafetyEventAlerts`'s `onSafetyEvent` into your own toast system (recommended), or mount the ready-made `SafetyEventToasts` if you don't have one. See `CHANGELOG.md` for detail and README.md's "Safety Tools" section for the updated wiring example.
