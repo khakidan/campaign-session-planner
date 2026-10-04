@@ -20,6 +20,19 @@ describe('SessionSafetyControls', () => {
     expect(screen.getByRole('button', { name: 'X-Card' })).toBeInTheDocument();
   });
 
+  it('gives every button a hover tooltip explaining what it does, before it is ever clicked', async () => {
+    const repository = createFakeRepository({ sessions: [makeSession({ id: 's1', status: 'Running' })] });
+    render(<SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'X-Card' })).toBeInTheDocument());
+
+    expect(screen.getByRole('button', { name: 'Pause' })).toHaveAttribute('title', expect.stringMatching(/step out-of-character/));
+    expect(screen.getByRole('button', { name: 'Resume' })).toHaveAttribute('title', expect.stringMatching(/Resume play/));
+    expect(screen.getByRole('button', { name: 'Rewind' })).toHaveAttribute('title', expect.stringMatching(/didn't happen/));
+    expect(screen.getByRole('button', { name: 'Fast Forward' })).toHaveAttribute('title', expect.stringMatching(/without playing it out/));
+    expect(screen.getByRole('button', { name: 'X-Card' })).toHaveAttribute('title', expect.stringMatching(/Stop or skip/));
+  });
+
   it('clicking a tool writes a Safety Event Note linked to the running Session', async () => {
     const user = userEvent.setup();
     const runningSession = makeSession({ id: 's1', title: 'The Sunken Temple', status: 'Running' });

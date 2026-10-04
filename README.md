@@ -314,7 +314,10 @@ up while any Session is Running — each button simply logs a
 timestamped `Note` (type `'Safety Event'`, linked to the running
 Session) for later review; it doesn't change anything about the live
 session itself, so pausing/rewinding play still happens verbally at
-the table same as always.
+the table same as always. Each button carries a hover tooltip saying
+as much in its own words (e.g. X-Card's: "Stop or skip this content
+immediately — no explanation needed"), so a player isn't left
+guessing what clicking it will do.
 
 ```tsx
 <SessionSafetyControls

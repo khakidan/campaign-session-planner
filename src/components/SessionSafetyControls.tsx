@@ -6,6 +6,20 @@ import { SAFETY_EVENT_NOTE_TYPE, buildSafetyEventTags } from '../lib/safetyEvent
 const SAFETY_TOOLS = ['Pause', 'Resume', 'Rewind', 'Fast Forward', 'X-Card'] as const;
 type SafetyTool = (typeof SAFETY_TOOLS)[number];
 
+/** ROADMAP.md's last open Safety Tools note — the player-facing side
+ * of each button didn't explain itself before being clicked, unlike
+ * the GM-side alert this already produces (`useSafetyEventAlerts`).
+ * Shown as each button's native hover tooltip (`title` attribute) —
+ * the simplest option, deliberately chosen over a custom
+ * tap-to-reveal popover or an always-visible caption. */
+const SAFETY_TOOL_DESCRIPTIONS: Record<SafetyTool, string> = {
+  Pause: 'Pause the scene to step out-of-character for a moment.',
+  Resume: 'Resume play as normal after a Pause, Rewind, or Fast Forward.',
+  Rewind: "Treat the last moment as if it didn't happen.",
+  'Fast Forward': 'Skip through this moment without playing it out.',
+  'X-Card': 'Stop or skip this content immediately — no explanation needed.',
+};
+
 export { SAFETY_EVENT_NOTE_TYPE };
 
 /** Which corner of the viewport this floats in. Defaults to
@@ -112,6 +126,7 @@ export const SessionSafetyControls: React.FC<SessionSafetyControlsProps> = ({
           key={tool}
           type="button"
           onClick={() => recordTool(tool)}
+          title={SAFETY_TOOL_DESCRIPTIONS[tool]}
           className="px-2 py-1 text-xs font-semibold text-[var(--csp-neutral-600)] hover:bg-[var(--csp-neutral-100)] rounded-lg cursor-pointer"
         >
           {tool}

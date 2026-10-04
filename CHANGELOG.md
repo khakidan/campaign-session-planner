@@ -6,6 +6,12 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Safety Tool button tooltips: explaining each one before it's clicked
+
+Closes the last open part of the ROADMAP.md Safety Tools note (visibility/position and the GM-side alert were already resolved). Each of the five buttons (`Pause`/`Resume`/`Rewind`/`Fast Forward`/`X-Card`) now carries a native hover tooltip (`title` attribute) explaining what it means — e.g. X-Card's reads "Stop or skip this content immediately — no explanation needed." The simplest of three options considered (a tap-to-reveal popover and an always-visible caption were the others) — deliberately chosen since this is a small, already-tight corner widget and the native tooltip needs no new markup or interaction pattern.
+
+- **Test coverage**: 1 new test in `SessionSafetyControls.test.tsx` asserting every button's `title` attribute — 306 tests total, all passing.
+
 ## GM-side Safety Event alerts (`useSafetyEventAlerts`, `SafetyEventToasts`)
 
 Closes the rest of the ROADMAP.md Safety Tools note — a GM previously had no way to know a Player had used a safety tool except by noticing a new "Linked to this Session" entry on their own. Primarily a **callback-based API**, matching how this package already hands navigation (`onOpenHostEntity`) and other cross-boundary moments to the host, rather than a component the host is required to render:
