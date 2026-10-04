@@ -8,6 +8,8 @@ import {
   QuickCaptureComposer,
   CampaignHygienePanel,
   useCampaignHygiene,
+  SessionRecapView,
+  RECAP_HIGHLIGHT_TYPE,
   useQuickReferenceDrawer,
   type NoteFormValues,
   type CampaignPlannerRepository,
@@ -85,6 +87,28 @@ const safetyNote = makeNote({
 });
 
 const openThread = makeThread({ id: 'thread-1', name: 'The Duke is hiding something', status: 'Open' });
+
+// Session Recap: a player-facing highlight written for the prior,
+// completed Session — deliberately separate from that Session's
+// private Debrief (which may contain GM-only secrets).
+const recapHighlight = makeNote({
+  id: 'note-recap-1',
+  title: 'Session 7 recap',
+  type: RECAP_HIGHLIGHT_TYPE,
+  content: [
+    {
+      type: 'paragraph',
+      content: [
+        {
+          type: 'text',
+          text: 'The party arrived in Blackwater and uncovered the first hints that the Duke is hiding something.',
+          styles: {},
+        },
+      ],
+    },
+  ] as never,
+  updatedAt: twoWeeksAgo,
+});
 
 const priorSession = makeSession({
   id: 'session-1',
@@ -181,7 +205,7 @@ const forgottenQuest: Quest = {
 };
 
 const repository = createFakeRepository({
-  notes: [goalNote, theoryNote, interestNote, preferenceNote, questionNote, safetyNote],
+  notes: [goalNote, theoryNote, interestNote, preferenceNote, questionNote, safetyNote, recapHighlight],
   threads: [openThread],
   sessions: [priorSession, runningSession],
   npcs: [npc],
@@ -224,6 +248,15 @@ const repository = createFakeRepository({
       targetType: 'npc',
       targetId: 'npc-1',
       metadata: { label: npc.name },
+    }),
+    // Session Recap: the highlight Note linked to the Session it's about.
+    makeEntityLink({
+      id: 'link-recap-session',
+      sourceType: 'note',
+      sourceId: 'note-recap-1',
+      targetType: 'session',
+      targetId: 'session-1',
+      metadata: { label: priorSession.title },
     }),
   ],
 });
@@ -336,6 +369,16 @@ const App: React.FC = () => {
           />
           <QuickCaptureComposer repository={repository} campaignId={TEST_CAMPAIGN_ID} />
           <CampaignHygieneDemo repository={repository} />
+          {/* Session Recap: a standalone building block, same as the
+              two above — shown here for the prior, completed Session's
+              player-facing recap, built from the 'Recap Highlight' Note
+              seeded above rather than that Session's private Debrief. */}
+          <SessionRecapView
+            repository={repository}
+            campaignId={TEST_CAMPAIGN_ID}
+            sessionId="session-1"
+            onOpenPlannerEntity={(ref) => drawer.push(ref)}
+          />
         </aside>
       </main>
       <SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} />

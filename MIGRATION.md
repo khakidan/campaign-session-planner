@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: Session Recap as an output (`SessionRecapView`, `useSessionRecap`, `'Recap Highlight'` Note type)
+
+**Action needed: none unless you want to use it.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, nothing mounted automatically. `sessionDebriefTemplate` gained one more heading pointing at the new convention; every existing Debrief document is unaffected. Like Run Mode's pieces, `SessionRecapView` is a standalone building block for your own screen, not auto-wired into `CampaignSessionPlanner`. See README.md's "Session Recap" section for how to wire it in.
+
 ### New: Campaign Hygiene view (`CampaignHygienePanel`, `useCampaignHygiene`)
 
 **Action needed: none unless you want to use it.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, nothing mounted automatically. Like Run Mode's pieces, it's a standalone building block meant for your own dashboard/overview screen, not auto-wired into `CampaignSessionPlanner`. See README.md's "Campaign Hygiene" section for how to wire it in.

@@ -56,6 +56,11 @@ export type { CampaignHygieneReport } from './lib/campaignHygiene';
 export { useCampaignHygiene } from './hooks/useCampaignHygiene';
 export { CampaignHygienePanel } from './components/CampaignHygienePanel';
 export type { CampaignHygienePanelProps } from './components/CampaignHygienePanel';
+export { RECAP_HIGHLIGHT_TYPE, selectSessionRecapHighlights } from './lib/sessionRecap';
+export { useSessionRecap } from './hooks/useSessionRecap';
+export type { SessionRecapResult } from './hooks/useSessionRecap';
+export { SessionRecapView } from './components/SessionRecapView';
+export type { SessionRecapViewProps } from './components/SessionRecapView';
 export { NOTE_TYPE_TEMPLATES } from './lib/noteTypeTemplates';
 export {
   heading,

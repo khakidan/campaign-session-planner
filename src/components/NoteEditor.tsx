@@ -3,6 +3,7 @@ import type { Block, Note } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { MEMORY_NOTE_TYPES, OBSERVATION_CONFIDENCE_LEVELS, getNoteConfidence, withConfidence, type ObservationConfidence } from '../lib/plannerMemory';
+import { RECAP_HIGHLIGHT_TYPE } from '../lib/sessionRecap';
 import { NOTE_TYPE_TEMPLATES } from '../lib/noteTypeTemplates';
 
 /** Phase 1 "Memory" (ROADMAP.md) adds `MEMORY_NOTE_TYPES` to the
@@ -35,6 +36,7 @@ const SUGGESTED_TYPES = [
   'Rules Question',
   'Session Safety',
   'Player Contribution',
+  RECAP_HIGHLIGHT_TYPE,
 ];
 
 export interface NoteFormValues {
@@ -161,6 +163,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, 
           {(MEMORY_NOTE_TYPES as readonly string[]).includes(values.type) && (
             <p className="mt-1 text-[11px] text-[var(--csp-neutral-500)]">
               Surfaces automatically in Session Briefing before your next session.
+            </p>
+          )}
+          {values.type === RECAP_HIGHLIGHT_TYPE && (
+            <p className="mt-1 text-[11px] text-[var(--csp-neutral-500)]">
+              Link this Note to a Session to include it in that Session's shareable recap.
             </p>
           )}
         </div>

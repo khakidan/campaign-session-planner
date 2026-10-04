@@ -149,6 +149,18 @@ describe('NoteEditor', () => {
     expect(screen.getByText(/Surfaces automatically in Session Briefing/)).toBeInTheDocument();
   });
 
+  it('shows the Recap Highlight hint only for that exact type', async () => {
+    const user = userEvent.setup();
+    render(<NoteEditor note={null} onSave={vi.fn()} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Type'), 'Player Theory');
+    expect(screen.queryByText(/shareable recap/)).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Type'));
+    await user.type(screen.getByLabelText('Type'), 'Recap Highlight');
+    expect(screen.getByText(/shareable recap/)).toBeInTheDocument();
+  });
+
   it('shows the confidence-badge hint only once a Confidence level is chosen', async () => {
     const user = userEvent.setup();
     render(<NoteEditor note={null} onSave={vi.fn()} onCancel={vi.fn()} />);

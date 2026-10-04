@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PartialBlock } from '@blocknote/core';
 import { NOTE_TYPE_TEMPLATES } from './noteTypeTemplates';
+import { RECAP_HIGHLIGHT_TYPE } from './sessionRecap';
 
 function headingTexts(blocks: PartialBlock[]): string[] {
   return blocks
@@ -34,6 +35,13 @@ describe('NOTE_TYPE_TEMPLATES', () => {
     const template = NOTE_TYPE_TEMPLATES['Player Contribution'];
     expect(template).toBeDefined();
     expect(headingTexts(template!)).toEqual(['Player Proposal', 'Accept → Develop']);
+  });
+
+  it('ships a Recap Highlight template prompting for a short player-facing takeaway', () => {
+    const template = NOTE_TYPE_TEMPLATES[RECAP_HIGHLIGHT_TYPE];
+    expect(template).toBeDefined();
+    expect(template).toHaveLength(1);
+    expect(template![0].type).toBe('paragraph');
   });
 
   it('has no entry for an unrecognized type', () => {

@@ -22,7 +22,7 @@ Brainstormed while discussing what would make this a genuinely better GM prep/re
 
 **A hard boundary that applies to all of these**: this package is a *reference* tool, not where a GM manages actual players — that's the host app's job (`daggerheart-gm-dashboard-multiuser`/`dnd-gm-dashboard-multiuser` own initiative, character sheets, combat, the real "running the game" surface). Nothing here should require a GM to navigate away from that host-owned surface to use it. Concretely: no full-page/full-route UI. Anything built from these ideas should be small, non-modal, composable pieces — in the spirit of the existing `QuickReferenceDrawer` (floats over the host's page, `Dialog.Root modal={false}`, never traps focus or blocks the app underneath) — that a host places wherever its own live-session screen already has room, not a screen this package dictates.
 
-- **Session recap as an output, not just an input.** The Debrief today is something a GM writes for themselves. A guided flow that turns those answers into a clean, shareable, player-facing "what happened last time" page/document would close a loop that doesn't exist yet — this package would need to decide whether it owns rendering that output itself or just structures the data well enough for a host to build the shareable page.
+None currently queued — every idea brainstormed in this round (Run Mode, Discoverability, Full-content search, Campaign Hygiene, Session Recap) has shipped; see `CHANGELOG.md`.
 
 ---
 

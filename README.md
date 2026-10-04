@@ -339,6 +339,35 @@ Either check skips an entity already in a wound-down free-text status
 (`Resolved`/`Archived`/`Abandoned`/`Completed`/`Closed`/`Paused`) — a
 Thread you've already closed out going quiet isn't a hygiene problem.
 
+## Session Recap: a clean, player-facing "what happened last time" view
+
+A Session's Debrief is written for the GM, and can mix in secrets and
+GM-only reflection — not safe to hand a player unfiltered.
+`SessionRecapView` instead renders whatever `'Recap Highlight'` Notes
+you've deliberately linked to a Session, a separate suggested `Note.type`
+for exactly this purpose (ships its own starter template prompting for
+"what will the players remember from this session?"). Like
+`CampaignHygienePanel`, it's a standalone building block, not
+auto-mounted anywhere:
+
+```tsx
+<SessionRecapView
+  repository={repository}
+  campaignId={campaignId}
+  sessionId={sessionId}
+  onOpenPlannerEntity={(ref) => quickReferenceDrawer.push(ref)}
+/>
+```
+
+It renders nothing if `sessionId` doesn't resolve to a real Session.
+Otherwise it shows that Session's title/number/date, each linked Recap
+Highlight Note's content read-only, and a **Copy as Text** button (only
+shown once there's something to copy) that puts a plain-text version on
+the clipboard — handy for pasting into Discord or a group chat. This
+package owns rendering that view; actually distributing it (printing,
+posting somewhere, a public link) is host/platform-specific and
+deliberately out of scope here.
+
 ## Build step
 
 `package.json`'s `main`/`types`/`exports` point at compiled `dist/`

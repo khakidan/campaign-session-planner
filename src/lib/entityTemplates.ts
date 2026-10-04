@@ -186,6 +186,14 @@ export const sessionDebriefTemplate: PartialBlock[] = [
     'Comedy',
   ]),
   ...section('Campaign Updates'),
+  // ROADMAP.md's "Session recap as an output" — everything above is
+  // GM-only and can mix in secrets, so the shareable, player-facing
+  // recap deliberately isn't built from this document. Pointed at its
+  // own separate convention instead of a document heading here.
+  ...linkSection(
+    'Recap Highlights (Player-Facing)',
+    'one or more Notes of type "Recap Highlight" (create them from the Notes tab first, written for players)'
+  ),
 ];
 
 export const sceneTemplate: PartialBlock[] = [

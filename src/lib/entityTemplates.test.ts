@@ -54,6 +54,15 @@ describe('TEMPLATE_DEFAULTS', () => {
     );
   });
 
+  it('points the Session Debrief at the separate Recap Highlight convention, not free-text prose', () => {
+    expect(headingTexts(TEMPLATE_DEFAULTS.sessionDebrief)).toContain('Recap Highlights (Player-Facing)');
+    const section = TEMPLATE_DEFAULTS.sessionDebrief.find(
+      (b) => (b.content as Array<{ text: string }>)?.[0]?.text === 'Recap Highlights (Player-Facing)'
+    );
+    const guidance = (section?.children as PartialBlock[])?.[0]?.content as Array<{ text: string }>;
+    expect(guidance?.[0]?.text).toMatch(/Recap Highlight/);
+  });
+
   it('includes link-out sections (not free-text prose) for relationship-style headings', () => {
     const affiliations = TEMPLATE_DEFAULTS.npc.find(
       (b) => (b.content as Array<{ text: string }>)?.[0]?.text === 'Affiliations'

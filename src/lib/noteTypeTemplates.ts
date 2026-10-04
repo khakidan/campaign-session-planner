@@ -1,5 +1,6 @@
 import type { PartialBlock } from '@blocknote/core';
 import { checklistSection, heading, para, section } from './entityTemplates';
+import { RECAP_HIGHLIGHT_TYPE } from './sessionRecap';
 
 /**
  * Phase 2 item 7 — the mechanism items 8 (Session Safety) and 6
@@ -37,5 +38,13 @@ export const NOTE_TYPE_TEMPLATES: Partial<Record<string, PartialBlock[]>> = {
         'Existing NPC connection? Existing faction connection? New NPC? Cost? Complication? Future thread? Write each "And..." follow-up as it develops.'
       ),
     ]),
+  ],
+
+  /** ROADMAP.md's "Session recap as an output" — the deliberately
+   * player-facing counterpart to the Debrief (which is GM-only and can
+   * mix in secrets). Link one of these to a Session and it appears in
+   * that Session's `SessionRecapView`. */
+  [RECAP_HIGHLIGHT_TYPE]: [
+    para('In a sentence or two, what will the players remember from this session?'),
   ],
 };
