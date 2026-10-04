@@ -4,6 +4,7 @@ import {
   CampaignSessionPlanner,
   QuickReferenceDrawerProvider,
   SessionSafetyControls,
+  SafetyEventToasts,
   type SafetyControlsPosition,
   SessionRunPanel,
   QuickCaptureComposer,
@@ -205,7 +206,44 @@ const forgottenQuest: Quest = {
   updatedAt: longAgo,
 };
 
-const repository = createFakeRepository({
+/**
+ * The shared `createFakeRepository` fixture deliberately doesn't
+ * implement `subscribeToChanges` (see its own doc comment in
+ * `src/test/fixtures.ts`) — every other demo feature so far tolerated
+ * that (documented as "expected, not a bug" in CHANGELOG.md for Quick
+ * Capture). `SafetyEventToasts`/`useSafetyEventAlerts` specifically
+ * needs a working `subscribeToChanges` to demonstrate live cross-
+ * component notification at all, so this demo-only wrapper adds a
+ * minimal one: every mutating call notifies, same contract a real
+ * host's repository (backed by a real-time subscription) would
+ * fulfill. Not part of the package itself.
+ */
+function withChangeNotifications(repo: CampaignPlannerRepository): CampaignPlannerRepository {
+  const listeners = new Set<() => void>();
+  const MUTATING_METHODS = [
+    'saveNote', 'deleteNote', 'saveNpc', 'deleteNpc', 'saveGroup', 'deleteGroup',
+    'saveLocation', 'deleteLocation', 'saveSession', 'deleteSession', 'saveScene', 'deleteScene',
+    'saveStoryline', 'deleteStoryline', 'saveThread', 'deleteThread', 'saveQuest', 'deleteQuest',
+    'saveEvent', 'deleteEvent', 'createLink', 'deleteLink', 'saveTemplate', 'deleteTemplate',
+  ] as const satisfies ReadonlyArray<keyof CampaignPlannerRepository>;
+
+  const wrapped = { ...repo };
+  for (const method of MUTATING_METHODS) {
+    const original = repo[method] as (...args: unknown[]) => Promise<unknown>;
+    (wrapped[method] as unknown as (...args: unknown[]) => Promise<unknown>) = async (...args: unknown[]) => {
+      const result = await original(...args);
+      listeners.forEach((listener) => listener());
+      return result;
+    };
+  }
+  wrapped.subscribeToChanges = (onChange) => {
+    listeners.add(onChange);
+    return () => listeners.delete(onChange);
+  };
+  return wrapped;
+}
+
+const repository = withChangeNotifications(createFakeRepository({
   notes: [goalNote, theoryNote, interestNote, preferenceNote, questionNote, safetyNote, recapHighlight],
   threads: [openThread],
   sessions: [priorSession, runningSession],
@@ -260,7 +298,7 @@ const repository = createFakeRepository({
       metadata: { label: priorSession.title },
     }),
   ],
-});
+}));
 
 const hostAdapter = createFakeHostAdapter({
   getCharacters: async (ids) =>
@@ -422,7 +460,17 @@ const App: React.FC = () => {
         campaignId={TEST_CAMPAIGN_ID}
         visible={viewingAs === 'player'}
         position={safetyPosition}
+        triggeredBy="Alice"
       />
+      {/* The GM-side half: SafetyEventToasts is built on
+          useSafetyEventAlerts, the same hook a host with its own toast
+          system would wire `onSafetyEvent` from instead. In a real app
+          this renders on a separate GM-only screen from the Player
+          controls above — kept always-mounted here (rather than
+          gated on `viewingAs`, like the controls above are) purely so
+          this one demo page can show the end-to-end flow: trigger as
+          "Player," see the toast land right here. */}
+      <SafetyEventToasts repository={repository} campaignId={TEST_CAMPAIGN_ID} />
     </div>
   );
 };

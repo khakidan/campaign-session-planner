@@ -331,7 +331,35 @@ permissioned layouts should show it, without losing the component's
 own confirmation state the way conditionally mounting/unmounting it
 would. `position` (defaults `'bottom-right'`) moves it to whichever
 corner doesn't collide with your own fixed-position UI there (a
-bug-report widget, a chat bubble, etc.).
+bug-report widget, a chat bubble, etc.). `triggeredBy` is the display
+name of whoever's using it — also your own call, since this package
+doesn't know who's logged in — recorded on the Safety Event Note so a
+GM-side alert can say who.
+
+### Notifying the GM
+
+`useSafetyEventAlerts` is the GM-side half: it fires `onSafetyEvent`
+once for every *new* Safety Event on the currently Running Session
+(never a replay of ones that already happened before it started
+watching). Wire it straight into your own toast/notification system:
+
+```tsx
+useSafetyEventAlerts(repository, campaignId, (event) => {
+  yourToastLibrary.show(`${event.tool} triggered by ${event.triggeredBy ?? 'a player'}`);
+});
+```
+
+Don't have a toast system of your own? `SafetyEventToasts` is a
+ready-made fallback built on the same hook:
+
+```tsx
+<SafetyEventToasts repository={repository} campaignId={campaignId} position="top-right" />
+```
+
+Like `SessionSafetyControls`, neither is auto-mounted — place
+`SafetyEventToasts`/the `useSafetyEventAlerts` call on whatever your
+GM-only screen actually is, separate from wherever
+`SessionSafetyControls` itself renders.
 
 ## Campaign Hygiene: stale and orphaned entities, campaign-wide
 

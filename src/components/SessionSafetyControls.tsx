@@ -1,14 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import type { CampaignId, CampaignPlannerRepository } from '../types';
 import { useSessions } from '../hooks/useSessions';
+import { SAFETY_EVENT_NOTE_TYPE, buildSafetyEventTags } from '../lib/safetyEvents';
 
 const SAFETY_TOOLS = ['Pause', 'Resume', 'Rewind', 'Fast Forward', 'X-Card'] as const;
 type SafetyTool = (typeof SAFETY_TOOLS)[number];
 
-/** Every Note this control writes carries this type — visible in the
- * running Session's own Linked Entities afterward, same as any other
- * cross-reference in this package. */
-export const SAFETY_EVENT_NOTE_TYPE = 'Safety Event';
+export { SAFETY_EVENT_NOTE_TYPE };
 
 /** Which corner of the viewport this floats in. Defaults to
  * `'bottom-right'` — this component's original, previously-hardcoded
@@ -42,6 +40,15 @@ export interface SessionSafetyControlsProps {
   visible?: boolean;
   /** Defaults to `'bottom-right'`. */
   position?: SafetyControlsPosition;
+  /**
+   * The display name of whoever is using this control, supplied by the
+   * host (this package has no identity/auth concept of its own, same
+   * reasoning as `visible` above) — recorded on the Safety Event Note
+   * so a GM-side `useSafetyEventAlerts`/`SafetyEventToasts` can say who
+   * triggered it. Omit to record the event anonymously; a GM-side
+   * reader then falls back to an "a player" phrasing.
+   */
+  triggeredBy?: string;
 }
 
 /**
@@ -64,6 +71,7 @@ export const SessionSafetyControls: React.FC<SessionSafetyControlsProps> = ({
   campaignId,
   visible = true,
   position = 'bottom-right',
+  triggeredBy,
 }) => {
   const { sessions } = useSessions(repository, campaignId);
   const runningSession = useMemo(() => (sessions ?? []).find((s) => s.status === 'Running') ?? null, [sessions]);
@@ -78,7 +86,7 @@ export const SessionSafetyControls: React.FC<SessionSafetyControlsProps> = ({
       type: SAFETY_EVENT_NOTE_TYPE,
       status: null,
       content: [],
-      tags: [],
+      tags: buildSafetyEventTags(tool, runningSession.id, triggeredBy),
     });
     await repository.createLink({
       campaignId,

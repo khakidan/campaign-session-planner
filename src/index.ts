@@ -37,6 +37,15 @@ export type { CampaignChangesPanelProps } from './components/CampaignChangesPane
 export { SessionSafetyControls, SAFETY_EVENT_NOTE_TYPE } from './components/SessionSafetyControls';
 export type { SessionSafetyControlsProps, SafetyControlsPosition } from './components/SessionSafetyControls';
 export {
+  getSafetyEventTool,
+  getSafetyEventTriggeredBy,
+  getSafetyEventSessionId,
+} from './lib/safetyEvents';
+export { useSafetyEventAlerts } from './hooks/useSafetyEventAlerts';
+export type { SafetyEventAlert } from './hooks/useSafetyEventAlerts';
+export { SafetyEventToasts } from './components/SafetyEventToasts';
+export type { SafetyEventToastsProps } from './components/SafetyEventToasts';
+export {
   MEMORY_NOTE_TYPES,
   OBSERVATION_CONFIDENCE_LEVELS,
   selectActiveMemoryNotes,

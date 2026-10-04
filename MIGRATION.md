@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: GM-side Safety Event alerts (`useSafetyEventAlerts`, `SafetyEventToasts`, `SessionSafetyControls`'s `triggeredBy` prop)
+
+**Action needed: none unless you want to use it.** Purely additive — no `CampaignPlannerRepository`/`TTRPGHostAdapter` changes, nothing mounted automatically. If you want live GM-side notification when a Player uses a safety tool, wire `useSafetyEventAlerts`'s `onSafetyEvent` into your own toast system (recommended), or mount the ready-made `SafetyEventToasts` if you don't have one. See `CHANGELOG.md` for detail and README.md's "Safety Tools" section for the updated wiring example.
+
 ### New: `SessionSafetyControls` `visible`/`position` props
 
 **Action needed: none.** Purely additive — both new props are optional and default to the exact previous behavior (always shown while a Session is Running, fixed to the bottom-right corner). If you want to gate this to a Player-permissioned view of your app or move it out of the way of your own UI, pass `visible`/`position`; see `CHANGELOG.md` and README.md's "Safety Tools" mention for detail.

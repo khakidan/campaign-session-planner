@@ -34,6 +34,7 @@ describe('SessionSafetyControls', () => {
       const notes = await repository.getNotes(TEST_CAMPAIGN_ID);
       expect(notes).toHaveLength(1);
       expect(notes[0]).toMatchObject({ type: 'Safety Event', title: 'X-Card — The Sunken Temple' });
+      expect(notes[0].tags).toEqual(expect.arrayContaining(['safety-tool:X-Card', 'session-id:s1']));
 
       const links = await repository.getLinks({ type: 'session', id: 's1', source: 'planner' });
       expect(links).toHaveLength(1);
@@ -41,6 +42,22 @@ describe('SessionSafetyControls', () => {
     });
 
     expect(screen.getByText('X-Card recorded')).toBeInTheDocument();
+  });
+
+  it('records the triggeredBy name as a tag when supplied', async () => {
+    const user = userEvent.setup();
+    const runningSession = makeSession({ id: 's1', title: 'The Sunken Temple', status: 'Running' });
+    const repository = createFakeRepository({ sessions: [runningSession] });
+
+    render(<SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} triggeredBy="Alice" />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Pause' }));
+
+    await waitFor(async () => {
+      const notes = await repository.getNotes(TEST_CAMPAIGN_ID);
+      expect(notes[0].tags).toContain('triggered-by:Alice');
+    });
   });
 
   it('renders nothing when visible is explicitly false, even while a Session is Running', () => {
