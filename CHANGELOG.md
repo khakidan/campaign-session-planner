@@ -6,6 +6,16 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## `SessionSafetyControls`: configurable visibility and position
+
+Responds to a ROADMAP.md note questioning the Safety Tools overlay's demo behavior — it was hardcoded to the bottom-right corner (liable to collide with a host's own UI there, e.g. a bug-report widget) and always rendered for every viewer regardless of role.
+
+- **New `visible?: boolean` prop** (defaults `true`) — this package has no GM/Player auth concept of its own, so a host now passes its own permission check here (e.g. `visible={session.role === 'player'}`) to show this only on a Player-permissioned layout and hide it on a GM-permissioned one, or vice versa — matching the real-world X-Card convention that any participant, not just the GM, can invoke one. Deliberately a prop rather than conditional mounting, so toggling it doesn't reset the component's `lastUsed` confirmation state.
+- **New `position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'` prop** (defaults `'bottom-right'`, matching the previous hardcoded behavior) — lets a host move the overlay out of the way of its own fixed-position UI in that corner.
+- **Not addressed here** (left open in ROADMAP.md): the UI still doesn't explain that clicking a button only logs a timestamped Note for later review rather than doing anything to the live session — a collapsed/expanded state or an inline caption would help, but wasn't part of this round's scope.
+- **Verified in the local demo** — added a "Viewing as" GM/Player toggle and a position selector, confirmed in a real browser that switching to Player shows the overlay (hidden for GM) and that all four corners position it correctly.
+- **Test coverage**: 2 new tests in `SessionSafetyControls.test.tsx` (`visible={false}` hides it even while Running; a custom `position` changes its corner classes) plus one confirming the unchanged default — 294 tests total, all passing.
+
 ## Session Recap as an output: a clean, player-facing "what happened last time" view
 
 Closes ROADMAP.md's "Session recap as an output, not just an input" idea — the last of the five ideas brainstormed alongside Run Mode. The Debrief (`sessionDebriefTemplate`) is written for the GM and can mix in secrets, GM self-critique ("Things Players Disengaged From"), and table-management notes never meant to leave the GM's own screen — not safe to hand a player unfiltered. Rather than parse that free text to guess what's shareable, this asks the GM to deliberately write the shareable part as its own thing.

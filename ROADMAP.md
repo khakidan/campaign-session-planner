@@ -12,7 +12,7 @@ None.
 
 ### 🟡 Features to Add / Test Coverage Gaps
 
-The Safety Tools clickable overlay is implemented in a weird way on the demo page. If this were the real D&D or Daggerheart app it would get in the way of the bug reporting tool. Maybe it should be collapsable? It's also unclear of what the purpose of the UI is for. I mean, I get what each of the options mean, but what is the purpose of clicking on any of the options?
+The Safety Tools overlay (`SessionSafetyControls`) can now be shown/hidden via its new `visible` prop (e.g. hidden on a GM-permissioned layout, shown on a Player-permissioned one — this package has no auth/role concept of its own, so that's a host-side decision) and repositioned via `position` (any of the four corners, no longer hardcoded bottom-right), closing the "it would get in the way of the bug reporting tool" part of this. Still open: it's unclear from the UI alone what clicking a button actually does (nothing to the live session — each button just logs a timestamped Note for later review) — worth a collapsed/expanded state, or at least a tooltip/caption making that explicit, so a GM or player isn't left guessing.
 
 ---
 

@@ -307,6 +307,32 @@ Notes list without the GM switching away and back, implement
 already reloads all its lists when that fires; this needs nothing
 extra from you beyond having it wired at all.
 
+## Safety Tools: a floating Pause/Rewind/Fast Forward/X-Card overlay
+
+`SessionSafetyControls` is a small, always-exported widget that shows
+up while any Session is Running — each button simply logs a
+timestamped `Note` (type `'Safety Event'`, linked to the running
+Session) for later review; it doesn't change anything about the live
+session itself, so pausing/rewinding play still happens verbally at
+the table same as always.
+
+```tsx
+<SessionSafetyControls
+  repository={repository}
+  campaignId={campaignId}
+  visible={session.role === 'player'}
+  position="bottom-left"
+/>
+```
+
+This package has no GM/Player auth concept of its own — `visible`
+(defaults `true`) is how a host gates this to whichever of its own
+permissioned layouts should show it, without losing the component's
+own confirmation state the way conditionally mounting/unmounting it
+would. `position` (defaults `'bottom-right'`) moves it to whichever
+corner doesn't collide with your own fixed-position UI there (a
+bug-report widget, a chat bubble, etc.).
+
 ## Campaign Hygiene: stale and orphaned entities, campaign-wide
 
 The backward-looking, campaign-wide counterpart to `CampaignChangesPanel`'s

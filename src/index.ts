@@ -35,7 +35,7 @@ export type { SessionReadinessChecklistProps } from './components/SessionReadine
 export { CampaignChangesPanel } from './components/CampaignChangesPanel';
 export type { CampaignChangesPanelProps } from './components/CampaignChangesPanel';
 export { SessionSafetyControls, SAFETY_EVENT_NOTE_TYPE } from './components/SessionSafetyControls';
-export type { SessionSafetyControlsProps } from './components/SessionSafetyControls';
+export type { SessionSafetyControlsProps, SafetyControlsPosition } from './components/SessionSafetyControls';
 export {
   MEMORY_NOTE_TYPES,
   OBSERVATION_CONFIDENCE_LEVELS,

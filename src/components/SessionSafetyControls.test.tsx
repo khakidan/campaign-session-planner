@@ -42,4 +42,30 @@ describe('SessionSafetyControls', () => {
 
     expect(screen.getByText('X-Card recorded')).toBeInTheDocument();
   });
+
+  it('renders nothing when visible is explicitly false, even while a Session is Running', () => {
+    const repository = createFakeRepository({ sessions: [makeSession({ id: 's1', status: 'Running' })] });
+    const { container } = render(
+      <SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} visible={false} />
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('defaults to the bottom-right corner', async () => {
+    const repository = createFakeRepository({ sessions: [makeSession({ id: 's1', status: 'Running' })] });
+    render(<SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} />);
+
+    const group = await screen.findByRole('group', { name: 'Session safety controls' });
+    expect(group.className).toContain('bottom-4');
+    expect(group.className).toContain('right-4');
+  });
+
+  it('positions itself in the requested corner instead', async () => {
+    const repository = createFakeRepository({ sessions: [makeSession({ id: 's1', status: 'Running' })] });
+    render(<SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} position="top-left" />);
+
+    const group = await screen.findByRole('group', { name: 'Session safety controls' });
+    expect(group.className).toContain('top-4');
+    expect(group.className).toContain('left-4');
+  });
 });

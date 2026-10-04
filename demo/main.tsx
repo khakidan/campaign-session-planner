@@ -4,6 +4,7 @@ import {
   CampaignSessionPlanner,
   QuickReferenceDrawerProvider,
   SessionSafetyControls,
+  type SafetyControlsPosition,
   SessionRunPanel,
   QuickCaptureComposer,
   CampaignHygienePanel,
@@ -329,17 +330,52 @@ const CampaignHygieneDemo: React.FC<{ repository: CampaignPlannerRepository }> =
 
 const App: React.FC = () => {
   const drawer = useQuickReferenceDrawer();
+
+  // Demonstrates SessionSafetyControls' `visible`/`position` props.
+  // This package has no GM/Player concept of its own — "Viewing as"
+  // here stands in for whatever role check a real host app would run
+  // (e.g. `session.role === 'player'`) before deciding whether to show
+  // the control at all.
+  const [viewingAs, setViewingAs] = useState<'gm' | 'player'>('gm');
+  const [safetyPosition, setSafetyPosition] = useState<SafetyControlsPosition>('bottom-right');
+
   return (
     <div className="min-h-screen bg-white">
-      <header className="p-4 border-b border-[var(--csp-neutral-200)] flex items-center justify-between">
+      <header className="p-4 border-b border-[var(--csp-neutral-200)] flex items-center justify-between gap-4">
         <h1 className="text-lg font-bold text-[var(--csp-neutral-800)]">campaign-session-planner — demo</h1>
-        <button
-          type="button"
-          onClick={() => drawer.open()}
-          className="px-3 py-1.5 text-xs font-semibold text-[var(--csp-accent-700)] border border-[var(--csp-accent-600)] rounded-lg hover:bg-[var(--csp-accent-50)] cursor-pointer"
-        >
-          Open Quick Reference
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--csp-neutral-600)]">
+            Viewing as
+            <select
+              value={viewingAs}
+              onChange={(e) => setViewingAs(e.target.value as 'gm' | 'player')}
+              className="px-2 py-1 border border-[var(--csp-neutral-300)] rounded-lg text-xs"
+            >
+              <option value="gm">GM</option>
+              <option value="player">Player</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--csp-neutral-600)]">
+            Safety controls position
+            <select
+              value={safetyPosition}
+              onChange={(e) => setSafetyPosition(e.target.value as SafetyControlsPosition)}
+              className="px-2 py-1 border border-[var(--csp-neutral-300)] rounded-lg text-xs"
+            >
+              <option value="bottom-right">Bottom right</option>
+              <option value="bottom-left">Bottom left</option>
+              <option value="top-right">Top right</option>
+              <option value="top-left">Top left</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => drawer.open()}
+            className="px-3 py-1.5 text-xs font-semibold text-[var(--csp-accent-700)] border border-[var(--csp-accent-600)] rounded-lg hover:bg-[var(--csp-accent-50)] cursor-pointer"
+          >
+            Open Quick Reference
+          </button>
+        </div>
       </header>
       <main className="p-6 flex gap-6 items-start">
         <div className="flex-1 min-w-0">
@@ -381,7 +417,12 @@ const App: React.FC = () => {
           />
         </aside>
       </main>
-      <SessionSafetyControls repository={repository} campaignId={TEST_CAMPAIGN_ID} />
+      <SessionSafetyControls
+        repository={repository}
+        campaignId={TEST_CAMPAIGN_ID}
+        visible={viewingAs === 'player'}
+        position={safetyPosition}
+      />
     </div>
   );
 };
