@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Location } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field } from './EditorFormControls';
+import { Field, AutosaveIndicator } from './EditorFormControls';
+import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { locationTemplate as defaultLocationTemplate } from '../lib/entityTemplates';
 
@@ -31,7 +32,15 @@ export interface LocationEditorProps {
    * beyond that one-hop guard is out of scope for this manual GM
    * tool. */
   otherLocations: Location[];
-  onSave: (values: LocationFormValues) => Promise<void> | void;
+  /** `existingId` is this editor's own current best knowledge of the
+   * Location's id — see `NoteEditorProps.onSave`'s own doc comment for
+   * why this must be branched on instead of `location`, which never
+   * changes mid-edit even after an autosave has already created a
+   * record. */
+  onSave: (values: LocationFormValues, existingId: string | null) => Promise<void> | void;
+  /** Background autosave (ROADMAP.md's "Campaign Planner Notes App") —
+   * omit to disable autosave entirely. See `NoteEditorProps.onAutosave`. */
+  onAutosave?: (values: LocationFormValues, existingId: string | null) => Promise<{ id: string }>;
   onDelete?: () => Promise<void> | void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -68,6 +77,7 @@ export const LocationEditor: React.FC<LocationEditorProps> = ({
   location,
   otherLocations,
   onSave,
+  onAutosave,
   onDelete,
   onCancel,
   isSaving = false,
@@ -77,6 +87,15 @@ export const LocationEditor: React.FC<LocationEditorProps> = ({
 }) => {
   const [values, setValues] = useState<LocationFormValues>(() => locationToFormValues(location));
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(location?.id ?? null);
+
+  const autosaveStatus = useAutosave(values, {
+    enabled: Boolean(onAutosave) && values.name.trim() !== '',
+    onAutosave: async (current) => {
+      const result = await onAutosave!(current, savedId);
+      setSavedId(result.id);
+    },
+  });
 
   const handleSave = async () => {
     if (!values.name.trim()) {
@@ -84,7 +103,7 @@ export const LocationEditor: React.FC<LocationEditorProps> = ({
       return;
     }
     setError(null);
-    await onSave(values);
+    await onSave(values, savedId);
   };
 
   const defaultFields = (
@@ -155,7 +174,8 @@ export const LocationEditor: React.FC<LocationEditorProps> = ({
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <AutosaveIndicator status={autosaveStatus} />
           <button
             type="button"
             onClick={onCancel}

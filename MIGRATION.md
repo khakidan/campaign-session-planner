@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
 
+### New: Autosave for every record editor (Note/NPC/Group/Location/Session)
+
+**Action needed: none.** `NoteEditor`/`NpcEditor`/`GroupEditor`/`LocationEditor`/`SessionEditor` and their prop types were never exported from `index.ts`, so their changed `onSave` signature and new `onAutosave` prop are entirely internal to this package's own `CampaignSessionPlanner.tsx` — nothing in your own code references them. You'll just see it work: typing into any of these five editors now autosaves in the background ~1.5s after you stop, with a small "Saving…"/"Saved" indicator next to the Save button, so a forgotten Save/reload/accidental close no longer loses the edit. The explicit Save button's own behavior (including navigating back to the list on success) is unchanged.
+
 ### Fix: standalone test suite on Node 25+, and a new `engines.node` range
 
 **Action needed: none for consuming the built package** — `dist/` output and runtime behavior are unaffected; this only touches `src/test/setup.ts` (test-only) and adds metadata (`engines`, `.nvmrc`) that doesn't change how `npm install`/`npm run build` behave for you.

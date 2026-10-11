@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Field, Section } from './EditorFormControls';
+import { Field, Section, AutosaveIndicator } from './EditorFormControls';
 
 function ControlledField() {
   const [value, setValue] = useState('');
@@ -41,5 +41,27 @@ describe('Section', () => {
 
     expect(screen.getByText('Linked Entities')).toBeInTheDocument();
     expect(screen.getByText('Nothing linked yet.')).toBeInTheDocument();
+  });
+});
+
+describe('AutosaveIndicator', () => {
+  it('renders nothing for idle', () => {
+    const { container } = render(<AutosaveIndicator status="idle" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows "Saving…" while saving', () => {
+    render(<AutosaveIndicator status="saving" />);
+    expect(screen.getByText('Saving…')).toBeInTheDocument();
+  });
+
+  it('shows "Saved" once saved', () => {
+    render(<AutosaveIndicator status="saved" />);
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+  });
+
+  it('renders nothing for error — a silent background failure is not worth alarming over mid-edit', () => {
+    const { container } = render(<AutosaveIndicator status="error" />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

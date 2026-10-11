@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Group } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field } from './EditorFormControls';
+import { Field, AutosaveIndicator } from './EditorFormControls';
+import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { groupTemplate as defaultGroupTemplate } from '../lib/entityTemplates';
 
@@ -36,7 +37,14 @@ function groupToFormValues(group: Group | null): GroupFormValues {
 export interface GroupEditorProps {
   /** `null` means "creating a new Group." */
   group: Group | null;
-  onSave: (values: GroupFormValues) => Promise<void> | void;
+  /** `existingId` is this editor's own current best knowledge of the
+   * Group's id — see `NoteEditorProps.onSave`'s own doc comment for why
+   * this must be branched on instead of `group`, which never changes
+   * mid-edit even after an autosave has already created a record. */
+  onSave: (values: GroupFormValues, existingId: string | null) => Promise<void> | void;
+  /** Background autosave (ROADMAP.md's "Campaign Planner Notes App") —
+   * omit to disable autosave entirely. See `NoteEditorProps.onAutosave`. */
+  onAutosave?: (values: GroupFormValues, existingId: string | null) => Promise<{ id: string }>;
   onDelete?: () => Promise<void> | void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -75,6 +83,7 @@ export interface GroupEditorProps {
 export const GroupEditor: React.FC<GroupEditorProps> = ({
   group,
   onSave,
+  onAutosave,
   onDelete,
   onCancel,
   isSaving = false,
@@ -84,6 +93,15 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
 }) => {
   const [values, setValues] = useState<GroupFormValues>(() => groupToFormValues(group));
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(group?.id ?? null);
+
+  const autosaveStatus = useAutosave(values, {
+    enabled: Boolean(onAutosave) && values.name.trim() !== '',
+    onAutosave: async (current) => {
+      const result = await onAutosave!(current, savedId);
+      setSavedId(result.id);
+    },
+  });
 
   const handleSave = async () => {
     if (!values.name.trim()) {
@@ -91,7 +109,7 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
       return;
     }
     setError(null);
-    await onSave(values);
+    await onSave(values, savedId);
   };
 
   const defaultFields = (
@@ -158,7 +176,8 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <AutosaveIndicator status={autosaveStatus} />
           <button
             type="button"
             onClick={onCancel}

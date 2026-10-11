@@ -56,3 +56,22 @@ export function Section({ title, children }: { title: string; children: React.Re
     </fieldset>
   );
 }
+
+/** Background-autosave status, shown next to the explicit Save button
+ * (ROADMAP.md's "Campaign Planner Notes App") — one component shared by
+ * every Editor's `useAutosave` wiring rather than five copies of the
+ * same three-state label. Renders nothing for 'idle' (nothing has
+ * changed yet, so there's nothing to say) or 'error' (autosave failing
+ * silently in the background isn't worth alarming over mid-edit; the
+ * explicit Save button's own error path is still there for a real
+ * problem — e.g. the required-field validation — the moment the GM
+ * tries to finish up). */
+export function AutosaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
+  if (status === 'saving') {
+    return <span className="text-[11px] font-semibold text-[var(--csp-neutral-500)]">Saving…</span>;
+  }
+  if (status === 'saved') {
+    return <span className="text-[11px] font-semibold text-[var(--csp-accent-600)]">Saved</span>;
+  }
+  return null;
+}

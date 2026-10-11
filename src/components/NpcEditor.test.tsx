@@ -17,10 +17,13 @@ describe('NpcEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
     await user.click(screen.getByRole('button', { name: 'Save NPC' }));
 
-    expect(onSave).toHaveBeenCalledWith({
-      name: 'Sister Mariel',
-      details: MOCK_TYPED_CONTENT,
-    });
+    expect(onSave).toHaveBeenCalledWith(
+      {
+        name: 'Sister Mariel',
+        details: MOCK_TYPED_CONTENT,
+      },
+      null
+    );
   });
 
   it('rejects saving with an empty name', async () => {

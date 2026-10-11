@@ -32,14 +32,17 @@ describe('SessionEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save Session' }));
 
-    expect(onSave).toHaveBeenCalledWith({
-      title: 'The Sunken Temple',
-      sessionNumber: '4',
-      date: '',
-      status: 'Draft',
-      details: MOCK_TYPED_CONTENT,
-      debrief: [],
-    });
+    expect(onSave).toHaveBeenCalledWith(
+      {
+        title: 'The Sunken Temple',
+        sessionNumber: '4',
+        date: '',
+        status: 'Draft',
+        details: MOCK_TYPED_CONTENT,
+        debrief: [],
+      },
+      null
+    );
   });
 
   it('rejects saving with an empty title', async () => {

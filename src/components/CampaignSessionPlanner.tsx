@@ -1,6 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
-import type { CampaignId, CampaignPlannerRepository, EntityId, EntityReference, EntityType, PlannerEntityType, TTRPGHostAdapter } from '../types';
+import type {
+  CampaignId,
+  CampaignPlannerRepository,
+  EntityId,
+  EntityReference,
+  EntityType,
+  Group,
+  Location,
+  Note,
+  Npc,
+  PlannerEntityType,
+  Session,
+  TTRPGHostAdapter,
+} from '../types';
 import { useNotes } from '../hooks/useNotes';
 import { useNpcs } from '../hooks/useNpcs';
 import { useGroups } from '../hooks/useGroups';
@@ -294,6 +307,13 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
 
   if (activeKind === 'note' && view.mode === 'edit') {
     const note = view.id ? (notes ?? []).find((n) => n.id === view.id) ?? null : null;
+    const noteFormPayload = (values: NoteFormValues) => ({
+      title: values.title.trim(),
+      type: values.type.trim() || null,
+      status: values.status.trim() || null,
+      content: values.content,
+      tags: parseTags(values.tags),
+    });
     return (
       <NoteEditor
         key={view.id ?? 'new'}
@@ -306,26 +326,31 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteNote(note.id);
           setView('note', { mode: 'list' });
         }) : undefined}
-        onSave={(values: NoteFormValues) =>
+        onSave={(values: NoteFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = {
-              title: values.title.trim(),
-              type: values.type.trim() || null,
-              status: values.status.trim() || null,
-              content: values.content,
-              tags: parseTags(values.tags),
-            };
-            if (note) await updateNote({ ...note, ...payload });
+            const payload = noteFormPayload(values);
+            if (existingId) await updateNote({ ...note, id: existingId, campaignId, ...payload } as Note);
             else await createNote(payload);
             setView('note', { mode: 'list' });
           })
         }
+        onAutosave={async (values: NoteFormValues, existingId: string | null) => {
+          const payload = noteFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveNote({ id: existingId, campaignId, ...payload });
+            await reloadNotes();
+            return { id: saved.id };
+          }
+          const created = await createNote(payload);
+          return { id: created.id };
+        }}
       />
     );
   }
 
   if (activeKind === 'npc' && view.mode === 'edit') {
     const npc = view.id ? (npcs ?? []).find((n) => n.id === view.id) ?? null : null;
+    const npcFormPayload = (values: NpcFormValues) => ({ name: values.name.trim(), details: values.details });
     return (
       <NpcEditor
         key={view.id ?? 'new'}
@@ -339,20 +364,36 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteNpc(npc.id);
           setView('npc', { mode: 'list' });
         }) : undefined}
-        onSave={(values: NpcFormValues) =>
+        onSave={(values: NpcFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = { name: values.name.trim(), details: values.details };
-            if (npc) await updateNpc({ ...npc, ...payload });
+            const payload = npcFormPayload(values);
+            if (existingId) await updateNpc({ ...npc, id: existingId, campaignId, ...payload } as Npc);
             else await createNpc(payload);
             setView('npc', { mode: 'list' });
           })
         }
+        onAutosave={async (values: NpcFormValues, existingId: string | null) => {
+          const payload = npcFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveNpc({ id: existingId, campaignId, ...payload });
+            await reloadNpcs();
+            return { id: saved.id };
+          }
+          const created = await createNpc(payload);
+          return { id: created.id };
+        }}
       />
     );
   }
 
   if (activeKind === 'group' && view.mode === 'edit') {
     const group = view.id ? (groups ?? []).find((g) => g.id === view.id) ?? null : null;
+    const groupFormPayload = (values: GroupFormValues) => ({
+      name: values.name.trim(),
+      type: values.type.trim() || null,
+      status: values.status.trim() || null,
+      details: values.details,
+    });
     return (
       <GroupEditor
         key={view.id ?? 'new'}
@@ -366,25 +407,36 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteGroup(group.id);
           setView('group', { mode: 'list' });
         }) : undefined}
-        onSave={(values: GroupFormValues) =>
+        onSave={(values: GroupFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = {
-              name: values.name.trim(),
-              type: values.type.trim() || null,
-              status: values.status.trim() || null,
-              details: values.details,
-            };
-            if (group) await updateGroup({ ...group, ...payload });
+            const payload = groupFormPayload(values);
+            if (existingId) await updateGroup({ ...group, id: existingId, campaignId, ...payload } as Group);
             else await createGroup(payload);
             setView('group', { mode: 'list' });
           })
         }
+        onAutosave={async (values: GroupFormValues, existingId: string | null) => {
+          const payload = groupFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveGroup({ id: existingId, campaignId, ...payload });
+            await reloadGroups();
+            return { id: saved.id };
+          }
+          const created = await createGroup(payload);
+          return { id: created.id };
+        }}
       />
     );
   }
 
   if (activeKind === 'location' && view.mode === 'edit') {
     const location = view.id ? (locations ?? []).find((l) => l.id === view.id) ?? null : null;
+    const locationFormPayload = (values: LocationFormValues) => ({
+      name: values.name.trim(),
+      type: values.type.trim() || null,
+      parentLocationId: values.parentLocationId || null,
+      details: values.details,
+    });
     return (
       <LocationEditor
         key={view.id ?? 'new'}
@@ -399,25 +451,38 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteLocation(location.id);
           setView('location', { mode: 'list' });
         }) : undefined}
-        onSave={(values: LocationFormValues) =>
+        onSave={(values: LocationFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = {
-              name: values.name.trim(),
-              type: values.type.trim() || null,
-              parentLocationId: values.parentLocationId || null,
-              details: values.details,
-            };
-            if (location) await updateLocation({ ...location, ...payload });
+            const payload = locationFormPayload(values);
+            if (existingId) await updateLocation({ ...location, id: existingId, campaignId, ...payload } as Location);
             else await createLocation(payload);
             setView('location', { mode: 'list' });
           })
         }
+        onAutosave={async (values: LocationFormValues, existingId: string | null) => {
+          const payload = locationFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveLocation({ id: existingId, campaignId, ...payload });
+            await reloadLocations();
+            return { id: saved.id };
+          }
+          const created = await createLocation(payload);
+          return { id: created.id };
+        }}
       />
     );
   }
 
   if (activeKind === 'session' && view.mode === 'edit') {
     const session = view.id ? (sessions ?? []).find((s) => s.id === view.id) ?? null : null;
+    const sessionFormPayload = (values: SessionFormValues) => ({
+      title: values.title.trim(),
+      sessionNumber: values.sessionNumber.trim() ? Number(values.sessionNumber) : null,
+      date: values.date || null,
+      status: values.status.trim() || null,
+      details: values.details,
+      debrief: values.debrief,
+    });
     return (
       <SessionEditor
         key={view.id ?? 'new'}
@@ -440,21 +505,24 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteSession(session.id);
           setView('session', { mode: 'list' });
         }) : undefined}
-        onSave={(values: SessionFormValues) =>
+        onSave={(values: SessionFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = {
-              title: values.title.trim(),
-              sessionNumber: values.sessionNumber.trim() ? Number(values.sessionNumber) : null,
-              date: values.date || null,
-              status: values.status.trim() || null,
-              details: values.details,
-              debrief: values.debrief,
-            };
-            if (session) await updateSession({ ...session, ...payload });
+            const payload = sessionFormPayload(values);
+            if (existingId) await updateSession({ ...session, id: existingId, campaignId, ...payload } as Session);
             else await createSession(payload);
             setView('session', { mode: 'list' });
           })
         }
+        onAutosave={async (values: SessionFormValues, existingId: string | null) => {
+          const payload = sessionFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveSession({ id: existingId, campaignId, ...payload });
+            await reloadSessions();
+            return { id: saved.id };
+          }
+          const created = await createSession(payload);
+          return { id: created.id };
+        }}
       />
     );
   }

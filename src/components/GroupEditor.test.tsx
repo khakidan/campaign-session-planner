@@ -20,12 +20,15 @@ describe('GroupEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save Group' }));
 
-    expect(onSave).toHaveBeenCalledWith({
-      name: 'The Ashen Circle',
-      type: 'CULT',
-      status: 'Active',
-      details: MOCK_TYPED_CONTENT,
-    });
+    expect(onSave).toHaveBeenCalledWith(
+      {
+        name: 'The Ashen Circle',
+        type: 'CULT',
+        status: 'Active',
+        details: MOCK_TYPED_CONTENT,
+      },
+      null
+    );
   });
 
   it('rejects saving with an empty name', async () => {

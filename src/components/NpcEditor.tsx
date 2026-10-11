@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Npc } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field } from './EditorFormControls';
+import { Field, AutosaveIndicator } from './EditorFormControls';
+import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { npcTemplate as defaultNpcTemplate } from '../lib/entityTemplates';
 
@@ -18,7 +19,14 @@ function npcToFormValues(npc: Npc | null): NpcFormValues {
 export interface NpcEditorProps {
   /** `null` means "creating a new NPC." */
   npc: Npc | null;
-  onSave: (values: NpcFormValues) => Promise<void> | void;
+  /** `existingId` is this editor's own current best knowledge of the
+   * NPC's id — see `NoteEditorProps.onSave`'s own doc comment for why
+   * this must be branched on instead of `npc`, which never changes
+   * mid-edit even after an autosave has already created a record. */
+  onSave: (values: NpcFormValues, existingId: string | null) => Promise<void> | void;
+  /** Background autosave (ROADMAP.md's "Campaign Planner Notes App") —
+   * omit to disable autosave entirely. See `NoteEditorProps.onAutosave`. */
+  onAutosave?: (values: NpcFormValues, existingId: string | null) => Promise<{ id: string }>;
   onDelete?: () => Promise<void> | void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -51,9 +59,18 @@ export interface NpcEditorProps {
  * `EntityLink`s (the "Linked Entities" panel below), not document
  * content.
  */
-export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onDelete, onCancel, isSaving = false, links, template, renderFields }) => {
+export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onAutosave, onDelete, onCancel, isSaving = false, links, template, renderFields }) => {
   const [values, setValues] = useState<NpcFormValues>(() => npcToFormValues(npc));
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(npc?.id ?? null);
+
+  const autosaveStatus = useAutosave(values, {
+    enabled: Boolean(onAutosave) && values.name.trim() !== '',
+    onAutosave: async (current) => {
+      const result = await onAutosave!(current, savedId);
+      setSavedId(result.id);
+    },
+  });
 
   const handleSave = async () => {
     if (!values.name.trim()) {
@@ -61,7 +78,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onDelete, onC
       return;
     }
     setError(null);
-    await onSave(values);
+    await onSave(values, savedId);
   };
 
   const defaultFields = <Field id="npc-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />;
@@ -101,7 +118,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onDelete, onC
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <AutosaveIndicator status={autosaveStatus} />
           <button
             type="button"
             onClick={onCancel}

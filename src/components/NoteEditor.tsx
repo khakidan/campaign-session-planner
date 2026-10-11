@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { Block, Note } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
+import { AutosaveIndicator } from './EditorFormControls';
+import { useAutosave } from '../hooks/useAutosave';
 import { MEMORY_NOTE_TYPES, OBSERVATION_CONFIDENCE_LEVELS, getNoteConfidence, withConfidence, type ObservationConfidence } from '../lib/plannerMemory';
 import { RECAP_HIGHLIGHT_TYPE } from '../lib/sessionRecap';
 import { NOTE_TYPE_TEMPLATES } from '../lib/noteTypeTemplates';
@@ -60,7 +62,27 @@ function noteToFormValues(note: Note | null): NoteFormValues {
 export interface NoteEditorProps {
   /** `null` means "creating a new Note." */
   note: Note | null;
-  onSave: (values: NoteFormValues) => Promise<void> | void;
+  /**
+   * `existingId` is this editor's own current best knowledge of the
+   * Note's id — `note?.id` for an existing Note, but for a brand-new
+   * one it reflects whatever `onAutosave` already created in the
+   * background, if anything has autosaved yet. Branch create-vs-update
+   * on this, not on `note`, which never changes mid-edit even after an
+   * autosave-created id exists — using `note` here would create a
+   * second, duplicate record the moment the GM clicks Save after any
+   * autosave has already landed.
+   */
+  onSave: (values: NoteFormValues, existingId: string | null) => Promise<void> | void;
+  /**
+   * Background autosave (ROADMAP.md's "Campaign Planner Notes App") —
+   * omit to disable autosave entirely (e.g. a host that hasn't wired a
+   * cheap-enough save path yet). Called debounced, only once Title is
+   * non-empty, and only when values actually changed since the last
+   * save. Must return the resulting id so this editor can track it
+   * (and so a subsequent autosave or the explicit Save button updates
+   * the same record instead of creating another one).
+   */
+  onAutosave?: (values: NoteFormValues, existingId: string | null) => Promise<{ id: string }>;
   onDelete?: () => Promise<void> | void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -97,9 +119,18 @@ export interface NoteEditorProps {
  * stylistically self-contained so it stays portable to a future,
  * different host app, per the doc's package-boundary goal.
  */
-export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, onCancel, isSaving = false, links, renderFields }) => {
+export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onAutosave, onDelete, onCancel, isSaving = false, links, renderFields }) => {
   const [values, setValues] = useState<NoteFormValues>(() => noteToFormValues(note));
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(note?.id ?? null);
+
+  const autosaveStatus = useAutosave(values, {
+    enabled: Boolean(onAutosave) && values.title.trim() !== '',
+    onAutosave: async (current) => {
+      const result = await onAutosave!(current, savedId);
+      setSavedId(result.id);
+    },
+  });
 
   const handleSave = async () => {
     if (!values.title.trim()) {
@@ -107,7 +138,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, 
       return;
     }
     setError(null);
-    await onSave(values);
+    await onSave(values, savedId);
   };
 
   const parsedTags = values.tags
@@ -264,7 +295,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onDelete, 
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <AutosaveIndicator status={autosaveStatus} />
           <button
             type="button"
             onClick={onCancel}

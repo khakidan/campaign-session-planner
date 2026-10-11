@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NoteEditor } from './NoteEditor';
 import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
@@ -31,13 +31,75 @@ describe('NoteEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Save Note' }));
 
     expect(onSave).toHaveBeenCalledTimes(1);
-    expect(onSave).toHaveBeenCalledWith({
-      title: 'A Secret',
-      type: 'Secret',
-      status: 'Active',
-      tags: 'ebon-sigil, pandemonium',
-      content: MOCK_TYPED_CONTENT,
+    expect(onSave).toHaveBeenCalledWith(
+      {
+        title: 'A Secret',
+        type: 'Secret',
+        status: 'Active',
+        tags: 'ebon-sigil, pandemonium',
+        content: MOCK_TYPED_CONTENT,
+      },
+      null
+    );
+  });
+
+  it('save: passes the autosave-created id, not null, once a background autosave has already created the record', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const onAutosave = vi.fn().mockResolvedValue({ id: 'autosaved-note-1' });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(<NoteEditor note={null} onSave={onSave} onAutosave={onAutosave} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Title'), 'A Secret');
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(onAutosave).toHaveBeenCalledWith(expect.objectContaining({ title: 'A Secret' }), null);
+
+    await user.click(screen.getByRole('button', { name: 'Save Note' }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'A Secret' }), 'autosaved-note-1');
+    vi.useRealTimers();
+  });
+
+  it('never autosaves a blank new Note — stays disabled until Title is non-empty', async () => {
+    const user = userEvent.setup();
+    const onAutosave = vi.fn().mockResolvedValue({ id: 'x' });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(<NoteEditor note={null} onSave={vi.fn()} onAutosave={onAutosave} onCancel={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(onAutosave).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('never autosaves when onAutosave is omitted — a host that has not wired autosave gets the old click-to-save behavior unchanged', async () => {
+    const user = userEvent.setup();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(<NoteEditor note={null} onSave={vi.fn()} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Title'), 'A Secret');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(screen.queryByText('Saving…')).not.toBeInTheDocument();
+    expect(screen.queryByText('Saved')).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it('shows the Saving…/Saved indicator as autosave runs', async () => {
+    const user = userEvent.setup();
+    const onAutosave = vi.fn().mockResolvedValue({ id: 'note-1' });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(<NoteEditor note={null} onSave={vi.fn()} onAutosave={onAutosave} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Title'), 'A Secret');
+    expect(screen.queryByText('Saving…')).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
     });
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    vi.useRealTimers();
   });
 
   it('rejects saving with an empty title, showing an error instead of calling onSave', async () => {
@@ -112,7 +174,7 @@ describe('NoteEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
     await user.click(screen.getByRole('button', { name: 'Save Note' }));
 
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ tags: 'ebon-sigil, confidence:proposed' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ tags: 'ebon-sigil, confidence:proposed' }), null);
   });
 
   it('pre-fills Confidence from an existing Note\'s tags', () => {
@@ -191,7 +253,7 @@ describe('NoteEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
     await user.click(screen.getByRole('button', { name: 'Save Note' }));
 
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'custom-' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'custom-' }), null);
   });
 
   it('renderFields: defaultFields lets a host wrap the shipped fields instead of replacing them', () => {

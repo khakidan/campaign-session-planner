@@ -11,7 +11,8 @@ import { SceneEditor, type SceneEditorProps, type SceneFormValues } from './Scen
 import { SessionBriefingPanel } from './SessionBriefingPanel';
 import { SessionReadinessChecklist } from './SessionReadinessChecklist';
 import { CampaignChangesPanel } from './CampaignChangesPanel';
-import { Field } from './EditorFormControls';
+import { Field, AutosaveIndicator } from './EditorFormControls';
+import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { sessionTemplate as defaultSessionTemplate, sessionDebriefTemplate as defaultSessionDebriefTemplate } from '../lib/entityTemplates';
 import { checkSessionReadiness } from '../lib/sessionReadiness';
@@ -51,7 +52,18 @@ export interface SessionEditorProps {
    * own Scenes, to each Scene's `EntityLinksPanel` too, so a Scene is
    * linkable to the same universe of entities as everything else. */
   plannerItems: PlannerSearchItem[];
-  onSave: (values: SessionFormValues) => Promise<void> | void;
+  /** `existingId` is this editor's own current best knowledge of the
+   * Session's id — see `NoteEditorProps.onSave`'s own doc comment for
+   * why this must be branched on instead of `session`, which never
+   * changes mid-edit even after an autosave has already created a
+   * record. (Scenes and entity-linking still gate on the `session`
+   * prop itself, unchanged — those stay locked behind an explicit Save,
+   * same as today; only the main Title/Date/Status/body fields get a
+   * background autosave safety net.) */
+  onSave: (values: SessionFormValues, existingId: string | null) => Promise<void> | void;
+  /** Background autosave (ROADMAP.md's "Campaign Planner Notes App") —
+   * omit to disable autosave entirely. See `NoteEditorProps.onAutosave`. */
+  onAutosave?: (values: SessionFormValues, existingId: string | null) => Promise<{ id: string }>;
   onDelete?: () => Promise<void> | void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -115,6 +127,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   hostAdapter,
   plannerItems,
   onSave,
+  onAutosave,
   onDelete,
   onCancel,
   isSaving = false,
@@ -130,6 +143,15 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const [values, setValues] = useState<SessionFormValues>(() => sessionToFormValues(session));
   const [error, setError] = useState<string | null>(null);
   const [scenesView, setScenesView] = useState<ScenesView>({ mode: 'list' });
+  const [savedId, setSavedId] = useState<string | null>(session?.id ?? null);
+
+  const autosaveStatus = useAutosave(values, {
+    enabled: Boolean(onAutosave) && values.title.trim() !== '',
+    onAutosave: async (current) => {
+      const result = await onAutosave!(current, savedId);
+      setSavedId(result.id);
+    },
+  });
 
   const { scenes, createScene, updateScene, deleteScene } = useScenes(repository, session?.id ?? null);
   const briefing = useSessionBriefing(repository, campaignId, hostAdapter);
@@ -186,7 +208,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       return;
     }
     setError(null);
-    await onSave(values);
+    await onSave(values, savedId);
   };
 
   const defaultFields = (
@@ -391,7 +413,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <AutosaveIndicator status={autosaveStatus} />
           <button
             type="button"
             onClick={onCancel}

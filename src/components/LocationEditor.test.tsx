@@ -32,12 +32,15 @@ describe('LocationEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save Location' }));
 
-    expect(onSave).toHaveBeenCalledWith({
-      name: 'Blackwater Village',
-      type: 'Village',
-      parentLocationId: 'location-parent',
-      details: MOCK_TYPED_CONTENT,
-    });
+    expect(onSave).toHaveBeenCalledWith(
+      {
+        name: 'Blackwater Village',
+        type: 'Village',
+        parentLocationId: 'location-parent',
+        details: MOCK_TYPED_CONTENT,
+      },
+      null
+    );
   });
 
   it('defaults the parent to "None" (empty string), not a specific location', async () => {
@@ -48,7 +51,7 @@ describe('LocationEditor', () => {
     await user.type(screen.getByLabelText('Name'), 'Standalone Hamlet');
     await user.click(screen.getByRole('button', { name: 'Save Location' }));
 
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ parentLocationId: '' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ parentLocationId: '' }), null);
   });
 
   it('rejects saving with an empty name', async () => {
