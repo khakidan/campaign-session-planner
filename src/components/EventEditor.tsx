@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Event } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field } from './EditorFormControls';
+import { Field, AutosaveIndicator } from './EditorFormControls';
+import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { eventTemplate as defaultEventTemplate } from '../lib/entityTemplates';
 
@@ -27,7 +28,14 @@ function eventToFormValues(event: Event | null): EventFormValues {
 export interface EventEditorProps {
   /** `null` means "creating a new Event." */
   event: Event | null;
-  onSave: (values: EventFormValues) => Promise<void> | void;
+  /** `existingId` is this editor's own current best knowledge of the
+   * Event's id — see `NoteEditorProps.onSave`'s own doc comment for why
+   * this must be branched on instead of `event`, which never changes
+   * mid-edit even after an autosave has already created a record. */
+  onSave: (values: EventFormValues, existingId: string | null) => Promise<void> | void;
+  /** Background autosave (ROADMAP.md's "Campaign Planner Notes App") —
+   * omit to disable autosave entirely. See `NoteEditorProps.onAutosave`. */
+  onAutosave?: (values: EventFormValues, existingId: string | null) => Promise<{ id: string }>;
   onDelete?: () => Promise<void> | void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -64,6 +72,7 @@ export interface EventEditorProps {
 export const EventEditor: React.FC<EventEditorProps> = ({
   event,
   onSave,
+  onAutosave,
   onDelete,
   onCancel,
   isSaving = false,
@@ -73,6 +82,15 @@ export const EventEditor: React.FC<EventEditorProps> = ({
 }) => {
   const [values, setValues] = useState<EventFormValues>(() => eventToFormValues(event));
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(event?.id ?? null);
+
+  const autosaveStatus = useAutosave(values, {
+    enabled: Boolean(onAutosave) && values.name.trim() !== '',
+    onAutosave: async (current) => {
+      const result = await onAutosave!(current, savedId);
+      setSavedId(result.id);
+    },
+  });
 
   const handleSave = async () => {
     if (!values.name.trim()) {
@@ -80,7 +98,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
       return;
     }
     setError(null);
-    await onSave(values);
+    await onSave(values, savedId);
   };
 
   const defaultFields = (
@@ -141,7 +159,8 @@ export const EventEditor: React.FC<EventEditorProps> = ({
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <AutosaveIndicator status={autosaveStatus} />
           <button
             type="button"
             onClick={onCancel}

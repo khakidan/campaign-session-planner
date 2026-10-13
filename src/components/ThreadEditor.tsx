@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Thread } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field } from './EditorFormControls';
+import { Field, AutosaveIndicator } from './EditorFormControls';
+import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { threadTemplate as defaultThreadTemplate } from '../lib/entityTemplates';
 
@@ -27,7 +28,14 @@ function threadToFormValues(thread: Thread | null): ThreadFormValues {
 export interface ThreadEditorProps {
   /** `null` means "creating a new Thread." */
   thread: Thread | null;
-  onSave: (values: ThreadFormValues) => Promise<void> | void;
+  /** `existingId` is this editor's own current best knowledge of the
+   * Thread's id — see `NoteEditorProps.onSave`'s own doc comment for why
+   * this must be branched on instead of `thread`, which never changes
+   * mid-edit even after an autosave has already created a record. */
+  onSave: (values: ThreadFormValues, existingId: string | null) => Promise<void> | void;
+  /** Background autosave (ROADMAP.md's "Campaign Planner Notes App") —
+   * omit to disable autosave entirely. See `NoteEditorProps.onAutosave`. */
+  onAutosave?: (values: ThreadFormValues, existingId: string | null) => Promise<{ id: string }>;
   onDelete?: () => Promise<void> | void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -64,6 +72,7 @@ export interface ThreadEditorProps {
 export const ThreadEditor: React.FC<ThreadEditorProps> = ({
   thread,
   onSave,
+  onAutosave,
   onDelete,
   onCancel,
   isSaving = false,
@@ -73,6 +82,15 @@ export const ThreadEditor: React.FC<ThreadEditorProps> = ({
 }) => {
   const [values, setValues] = useState<ThreadFormValues>(() => threadToFormValues(thread));
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(thread?.id ?? null);
+
+  const autosaveStatus = useAutosave(values, {
+    enabled: Boolean(onAutosave) && values.name.trim() !== '',
+    onAutosave: async (current) => {
+      const result = await onAutosave!(current, savedId);
+      setSavedId(result.id);
+    },
+  });
 
   const handleSave = async () => {
     if (!values.name.trim()) {
@@ -80,7 +98,7 @@ export const ThreadEditor: React.FC<ThreadEditorProps> = ({
       return;
     }
     setError(null);
-    await onSave(values);
+    await onSave(values, savedId);
   };
 
   const defaultFields = (
@@ -147,7 +165,8 @@ export const ThreadEditor: React.FC<ThreadEditorProps> = ({
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <AutosaveIndicator status={autosaveStatus} />
           <button
             type="button"
             onClick={onCancel}

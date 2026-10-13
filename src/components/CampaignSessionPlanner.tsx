@@ -6,12 +6,16 @@ import type {
   EntityId,
   EntityReference,
   EntityType,
+  Event,
   Group,
   Location,
   Note,
   Npc,
   PlannerEntityType,
+  Quest,
   Session,
+  Storyline,
+  Thread,
   TTRPGHostAdapter,
 } from '../types';
 import { useNotes } from '../hooks/useNotes';
@@ -529,6 +533,12 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
 
   if (activeKind === 'storyline' && view.mode === 'edit') {
     const storyline = view.id ? (storylines ?? []).find((s) => s.id === view.id) ?? null : null;
+    const storylineFormPayload = (values: StorylineFormValues) => ({
+      name: values.name.trim(),
+      status: values.status.trim() || null,
+      priority: values.priority.trim() || null,
+      details: values.details,
+    });
     return (
       <StorylineEditor
         key={view.id ?? 'new'}
@@ -542,25 +552,36 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteStoryline(storyline.id);
           setView('storyline', { mode: 'list' });
         }) : undefined}
-        onSave={(values: StorylineFormValues) =>
+        onSave={(values: StorylineFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = {
-              name: values.name.trim(),
-              status: values.status.trim() || null,
-              priority: values.priority.trim() || null,
-              details: values.details,
-            };
-            if (storyline) await updateStoryline({ ...storyline, ...payload });
+            const payload = storylineFormPayload(values);
+            if (existingId) await updateStoryline({ ...storyline, id: existingId, campaignId, ...payload } as Storyline);
             else await createStoryline(payload);
             setView('storyline', { mode: 'list' });
           })
         }
+        onAutosave={async (values: StorylineFormValues, existingId: string | null) => {
+          const payload = storylineFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveStoryline({ id: existingId, campaignId, ...payload });
+            await reloadStorylines();
+            return { id: saved.id };
+          }
+          const created = await createStoryline(payload);
+          return { id: created.id };
+        }}
       />
     );
   }
 
   if (activeKind === 'thread' && view.mode === 'edit') {
     const thread = view.id ? (threads ?? []).find((t) => t.id === view.id) ?? null : null;
+    const threadFormPayload = (values: ThreadFormValues) => ({
+      name: values.name.trim(),
+      status: values.status.trim() || null,
+      priority: values.priority.trim() || null,
+      details: values.details,
+    });
     return (
       <ThreadEditor
         key={view.id ?? 'new'}
@@ -574,25 +595,31 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteThread(thread.id);
           setView('thread', { mode: 'list' });
         }) : undefined}
-        onSave={(values: ThreadFormValues) =>
+        onSave={(values: ThreadFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = {
-              name: values.name.trim(),
-              status: values.status.trim() || null,
-              priority: values.priority.trim() || null,
-              details: values.details,
-            };
-            if (thread) await updateThread({ ...thread, ...payload });
+            const payload = threadFormPayload(values);
+            if (existingId) await updateThread({ ...thread, id: existingId, campaignId, ...payload } as Thread);
             else await createThread(payload);
             setView('thread', { mode: 'list' });
           })
         }
+        onAutosave={async (values: ThreadFormValues, existingId: string | null) => {
+          const payload = threadFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveThread({ id: existingId, campaignId, ...payload });
+            await reloadThreads();
+            return { id: saved.id };
+          }
+          const created = await createThread(payload);
+          return { id: created.id };
+        }}
       />
     );
   }
 
   if (activeKind === 'quest' && view.mode === 'edit') {
     const quest = view.id ? (quests ?? []).find((q) => q.id === view.id) ?? null : null;
+    const questFormPayload = (values: QuestFormValues) => ({ name: values.name.trim(), status: values.status.trim() || null, details: values.details });
     return (
       <QuestEditor
         key={view.id ?? 'new'}
@@ -606,20 +633,37 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteQuest(quest.id);
           setView('quest', { mode: 'list' });
         }) : undefined}
-        onSave={(values: QuestFormValues) =>
+        onSave={(values: QuestFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = { name: values.name.trim(), status: values.status.trim() || null, details: values.details };
-            if (quest) await updateQuest({ ...quest, ...payload });
+            const payload = questFormPayload(values);
+            if (existingId) await updateQuest({ ...quest, id: existingId, campaignId, ...payload } as Quest);
             else await createQuest(payload);
             setView('quest', { mode: 'list' });
           })
         }
+        onAutosave={async (values: QuestFormValues, existingId: string | null) => {
+          const payload = questFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveQuest({ id: existingId, campaignId, ...payload });
+            await reloadQuests();
+            return { id: saved.id };
+          }
+          const created = await createQuest(payload);
+          return { id: created.id };
+        }}
       />
     );
   }
 
   if (activeKind === 'event' && view.mode === 'edit') {
     const event = view.id ? (events ?? []).find((e) => e.id === view.id) ?? null : null;
+    const eventFormPayload = (values: EventFormValues) => ({
+      name: values.name.trim(),
+      eventType: values.eventType.trim() || null,
+      status: values.status.trim() || null,
+      date: values.date || null,
+      details: values.details,
+    });
     return (
       <EventEditor
         key={view.id ?? 'new'}
@@ -633,20 +677,24 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
           await deleteEvent(event.id);
           setView('event', { mode: 'list' });
         }) : undefined}
-        onSave={(values: EventFormValues) =>
+        onSave={(values: EventFormValues, existingId: string | null) =>
           runSaving(async () => {
-            const payload = {
-              name: values.name.trim(),
-              eventType: values.eventType.trim() || null,
-              status: values.status.trim() || null,
-              date: values.date || null,
-              details: values.details,
-            };
-            if (event) await updateEvent({ ...event, ...payload });
+            const payload = eventFormPayload(values);
+            if (existingId) await updateEvent({ ...event, id: existingId, campaignId, ...payload } as Event);
             else await createEvent(payload);
             setView('event', { mode: 'list' });
           })
         }
+        onAutosave={async (values: EventFormValues, existingId: string | null) => {
+          const payload = eventFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveEvent({ id: existingId, campaignId, ...payload });
+            await reloadEvents();
+            return { id: saved.id };
+          }
+          const created = await createEvent(payload);
+          return { id: created.id };
+        }}
       />
     );
   }
