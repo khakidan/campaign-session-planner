@@ -31,6 +31,15 @@
 .qrd-readonly .bn-editor {
   font-size: 13.5px;
   line-height: 1.6;
+  /* BlockNote's own default (`.bn-editor { padding-inline: 54px }`,
+     editor.css) reserves that space for the editable surface's drag-handle/
+     side-menu gutter -- meaningless here (`editable={false}`, every such
+     controller already turned off in ReadOnlyBlockNoteView.tsx) and, at the
+     Drawer's narrower width, it reads as a large unexplained indent eating
+     most of the available width. Same fix BlockNote's own comment editor
+     already applies to itself for the same reason (`.bn-comment-editor
+     .bn-editor { padding: 0 }`, same stylesheet). */
+  padding-inline: 0;
 }
 
 .qrd-readonly [data-content-type='heading'] {
