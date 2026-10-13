@@ -72,31 +72,25 @@ export function useQuickReferenceDrawer(): QuickReferenceDrawerContextValue {
 let nextEntryId = 1;
 
 const WIDTH_STORAGE_KEY = 'campaign-planner:quick-reference-width';
-const MIN_WIDTH = 340;
-const MAX_WIDTH = 900;
-const DEFAULT_WIDTH = 420;
-
-function clampWidth(value: number): number {
-  return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, value));
-}
-
-function loadStoredWidth(): number {
-  try {
-    const raw = window.localStorage.getItem(WIDTH_STORAGE_KEY);
-    const parsed = raw ? Number(raw) : NaN;
-    if (Number.isFinite(parsed)) return clampWidth(parsed);
-  } catch {
-    // Falls through to the default — same private-browsing/quota
-    // tolerance as `recentEntities.ts`.
-  }
-  return DEFAULT_WIDTH;
-}
+// A host app's own call — not a layout opinion this package should hold —
+// so these are just the fallback values a host gets if it passes nothing,
+// not a hardcoded ceiling.
+const DEFAULT_MIN_WIDTH = 340;
+const DEFAULT_MAX_WIDTH = 900;
+const DEFAULT_DEFAULT_WIDTH = 420;
 
 export interface QuickReferenceDrawerProviderProps {
   campaignId: CampaignId;
   repository: CampaignPlannerRepository;
   hostAdapter: TTRPGHostAdapter;
   children: React.ReactNode;
+  /** Narrowest the Drawer can be dragged. Default 340. */
+  minWidth?: number;
+  /** Widest the Drawer can be dragged. Default 900. */
+  maxWidth?: number;
+  /** Initial width before the GM has ever dragged it (or when nothing's
+   * in `localStorage`). Default 420. */
+  defaultWidth?: number;
 }
 
 export const QuickReferenceDrawerProvider: React.FC<QuickReferenceDrawerProviderProps> = ({
@@ -104,18 +98,32 @@ export const QuickReferenceDrawerProvider: React.FC<QuickReferenceDrawerProvider
   repository,
   hostAdapter,
   children,
+  minWidth = DEFAULT_MIN_WIDTH,
+  maxWidth = DEFAULT_MAX_WIDTH,
+  defaultWidth = DEFAULT_DEFAULT_WIDTH,
 }) => {
   const [stack, setStack] = useState<DrawerEntry[]>([]);
+  const clamp = useCallback((value: number) => Math.min(maxWidth, Math.max(minWidth, value)), [minWidth, maxWidth]);
   // One shared width across every stacked panel, not a per-panel size —
   // panels cascade at a fixed horizontal offset from each other (see
   // `DrawerPanel`'s `offset`), which only reads sensibly if they're all
   // the same width. Dragging the resize handle on *any* panel resizes
   // the whole stack at once, same as widening one Notion/Coda side-peek
   // widens every peek behind it.
-  const [width, setWidthState] = useState<number>(loadStoredWidth);
+  const [width, setWidthState] = useState<number>(() => {
+    try {
+      const raw = window.localStorage.getItem(WIDTH_STORAGE_KEY);
+      const parsed = raw ? Number(raw) : NaN;
+      if (Number.isFinite(parsed)) return clamp(parsed);
+    } catch {
+      // Falls through to the default — same private-browsing/quota
+      // tolerance as `recentEntities.ts`.
+    }
+    return clamp(defaultWidth);
+  });
 
   const setWidth = useCallback((next: number) => {
-    const clamped = clampWidth(next);
+    const clamped = clamp(next);
     setWidthState(clamped);
     try {
       window.localStorage.setItem(WIDTH_STORAGE_KEY, String(clamped));
@@ -123,7 +131,7 @@ export const QuickReferenceDrawerProvider: React.FC<QuickReferenceDrawerProvider
       // Best-effort, same as `recentEntities.ts` — a remembered width is
       // a convenience, never a reason to interrupt resizing itself.
     }
-  }, []);
+  }, [clamp]);
 
   const open = useCallback((ref?: EntityReference) => {
     setStack([{ id: `qrd-${nextEntryId++}`, ref: ref ?? null }]);
@@ -226,7 +234,7 @@ const DrawerPanel: React.FC<DrawerPanelProps> = ({
     >
       <Dialog.Portal>
         <Dialog.Popup
-          style={{ right: 16 + offset, zIndex: 100 + index }}
+          style={{ right: `calc(var(--csp-drawer-margin, 1rem) + ${offset}px)`, zIndex: 100 + index }}
           // Already a containing block for the `ResizeHandle`'s
           // `absolute` positioning below — `position: fixed` (like
           // `position: absolute`) establishes one on its own, no
@@ -237,11 +245,18 @@ const DrawerPanel: React.FC<DrawerPanelProps> = ({
           // confirmed live: the popup rendered at the full viewport
           // size, `top-4`/`bottom-4` no longer constraining its height
           // at all).
-          className="fixed top-4 bottom-4 flex flex-col bg-white border border-[var(--csp-neutral-200)] rounded-2xl shadow-xl outline-none"
+          //
+          // Edge margin and content padding below read from `--csp-*`
+          // CSS variables with the package's original hardcoded values
+          // as their fallback — this package provides structure, not
+          // style, so a host app that never sets these variables sees
+          // no change at all; one that wants a tighter/wider Drawer sets
+          // them once in its own stylesheet.
+          className="fixed top-[var(--csp-drawer-margin,1rem)] bottom-[var(--csp-drawer-margin,1rem)] flex flex-col bg-white border border-[var(--csp-neutral-200)] rounded-2xl shadow-xl outline-none"
           aria-label={index === 0 && stackSize === 1 && !ref ? 'Quick reference search' : 'Quick reference'}
         >
           <ResizeHandle width={width} onResizeWidth={onResizeWidth} />
-          <div style={{ width }} className="flex flex-col h-full min-h-0">
+          <div data-testid="quick-reference-panel-width" style={{ width }} className="flex flex-col h-full min-h-0">
             {ref ? (
               <EntityQuickViewPanel
                 entityRef={ref}
@@ -329,7 +344,7 @@ const PanelHeader: React.FC<{ title: string; onClose: () => void; onBack?: () =>
   onClose,
   onBack,
 }) => (
-  <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--csp-neutral-200)] shrink-0">
+  <div className="flex items-center gap-2 px-[var(--csp-drawer-padding,1rem)] py-[var(--csp-drawer-padding-compact,0.75rem)] border-b border-[var(--csp-neutral-200)] shrink-0">
     {onBack && (
       <button
         type="button"
@@ -374,7 +389,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ repository, campaignId, onSel
   return (
     <>
       <PanelHeader title="Quick Reference" onClose={onClose} />
-      <div className="p-3 border-b border-[var(--csp-neutral-200)] shrink-0">
+      <div className="p-[var(--csp-drawer-padding-compact,0.75rem)] border-b border-[var(--csp-neutral-200)] shrink-0">
         <input
           autoFocus
           type="text"
@@ -384,7 +399,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ repository, campaignId, onSel
           className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
         />
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-[var(--csp-drawer-padding-compact,0.75rem)] space-y-4">
         {error && <p className="text-xs font-semibold text-[var(--csp-danger-600)]">{error}</p>}
         {q ? (
           <ResultList
@@ -490,7 +505,7 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
         onClose={onClose}
         onBack={() => onChangeRef(null)}
       />
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-[var(--csp-drawer-padding,1rem)] space-y-4">
         {view === undefined && <p className="text-xs text-[var(--csp-neutral-400)] italic">Loading&hellip;</p>}
         {view === null && (
           <p className="text-xs text-[var(--csp-neutral-400)] italic">

@@ -34,6 +34,31 @@ describe('QuickReferenceDrawer', () => {
     window.localStorage.clear();
   });
 
+  it('defaults to a 420px width when the host passes no width props', async () => {
+    const user = userEvent.setup();
+    render(<Harness repository={createFakeRepository()} hostAdapter={createFakeHostAdapter()} />);
+    await user.click(screen.getByRole('button', { name: 'Open Search' }));
+    expect(await screen.findByTestId('quick-reference-panel-width')).toHaveStyle({ width: '420px' });
+  });
+
+  it("a host app's defaultWidth/minWidth/maxWidth props override the package's own defaults", async () => {
+    const user = userEvent.setup();
+    render(
+      <QuickReferenceDrawerProvider
+        campaignId={TEST_CAMPAIGN_ID}
+        repository={createFakeRepository()}
+        hostAdapter={createFakeHostAdapter()}
+        minWidth={500}
+        maxWidth={1200}
+        defaultWidth={560}
+      >
+        <OpenButtons />
+      </QuickReferenceDrawerProvider>
+    );
+    await user.click(screen.getByRole('button', { name: 'Open Search' }));
+    expect(await screen.findByTestId('quick-reference-panel-width')).toHaveStyle({ width: '560px' });
+  });
+
   it('open(): shows the search panel with an empty Recent state when nothing has been viewed', async () => {
     const user = userEvent.setup();
     render(<Harness repository={createFakeRepository()} hostAdapter={createFakeHostAdapter()} />);

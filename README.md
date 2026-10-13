@@ -168,6 +168,24 @@ to match it — it doesn't assume it owns your app's visual identity.
     --csp-accent-600: #7c3aed; /* swap the accent from emerald to violet */
   }
   ```
+- **Quick-reference Drawer spacing** — the Drawer's edge margin and
+  internal padding also resolve through CSS custom properties, same
+  pattern as colors above, each falling back to the package's original
+  values if unset: `--csp-drawer-margin` (gap from the viewport edge,
+  default `1rem`), `--csp-drawer-padding` (header/body padding, default
+  `1rem`), `--csp-drawer-padding-compact` (the search panel's tighter
+  padding, default `0.75rem`):
+  ```css
+  :root {
+    --csp-drawer-margin: 0.5rem;
+    --csp-drawer-padding: 0.75rem;
+    --csp-drawer-padding-compact: 0.5rem;
+  }
+  ```
+  Its min/max/default width is a prop instead, since the resize-clamp
+  logic needs real numbers, not CSS: `QuickReferenceDrawerProvider`
+  takes optional `minWidth`/`maxWidth`/`defaultWidth` (default `340`/
+  `900`/`420`).
 - **Layout** — `CampaignSessionPlanner`'s top tab bar (the single most
   opinionated piece of layout it owns) is overridable via the
   `renderNav` prop. Omit it to keep the shipped horizontal tab bar; pass
