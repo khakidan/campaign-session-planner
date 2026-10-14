@@ -6,6 +6,18 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Fix: side menu (`+`/drag-handle) unreachable for blocks in the CSS-reflowed second column
+
+Reported by the consuming app's GM (Dan, 2026-10-13): hovering a block in the right-hand CSS column of a rich-text field (`BlockNoteFreeformField`) and trying to reach its `+`/drag-handle controls kept shifting the hover target back to the left column before the controls could be clicked.
+
+**Root cause**, found by reading BlockNote's own `SideMenuController`/`BlockPopover` source rather than guessing: the side menu always opens `placement: "left-start"` relative to whatever block is hovered. For a normal single-column document that space is the editor's own empty left margin, so it's harmless — but `blockNoteColumns.css`'s pure-CSS `column-count: 2` reflow (unchanged architecturally; see the entry below from this package's earlier, since-reverted from-scratch column *block type* attempt, which this isn't a repeat of) means a block visually sitting in the *second* column has the *first* column's real rendered text immediately to its left, not margin. Moving the mouse toward the menu re-entered the first column's hover region before reaching it, so the menu kept re-targeting the wrong block.
+
+**Fix**: `BlockNoteFreeformField.tsx` now disables `BlockNoteView`'s built-in `sideMenu` and renders `SideMenuController` itself (both exported from `@blocknote/react`) with `placement: "top-start"` — above the hovered block instead of to either side, so it no longer depends on which column, or how wide the inter-column gap is. No NodeView, schema, or drag-and-drop changes, unlike the earlier column-block attempt's own failed side-menu fix.
+
+**Verified**: `npm run build` (tsup + full `.d.ts` typecheck) clean; full suite 51 files / 335 tests passing. Not yet confirmed live — per the consuming app's own session, Dan does the manual/live verification for UI changes himself now.
+
+---
+
 ## Autosave for every record editor (Note/NPC/Group/Location/Session)
 
 Closes a real data-loss bug Dan hit a few times: every editor held its edits in local component state, sent to the server only on an explicit "Save" click — a forgotten click, a reload, or an accidental close lost the work entirely.
