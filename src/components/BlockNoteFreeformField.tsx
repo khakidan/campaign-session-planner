@@ -1,12 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { BlockNoteSchema, defaultInlineContentSpecs } from '@blocknote/core';
 import type { PartialBlock } from '@blocknote/core';
-import { useCreateBlockNote, SuggestionMenuController, SideMenuController, type DefaultReactSuggestionItem } from '@blocknote/react';
+import { useCreateBlockNote, SuggestionMenuController, type DefaultReactSuggestionItem } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/shadcn';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/shadcn/style.css';
 import './blockNoteBaseline.css';
-import './blockNoteColumns.css';
 import { entityReferenceInlineContentSpec, EntityReferenceLinkingContext } from './EntityReferenceInlineContent';
 import { toBlocksValue } from '../lib/blockNoteUtils';
 import type { Block, EntityReference } from '../types';
@@ -65,29 +64,25 @@ export interface BlockNoteFreeformFieldProps {
  * NodeView (what the GPL/proprietary-licensed `@blocknote/xl-multi-
  * column` package actually provides), which this project's licensing
  * constraint rules out. Single flowing document only, going forward
- * (the document itself stays one linear block list — see
- * `blockNoteColumns.css` for the still-active pure-CSS 2-column
- * *reflow* this later went with instead, which is a different thing
- * from the from-scratch NodeView described above).
+ * (the document itself stays one linear block list).
  *
- * That CSS reflow introduced its own, different side-menu bug (bug
- * report, 2026-10-13): BlockNote's SideMenu always opens
- * `placement: "left-start"` relative to the hovered block — correct
- * for a normal single-column document (that space is the editor's own
- * empty left margin), but for a block CSS-reflowed into the *second*
- * visual column, "to its left" is the ~2rem gap to the *first*
- * column's real rendered text, not empty margin. Moving the mouse
- * toward the menu in that gap re-entered the first column's hover
- * region before reaching it, so the menu kept re-targeting the wrong
- * block — confirmed by reading BlockNote's own SideMenuController
- * source, not reproduced live (this package's own CHANGELOG-documented
- * convention, after the above history, is to design a fix from source
- * first). Fixed by disabling BlockNoteView's built-in `sideMenu` and
- * rendering `SideMenuController` ourselves with `placement: "top-start"`
- * instead — above the block, not to either side, so it never depends on
- * which column (or how wide the inter-column gap is) the hovered block
- * happens to be in. Both exported directly from `@blocknote/react`;
- * no NodeView, schema, or drag-and-drop code involved this time.
+ * A later attempt (2026-10-13) reflowed this editable field into 2
+ * CSS columns too (`blockNoteColumns.css`, originally scoped to both
+ * `.bnff-editable` and `.qrd-readonly`), to match the already-working
+ * read-only Quick Reference Drawer. That broke BlockNote's side menu
+ * for any block in the second visual column — its `+`/drag-handle
+ * always opens `placement: "left-start"`, which for a column-2 block
+ * lands in the real text of column 1, not empty margin, so reaching
+ * for it re-grabbed the wrong block. A `placement: "top-start"`
+ * override (confirmed working from reading BlockNote's own source)
+ * made that specific symptom worse live rather than better, per direct
+ * user feedback — reverted. Editable now stays single-column, full
+ * width, with BlockNote's own default side menu untouched; only the
+ * **read-only** rendering (`ReadOnlyBlockNoteView.tsx`'s `.qrd-readonly`
+ * class, used by the Quick Reference Drawer and the Live Session
+ * Drawer) still reflows into 2 columns when there's room — read-only
+ * has no side menu to begin with (`sideMenu={false}`), so it was never
+ * actually affected by this bug.
  */
 export const BlockNoteFreeformField: React.FC<BlockNoteFreeformFieldProps> = ({ value, onChange, linking, template }) => {
   const initialContent = useMemo(() => {
@@ -185,18 +180,11 @@ export const BlockNoteFreeformField: React.FC<BlockNoteFreeformFieldProps> = ({ 
       </div>
       <BlockNoteView
         editor={editor}
-        className="bnff-editable"
-        sideMenu={false}
         onChange={() => {
           setHasContent(true);
           onChange(editor.document as unknown as Block[]);
         }}
       >
-        <SideMenuController
-          floatingUIOptions={{
-            useFloatingOptions: { placement: 'top-start' },
-          }}
-        />
         {linking && (
           <>
             <SuggestionMenuController triggerCharacter="@" getItems={getItems} />

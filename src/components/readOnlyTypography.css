@@ -15,9 +15,9 @@
  *
  * The actual answer for "how content should use extra width" lives in
  * `blockNoteColumns.css`, not here: `column-count: 2` + `column-width:
- * 20rem`, scoped to `.qrd-readonly` alongside the editable field's own
- * `.bnff-editable`, reflows this content into 2 columns once the panel
- * is wide enough to fit them (and back to 1 as it narrows) — confirmed
+ * 20rem`, scoped to `.qrd-readonly`, reflows this content into 2
+ * columns once the panel is wide enough to fit them (and back to 1 as
+ * it narrows) — confirmed
  * live to no longer be the no-op it first was earlier in this slice
  * (multi-column layout needs a *bounded height* to create extra columns
  * out of, which the Drawer's `overflow-y-auto` scroll ancestor was not

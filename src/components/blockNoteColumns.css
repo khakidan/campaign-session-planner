@@ -16,11 +16,7 @@
  * *rendering* effect: the browser visually reflows the editor's existing
  * top-level blocks into 1-2 columns, the same way a newspaper or a CSS
  * multi-column article does, entirely independent of BlockNote's block
- * model. Every position/hover/drag calculation BlockNote makes reads real
- * `getBoundingClientRect()` geometry, which already reflects this reflow
- * correctly — there's no missing internal marker to route around this
- * time, because nothing here depends on BlockNote recognizing a "column"
- * concept at all.
+ * model.
  *
  * `column-count: 2` + `column-width: 20rem` together (not just one alone)
  * is what gives "2 columns when there's room, fewer as the container
@@ -34,26 +30,33 @@
  * via the real rendered DOM) together in one column rather than splitting
  * mid-block.
  *
- * Scoped to `.bnff-editable` (this component's own `BlockNoteView`
- * `className`) and `.qrd-readonly` (the Quick-reference Drawer's
- * read-only renderer, `ReadOnlyBlockNoteView.tsx`) rather than a bare
- * `.bn-editor` selector that would apply everywhere by accident. Both
- * are listed deliberately, not just the editable one: the same reflow
- * — proportionate width, dropping to 2 columns once there's room rather
- * than growing one column arbitrarily wide — reads well in the Drawer
- * too, confirmed live. Each of those two classNames lands on the outer
- * `.bn-root.bn-container` wrapper, one level above `.bn-editor`, hence
- * every selector here is a descendant selector, not a direct-class one.
+ * Scoped to `.qrd-readonly` only (the Quick-reference/Live Session
+ * Drawer's read-only renderer, `ReadOnlyBlockNoteView.tsx`'s own
+ * `BlockNoteView` `className`), which lands on the outer `.bn-root.bn-
+ * container` wrapper, one level above `.bn-editor` — hence every
+ * selector here is a descendant selector, not a direct-class one.
+ *
+ * A second attempt (2026-10-13) scoped this to the *editable*
+ * `BlockNoteFreeformField` too (`.bnff-editable`), to match. Reverted
+ * per direct user feedback after it broke BlockNote's side menu for any
+ * block CSS-reflowed into the second column (the menu's own
+ * `placement: "left-start"` then lands in column 1's real text, not
+ * empty margin) — a `placement: "top-start"` override fixed the
+ * specific "can't reach the menu" symptom per reading BlockNote's
+ * source, but made the editing experience worse live overall, so both
+ * were reverted rather than iterated further. The editable field is
+ * single-column, full width, with BlockNote's own default side menu,
+ * going forward. Read-only has no side menu at all
+ * (`ReadOnlyBlockNoteView.tsx` passes `sideMenu={false}`), so it was
+ * never actually exposed to this bug — 2-column reflow stays safe there.
  */
 
-.bnff-editable .bn-editor > .bn-block-group,
 .qrd-readonly .bn-editor > .bn-block-group {
   column-count: 2;
   column-width: 20rem;
   column-gap: 2rem;
 }
 
-.bnff-editable .bn-editor > .bn-block-group > .bn-block-outer,
 .qrd-readonly .bn-editor > .bn-block-group > .bn-block-outer {
   break-inside: avoid-column;
 }
