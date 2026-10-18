@@ -4,7 +4,11 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ---
 
-## Unreleased (current `claude/nifty-gauss-ocyzxc` branch state)
+## Unreleased (current `master` branch state)
+
+### Fix: saving a brand-new entry no longer closes the editor
+
+**Action needed: none.** No prop/API changes — purely an internal view-state fix inside `CampaignSessionPlanner`/`SessionEditor`. If your own app relied on the GM landing back on a kind's list immediately after creating its very first entry (unlikely, but technically a behavior change), they now land on that entry's editor instead, already saved and with linking available.
 
 ### New: Autosave for every record editor (Note/NPC/Group/Location/Session)
 

@@ -74,7 +74,7 @@ describe('SessionEditor', () => {
     expect(screen.getByText('Save this Session before adding Scenes.')).toBeInTheDocument();
   });
 
-  it('adding a Scene: saves it under the current Session and returns to the Scenes list', async () => {
+  it('adding a Scene: saves it under the current Session, and stays in the editor (not the list) rather than closing it', async () => {
     const user = userEvent.setup();
     const session = makeSession({ id: 'session-1' });
     const props = baseProps();
@@ -82,10 +82,22 @@ describe('SessionEditor', () => {
     render(<SessionEditor session={session} onSave={vi.fn()} {...props} />);
 
     await user.click(screen.getByRole('button', { name: '+ Add Scene' }));
+    // Before the first save, this Scene has no id yet — linking isn't
+    // possible, the exact bug being fixed: it shouldn't *also* throw
+    // the GM back out to the list the moment that first save happens.
+    expect(screen.queryByRole('button', { name: '+ Add Link' })).not.toBeInTheDocument();
+
     await user.type(screen.getByLabelText('Title'), 'Arrival at the Temple');
     await user.click(screen.getByRole('button', { name: 'Save Scene' }));
 
-    await waitFor(() => expect(screen.getByText('Arrival at the Temple')).toBeInTheDocument());
+    // Still on the Scene editor — not back on the Scenes list — now
+    // showing the real, saved Scene: Delete is available, and so is
+    // linking, which only ever turns on once a `scene` with a real id
+    // exists.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete Scene' })).toBeInTheDocument());
+    expect(screen.getByLabelText('Title')).toHaveValue('Arrival at the Temple');
+    expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument();
+
     const savedScenes = await props.repository.getScenes('session-1');
     expect(savedScenes).toMatchObject([{ title: 'Arrival at the Temple', sessionId: 'session-1', order: 0 }]);
   });

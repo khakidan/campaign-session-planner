@@ -291,12 +291,14 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             status: sceneValues.status.trim() || null,
             details: sceneValues.details,
           };
-          if (editingScene) {
-            await updateScene({ ...editingScene, ...payload });
-          } else {
-            await createScene({ ...payload, order: sortedScenes.length });
-          }
-          setScenesView({ mode: 'list' });
+          const saved = editingScene
+            ? await updateScene({ ...editingScene, ...payload })
+            : await createScene({ ...payload, order: sortedScenes.length });
+          // Same reasoning as every other editor's onSave in
+          // CampaignSessionPlanner.tsx: a brand-new Scene has no id (so
+          // no linking) until this first save — don't also close the
+          // editor the instant that becomes available.
+          setScenesView(scenesView.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
         }}
       />
     );

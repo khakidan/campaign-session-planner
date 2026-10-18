@@ -103,3 +103,109 @@ describe('CampaignSessionPlanner field customization', () => {
     expect(screen.queryByLabelText('Extra Note Field')).not.toBeInTheDocument();
   });
 });
+
+describe('CampaignSessionPlanner: saving a brand-new entry', () => {
+  it('note: a direct Save click (no autosave in play) stays on the editor, not the list, so [[ / @ linking becomes available immediately', async () => {
+    const user = userEvent.setup();
+    render(
+      <CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={createFakeRepository()} hostAdapter={createFakeHostAdapter()} />
+    );
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New Note' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'New Note' }));
+
+    // Before the first save, this Note has no id yet — linking (the
+    // `[[`/`@` picker inside the content field, and "Add Link" below)
+    // isn't possible. That's the real constraint; the bug was that
+    // saving — the only way to lift it — *also* threw the GM back out
+    // to the list, right when they'd want to start linking.
+    expect(screen.queryByRole('button', { name: '+ Add Link' })).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Title'), 'A Secret');
+    await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
+    await user.click(screen.getByRole('button', { name: 'Save Note' }));
+
+    // Still the Note editor, now showing the real, saved Note: Delete
+    // is available, the title survived the round-trip, and — the
+    // actual fix — linking is now on.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete Note' })).toBeInTheDocument());
+    expect(screen.getByLabelText('Title')).toHaveValue('A Secret');
+    expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'New Note' })).not.toBeInTheDocument();
+  });
+
+  it('note: when a background autosave creates the record *before* the explicit Save click, that click is still the first moment this view reveals linking', async () => {
+    const user = userEvent.setup();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(
+      <CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={createFakeRepository()} hostAdapter={createFakeHostAdapter()} />
+    );
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New Note' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'New Note' }));
+
+    await user.type(screen.getByLabelText('Title'), 'A Secret');
+    // Let the debounced autosave fire and create the real record in
+    // the background — this view (CampaignSessionPlanner's own
+    // `view.id`) never learns about it, so linking still isn't shown
+    // yet even though the row genuinely exists now.
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(screen.queryByRole('button', { name: '+ Add Link' })).not.toBeInTheDocument();
+
+    // The explicit Save click now updates that already-autosaved
+    // record (not a second, duplicate create) — but it's still the
+    // first time *this view* has ever shown linking, so it must still
+    // stay open and reveal it, not close.
+    await user.click(screen.getByRole('button', { name: 'Save Note' }));
+
+    expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'New Note' })).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it('npc: same fix applies to every other top-level kind, not just Notes', async () => {
+    const user = userEvent.setup();
+    render(
+      <CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={createFakeRepository()} hostAdapter={createFakeHostAdapter()} />
+    );
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'NPCs' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'NPCs' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New NPC' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'New NPC' }));
+
+    expect(screen.queryByRole('button', { name: '+ Add Link' })).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Name'), 'Sister Mariel');
+    await user.click(screen.getByRole('button', { name: 'Save NPC' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete NPC' })).toBeInTheDocument());
+    expect(screen.getByLabelText('Name')).toHaveValue('Sister Mariel');
+    expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument();
+  });
+
+  it('editing an existing Note still returns to the list after save (only a record new to this view stays)', async () => {
+    const user = userEvent.setup();
+    const note = {
+      id: 'note-1',
+      campaignId: TEST_CAMPAIGN_ID,
+      title: 'Existing',
+      type: null,
+      status: null,
+      content: [],
+      tags: [],
+      createdAt: 'x',
+      updatedAt: 'x',
+    };
+    const repository = createFakeRepository({ notes: [note] });
+    render(<CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={repository} hostAdapter={createFakeHostAdapter()} />);
+
+    await waitFor(() => expect(screen.getByText('Existing')).toBeInTheDocument());
+    await user.click(screen.getByText('Existing'));
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Save Note' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New Note' })).toBeInTheDocument());
+  });
+});

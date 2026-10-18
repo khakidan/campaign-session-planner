@@ -6,6 +6,17 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Fix: saving a brand-new entry no longer closes the editor
+
+Closes ROADMAP.md's "can't use `[[`/`@` until saved, but saving kicks you out" bug. The `[[`/`@` picker and "Add Link" are both genuinely impossible on a record with no id yet — that constraint isn't going away (it's the real `EntityLink` graph a backlink needs, not a styled mention) — but there was no reason the *only* way to lift it (a save) had to also throw the GM back out to the list, right when they'd actually want to start linking something.
+
+Autosave (`28e440a`/`c95b84e`) had already closed the data-loss half of this bug — a brand-new record now gets a real id in the background within 1.5s of typing, whether or not the GM ever clicks Save — but, as that work's own doc comment on `SessionEditor.tsx` already flagged, linking itself "stays locked behind an explicit Save, same as today": the autosave-created id lives only in each editor's own local `savedId` state, never reported back up to `CampaignSessionPlanner`, so its own `view.id` (what `linksProp`/`editingRef` actually gate on) stays `null` the whole time regardless. This fix is specifically for that remaining gap, scoped around the explicit Save click:
+
+- **`CampaignSessionPlanner.tsx`**: every top-level kind's `onSave` handler now decides "stay on the editor" vs. "return to the list" by checking **this view's own `view.id`** — not the `existingId` the editor reports, which an autosave may already have set in the background. That distinction matters: if autosave already created the record, `existingId` is non-null by the time Save is clicked, but `view.id` is still `null` (this view never learned the id) — so the explicit click is still genuinely the first moment *this view* can show linking, and branching on `existingId` instead would have wrongly sent the GM straight back to the list right as it turned on. Covered directly by a new test that autosaves first, then clicks Save, and confirms linking still only appears (and the view still stays open) at that point.
+- **`SessionEditor.tsx`**'s nested Scene editor gets the identical fix, keyed on `scenesView.id` — a new Scene has no id, and no links, until its first save either (Scenes don't autosave yet — see the new ROADMAP.md bug).
+- **Editing an existing record is unchanged** — it already has an id, so linking already worked before Save was ever touched, and it still returns to the list afterward.
+- **Test coverage**: `CampaignSessionPlanner.test.tsx` (4 new tests — a direct Save on a new Note stays and reveals linking; the same when an autosave beat it there first; the same for a new NPC, confirming the fix generalizes; an *existing* Note still returns to the list) and `SessionEditor.test.tsx`'s Scene-creation test rewritten the same way — 339 tests total, all passing.
+
 ## Reverted: 2-column CSS reflow for the *editable* field; stays read-only only
 
 Reported by the consuming app's GM (Dan, 2026-10-13), in two parts:

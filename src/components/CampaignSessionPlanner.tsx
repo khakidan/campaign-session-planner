@@ -333,9 +333,18 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: NoteFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = noteFormPayload(values);
-            if (existingId) await updateNote({ ...note, id: existingId, campaignId, ...payload } as Note);
-            else await createNote(payload);
-            setView('note', { mode: 'list' });
+            const saved = existingId
+              ? await updateNote({ ...note, id: existingId, campaignId, ...payload } as Note)
+              : await createNote(payload);
+            // `existingId` is the *editor's* own knowledge, which an
+            // autosave may already have updated in the background;
+            // `view.id` is whether this view has ever actually shown
+            // linking for this record. An autosave can create the real
+            // row without this view learning its id, so this explicit
+            // Save click can still be the first moment it's revealed —
+            // branch on `view.id`, not `existingId`, so that moment
+            // doesn't close the editor the instant it happens.
+            setView('note', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: NoteFormValues, existingId: string | null) => {
@@ -371,9 +380,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: NpcFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = npcFormPayload(values);
-            if (existingId) await updateNpc({ ...npc, id: existingId, campaignId, ...payload } as Npc);
-            else await createNpc(payload);
-            setView('npc', { mode: 'list' });
+            const saved = existingId
+              ? await updateNpc({ ...npc, id: existingId, campaignId, ...payload } as Npc)
+              : await createNpc(payload);
+            setView('npc', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: NpcFormValues, existingId: string | null) => {
@@ -414,9 +424,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: GroupFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = groupFormPayload(values);
-            if (existingId) await updateGroup({ ...group, id: existingId, campaignId, ...payload } as Group);
-            else await createGroup(payload);
-            setView('group', { mode: 'list' });
+            const saved = existingId
+              ? await updateGroup({ ...group, id: existingId, campaignId, ...payload } as Group)
+              : await createGroup(payload);
+            setView('group', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: GroupFormValues, existingId: string | null) => {
@@ -458,9 +469,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: LocationFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = locationFormPayload(values);
-            if (existingId) await updateLocation({ ...location, id: existingId, campaignId, ...payload } as Location);
-            else await createLocation(payload);
-            setView('location', { mode: 'list' });
+            const saved = existingId
+              ? await updateLocation({ ...location, id: existingId, campaignId, ...payload } as Location)
+              : await createLocation(payload);
+            setView('location', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: LocationFormValues, existingId: string | null) => {
@@ -512,9 +524,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: SessionFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = sessionFormPayload(values);
-            if (existingId) await updateSession({ ...session, id: existingId, campaignId, ...payload } as Session);
-            else await createSession(payload);
-            setView('session', { mode: 'list' });
+            const saved = existingId
+              ? await updateSession({ ...session, id: existingId, campaignId, ...payload } as Session)
+              : await createSession(payload);
+            setView('session', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: SessionFormValues, existingId: string | null) => {
@@ -555,9 +568,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: StorylineFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = storylineFormPayload(values);
-            if (existingId) await updateStoryline({ ...storyline, id: existingId, campaignId, ...payload } as Storyline);
-            else await createStoryline(payload);
-            setView('storyline', { mode: 'list' });
+            const saved = existingId
+              ? await updateStoryline({ ...storyline, id: existingId, campaignId, ...payload } as Storyline)
+              : await createStoryline(payload);
+            setView('storyline', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: StorylineFormValues, existingId: string | null) => {
@@ -598,9 +612,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: ThreadFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = threadFormPayload(values);
-            if (existingId) await updateThread({ ...thread, id: existingId, campaignId, ...payload } as Thread);
-            else await createThread(payload);
-            setView('thread', { mode: 'list' });
+            const saved = existingId
+              ? await updateThread({ ...thread, id: existingId, campaignId, ...payload } as Thread)
+              : await createThread(payload);
+            setView('thread', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: ThreadFormValues, existingId: string | null) => {
@@ -636,9 +651,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: QuestFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = questFormPayload(values);
-            if (existingId) await updateQuest({ ...quest, id: existingId, campaignId, ...payload } as Quest);
-            else await createQuest(payload);
-            setView('quest', { mode: 'list' });
+            const saved = existingId
+              ? await updateQuest({ ...quest, id: existingId, campaignId, ...payload } as Quest)
+              : await createQuest(payload);
+            setView('quest', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: QuestFormValues, existingId: string | null) => {
@@ -680,9 +696,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onSave={(values: EventFormValues, existingId: string | null) =>
           runSaving(async () => {
             const payload = eventFormPayload(values);
-            if (existingId) await updateEvent({ ...event, id: existingId, campaignId, ...payload } as Event);
-            else await createEvent(payload);
-            setView('event', { mode: 'list' });
+            const saved = existingId
+              ? await updateEvent({ ...event, id: existingId, campaignId, ...payload } as Event)
+              : await createEvent(payload);
+            setView('event', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
           })
         }
         onAutosave={async (values: EventFormValues, existingId: string | null) => {
