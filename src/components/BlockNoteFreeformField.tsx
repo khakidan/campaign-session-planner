@@ -90,7 +90,7 @@ export const BlockNoteFreeformField: React.FC<BlockNoteFreeformFieldProps> = ({ 
     return blocks.length > 0 ? (blocks as PartialBlock[]) : undefined;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only used once, at mount, matching every other Field's useState(() => ...) lazy-init pattern
 
-  const editor = useCreateBlockNote({ schema, initialContent }, []); // eslint-disable-line react-hooks/exhaustive-deps -- create once per mount, matching `initialContent`'s own once-at-mount semantics
+  const editor = useCreateBlockNote({ schema, initialContent }, []); // created once per mount, matching `initialContent`'s own once-at-mount semantics
 
   // Seeded once from whether the document was empty at mount; flipped
   // permanently to true the instant anything changes it (the GM's own

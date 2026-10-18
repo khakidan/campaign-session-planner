@@ -24,6 +24,26 @@ export interface EntityReferenceLinkingHandlers {
  */
 export const EntityReferenceLinkingContext = createContext<EntityReferenceLinkingHandlers | null>(null);
 
+const EntityReferenceChip = ({ refType, refId, refSource, label }: { refType: string; refId: string; refSource: string; label: string }) => {
+  const linking = useContext(EntityReferenceLinkingContext);
+
+  const handleClick = () => {
+    if (!linking) return;
+    if (refSource === 'host') linking.onOpenHostEntity?.(refType as EntityType, refId);
+    else linking.onOpenPlannerEntity({ type: refType as EntityType, id: refId, source: 'planner' });
+  };
+
+  return (
+    <span
+      onClick={handleClick}
+      contentEditable={false}
+      className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-[var(--csp-accent-50)] text-[var(--csp-accent-700)] text-sm font-medium cursor-pointer hover:bg-[var(--csp-accent-100)] select-none"
+    >
+      {label || `${refType}:${refId}`}
+    </span>
+  );
+};
+
 export const entityReferenceInlineContentSpec = createReactInlineContentSpec(
   {
     type: 'entityReference',
@@ -36,25 +56,6 @@ export const entityReferenceInlineContentSpec = createReactInlineContentSpec(
     },
   },
   {
-    render: (props) => {
-      const linking = useContext(EntityReferenceLinkingContext);
-      const { refType, refId, refSource, label } = props.inlineContent.props;
-
-      const handleClick = () => {
-        if (!linking) return;
-        if (refSource === 'host') linking.onOpenHostEntity?.(refType as EntityType, refId);
-        else linking.onOpenPlannerEntity({ type: refType as EntityType, id: refId, source: 'planner' });
-      };
-
-      return (
-        <span
-          onClick={handleClick}
-          contentEditable={false}
-          className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-[var(--csp-accent-50)] text-[var(--csp-accent-700)] text-sm font-medium cursor-pointer hover:bg-[var(--csp-accent-100)] select-none"
-        >
-          {label || `${refType}:${refId}`}
-        </span>
-      );
-    },
+    render: (props) => <EntityReferenceChip {...props.inlineContent.props} />,
   }
 );

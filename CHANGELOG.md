@@ -6,6 +6,17 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## New: ESLint (`npm run lint`) with `typescript-eslint` and the React hooks rules
+
+The previous entry's review found that the source carried `eslint-disable react-hooks/exhaustive-deps` comments while no linter existed — and that the missing rule would have caught the stale-`campaignId` subscription bug. `eslint.config.js` (flat config) now runs `@eslint/js` + `typescript-eslint` recommended, plus `react-hooks/rules-of-hooks` (error) and `react-hooks/exhaustive-deps` (warn). The React Compiler diagnostics in the plugin's v7 preset are deliberately left off, since this package doesn't use the compiler.
+
+First run: 5 findings, all resolved without blanket disables.
+- `EntityReferenceInlineContent`: a hook was called inside a function literally named `render`. Extracted into a named `EntityReferenceChip` component; `render` now just returns it. Same behavior.
+- `useEntityLinks` and the Quick Reference Drawer's quick-view effect read an object but depended on its fields; they now build the object from those primitives inside, so the dependency list is honest. One consequence: a change in `source` alone now refetches, which it previously would not have.
+- A stale `eslint-disable` in `BlockNoteFreeformField` (rule wasn't firing) removed; one `any` in a deliberately heterogeneous test table got a justified, scoped disable.
+
+The remaining `eslint-disable`s were each reviewed and the linter confirms they are still needed. 373 tests, `tsc --noEmit`, `npm run lint`, and `npm run build` all clean.
+
 ## Fix: live-change subscriptions no longer reload the previous campaign after `campaignId` changes; plus a best-practices pass
 
 Double-checking the refactor work against React/package best practices turned up a real bug, in the original code and carried over unchanged by the earlier extraction: the `repository.subscribeToChanges` effect depended only on `[repository]`, but each `reload` it called is bound to the `campaignId` it was created with. A host that switched `campaignId` while keeping the same repository object (a campaign switcher) would, on the next remote change, reload the *old* campaign's data into the new campaign's lists. It affected both `CampaignSessionPlanner` and the exported `useSafetyEventAlerts` hook. Both now share `usePlannerChangeSubscription`, which reads the latest reload functions through a ref at event time; each has a regression test that failed before the fix.

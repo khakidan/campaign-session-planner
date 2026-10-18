@@ -35,6 +35,8 @@ interface CrudHookConfig<T extends { id: string }> {
   makeSeedRow: (id: string, campaignId: string) => T;
 }
 
+// Each entry is a different entity type, so the table is genuinely heterogeneous.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const configs: CrudHookConfig<any>[] = [
   {
     name: 'useNotes',

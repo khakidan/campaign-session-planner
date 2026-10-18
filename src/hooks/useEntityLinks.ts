@@ -27,17 +27,22 @@ export function useEntityLinks(
   const [links, setLinks] = useState<EntityLink[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Callers build a fresh `ref` object every render, so depend on its
+  // fields rather than its identity.
+  const refType = ref?.type;
+  const refId = ref?.id;
+  const refSource = ref?.source;
   const reload = useCallback(() => {
-    if (!ref) {
+    if (refType === undefined || refId === undefined || refSource === undefined) {
       setLinks([]);
       return Promise.resolve();
     }
     setError(null);
     return repository
-      .getLinks(ref)
+      .getLinks({ type: refType, id: refId, source: refSource })
       .then(setLinks)
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load links.'));
-  }, [repository, ref?.type, ref?.id]);
+  }, [repository, refType, refId, refSource]);
 
   useEffect(() => {
     reload();

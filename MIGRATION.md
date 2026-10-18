@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### New: ESLint tooling (`npm run lint`)
+
+**Action needed: none.** Dev-only: `eslint`, `typescript-eslint`, `eslint-plugin-react-hooks`, `@eslint/js`, and `globals` were added to `devDependencies`, plus an `eslint.config.js` and a `lint` script. Nothing here is part of `dist/` or what your app imports, and a production install (`npm ci --omit=dev`) skips it, same as the existing test tooling. Two tiny behavior notes from the fixes it prompted: the entity-link and Quick Reference quick-view loaders now also refetch if only an entity reference's `source` changes (previously they ignored that), and the inline entity-reference chip is now a named internal component — rendering is unchanged.
+
 ### Fix: live updates now follow `campaignId` changes; default nav is a labelled landmark
 
 **Action needed: none.** No `CampaignPlannerRepository`/`TTRPGHostAdapter` change, no new or removed props, no changed exports (`CampaignSessionPlannerNavProps` is still exported from the package entry point).

@@ -30,9 +30,8 @@ Audited against `dnd-gm-dashboard-multiuser`'s own `docs/agents/component-standa
 
 `SessionEditor.tsx` itself, at 365 lines, is also left as-is — still past "over 250, consider refactoring" but no longer close to "almost certainly doing too much," and its remaining content (Session's own fields, Briefing/Readiness/Campaign-Changes panels, autosave, Debrief, entity links, Save/Cancel/Delete) is genuinely Session-level, not another extractable sub-responsibility the way Scenes was.
 
-**Open findings from the follow-up best-practices review** (React + library-packaging; nothing here is a known bug — see `CHANGELOG.md` for what the review did fix):
+**Open findings from the follow-up best-practices review** (React + library-packaging; nothing here is a known bug — see `CHANGELOG.md` for what the review and the ESLint setup that followed it did fix):
 
-- **No ESLint setup.** The source carries `eslint-disable react-hooks/exhaustive-deps` comments, but no linter runs, so they enforce nothing — and that rule is exactly what would have caught the stale-`campaignId` subscription bug fixed in that review. Adding `eslint` + `typescript-eslint` + `eslint-plugin-react-hooks` (flat config) is the single highest-value remaining hygiene item. Not done here: it adds devDependencies and will surface a backlog that deserves its own pass. The 3 remaining disables (`useAutosave`, `useAllScenes`, `BlockNoteFreeformField`) were each reviewed and are deliberate.
 - **`package.json` `exports` has no `default` condition** (only `types` and `import`). Correct for the current hosts (ESM bundlers), but a CommonJS/`require` consumer would fail to resolve it. Add one only if such a consumer appears.
 - **No error boundary.** A render error inside one editor unmounts the whole embedded planner up to the host's nearest boundary. Reasonable to leave to the host, but worth documenting in README if hosts report it.
 

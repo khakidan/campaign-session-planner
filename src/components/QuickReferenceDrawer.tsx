@@ -478,18 +478,19 @@ const EntityQuickViewPanel: React.FC<EntityQuickViewPanelProps> = ({
   const [view, setView] = useState<EntityQuickView | null | undefined>(undefined);
   const { outgoing, incoming } = useEntityLinks(repository, entityRef, campaignId);
 
+  const { type: refType, id: refId, source: refSource } = entityRef;
   React.useEffect(() => {
     let cancelled = false;
     setView(undefined);
-    fetchEntityQuickView(repository, entityRef).then((result) => {
+    fetchEntityQuickView(repository, { type: refType, id: refId, source: refSource }).then((result) => {
       if (cancelled) return;
       setView(result);
-      if (result) pushRecent({ type: entityRef.type as PlannerEntityType, id: entityRef.id, label: result.title });
+      if (result) pushRecent({ type: refType as PlannerEntityType, id: refId, label: result.title });
     });
     return () => {
       cancelled = true;
     };
-  }, [repository, entityRef.type, entityRef.id]);
+  }, [repository, refType, refId, refSource]);
 
   const linkingHandlers = useMemo(
     () => ({
