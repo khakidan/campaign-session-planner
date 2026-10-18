@@ -147,6 +147,83 @@ function parseTags(raw: string): string[] {
     .filter(Boolean);
 }
 
+/** The onSave/onAutosave/onDelete/onCancel wiring every "simple" kind
+ * below needs is structurally identical — only the entity type, its
+ * payload-mapping function, and its CRUD functions differ. Factored
+ * out once there were 9 copies of the same ~15 lines (Note/Lore/Npc/
+ * Group/Location/Storyline/Thread/Quest/Event); Session and Scene stay
+ * inlined since each has genuinely different wiring (Session's extra
+ * `onScenesChanged`/two templates; Scene's `sessionId`/`order`
+ * resolution for its own Session picker). Plain function, not a hook —
+ * it calls no hooks itself, so there's no rules-of-hooks concern
+ * calling it conditionally inside an `if` block below. */
+function buildCrudHandlers<TEntity extends { id: string }, TFormValues, TPayload extends object>({
+  kind,
+  entity,
+  currentViewId,
+  setView,
+  runSaving,
+  campaignId,
+  toPayload,
+  createEntity,
+  updateEntity,
+  deleteEntity,
+  saveEntity,
+  reloadEntity,
+}: {
+  kind: PlannerEntityType;
+  entity: TEntity | null;
+  /** This view's own `view.id` — see the comment on `onSave` below for
+   * why this, not `existingId`, decides whether to stay on the editor. */
+  currentViewId: string | null;
+  setView: (kind: PlannerEntityType, next: View) => void;
+  runSaving: (fn: () => Promise<void>) => Promise<void>;
+  campaignId: CampaignId;
+  toPayload: (values: TFormValues) => TPayload;
+  createEntity: (payload: TPayload) => Promise<TEntity>;
+  updateEntity: (entity: TEntity) => Promise<TEntity>;
+  deleteEntity: (id: string) => Promise<void>;
+  saveEntity: (input: TPayload & { id: string; campaignId: CampaignId }) => Promise<TEntity>;
+  reloadEntity: () => Promise<void>;
+}) {
+  return {
+    onCancel: () => setView(kind, { mode: 'list' }),
+    onDelete: entity
+      ? () =>
+          runSaving(async () => {
+            await deleteEntity(entity.id);
+            setView(kind, { mode: 'list' });
+          })
+      : undefined,
+    onSave: (values: TFormValues, existingId: string | null) =>
+      runSaving(async () => {
+        const payload = toPayload(values);
+        // `existingId` is the *editor's* own knowledge, which an
+        // autosave may already have updated in the background;
+        // `currentViewId` is whether this view has ever actually shown
+        // linking for this record. An autosave can create the real
+        // row without this view learning its id, so this explicit
+        // Save click can still be the first moment it's revealed —
+        // branch on `currentViewId`, not `existingId`, so that moment
+        // doesn't close the editor the instant it happens.
+        const saved = existingId
+          ? await updateEntity({ ...entity, id: existingId, campaignId, ...payload } as unknown as TEntity)
+          : await createEntity(payload);
+        setView(kind, currentViewId ? { mode: 'list' } : { mode: 'edit', id: saved.id });
+      }),
+    onAutosave: async (values: TFormValues, existingId: string | null) => {
+      const payload = toPayload(values);
+      if (existingId) {
+        const saved = await saveEntity({ ...payload, id: existingId, campaignId });
+        await reloadEntity();
+        return { id: saved.id };
+      }
+      const created = await createEntity(payload);
+      return { id: created.id };
+    },
+  };
+}
+
 /**
  * Slice 4.2a's first real vertical slice was Notes only. Slice 4.2b
  * added real entity-linking (an explicit "Add Link" search panel, not
@@ -337,12 +414,25 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
 
   if (activeKind === 'note' && view.mode === 'edit') {
     const note = view.id ? (notes ?? []).find((n) => n.id === view.id) ?? null : null;
-    const noteFormPayload = (values: NoteFormValues) => ({
-      title: values.title.trim(),
-      type: values.type.trim() || null,
-      status: values.status.trim() || null,
-      content: values.content,
-      tags: parseTags(values.tags),
+    const handlers = buildCrudHandlers({
+      kind: 'note',
+      entity: note,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: NoteFormValues) => ({
+        title: values.title.trim(),
+        type: values.type.trim() || null,
+        status: values.status.trim() || null,
+        content: values.content,
+        tags: parseTags(values.tags),
+      }),
+      createEntity: createNote,
+      updateEntity: updateNote,
+      deleteEntity: deleteNote,
+      saveEntity: repository.saveNote,
+      reloadEntity: reloadNotes,
     });
     return (
       <NoteEditor
@@ -351,49 +441,34 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         renderFields={renderFields?.note}
-        onCancel={() => setView('note', { mode: 'list' })}
-        onDelete={note ? () => runSaving(async () => {
-          await deleteNote(note.id);
-          setView('note', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: NoteFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = noteFormPayload(values);
-            const saved = existingId
-              ? await updateNote({ ...note, id: existingId, campaignId, ...payload } as Note)
-              : await createNote(payload);
-            // `existingId` is the *editor's* own knowledge, which an
-            // autosave may already have updated in the background;
-            // `view.id` is whether this view has ever actually shown
-            // linking for this record. An autosave can create the real
-            // row without this view learning its id, so this explicit
-            // Save click can still be the first moment it's revealed —
-            // branch on `view.id`, not `existingId`, so that moment
-            // doesn't close the editor the instant it happens.
-            setView('note', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: NoteFormValues, existingId: string | null) => {
-          const payload = noteFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveNote({ id: existingId, campaignId, ...payload });
-            await reloadNotes();
-            return { id: saved.id };
-          }
-          const created = await createNote(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }
 
   if (activeKind === 'lore' && view.mode === 'edit') {
     const lore = view.id ? (lores ?? []).find((l) => l.id === view.id) ?? null : null;
-    const loreFormPayload = (values: LoreFormValues) => ({
-      title: values.title.trim(),
-      status: values.status.trim() || null,
-      content: values.content,
-      tags: parseTags(values.tags),
+    const handlers = buildCrudHandlers({
+      kind: 'lore',
+      entity: lore,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: LoreFormValues) => ({
+        title: values.title.trim(),
+        status: values.status.trim() || null,
+        content: values.content,
+        tags: parseTags(values.tags),
+      }),
+      createEntity: createLore,
+      updateEntity: updateLore,
+      deleteEntity: deleteLore,
+      saveEntity: repository.saveLore,
+      reloadEntity: reloadLores,
     });
     return (
       <LoreEditor
@@ -402,37 +477,30 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         isSaving={isSaving}
         links={linksProp}
         renderFields={renderFields?.lore}
-        onCancel={() => setView('lore', { mode: 'list' })}
-        onDelete={lore ? () => runSaving(async () => {
-          await deleteLore(lore.id);
-          setView('lore', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: LoreFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = loreFormPayload(values);
-            const saved = existingId
-              ? await updateLore({ ...lore, id: existingId, campaignId, ...payload } as Lore)
-              : await createLore(payload);
-            setView('lore', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: LoreFormValues, existingId: string | null) => {
-          const payload = loreFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveLore({ id: existingId, campaignId, ...payload });
-            await reloadLores();
-            return { id: saved.id };
-          }
-          const created = await createLore(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }
 
   if (activeKind === 'npc' && view.mode === 'edit') {
     const npc = view.id ? (npcs ?? []).find((n) => n.id === view.id) ?? null : null;
-    const npcFormPayload = (values: NpcFormValues) => ({ name: values.name.trim(), status: values.status.trim() || null, details: values.details });
+    const handlers = buildCrudHandlers({
+      kind: 'npc',
+      entity: npc,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: NpcFormValues) => ({ name: values.name.trim(), status: values.status.trim() || null, details: values.details }),
+      createEntity: createNpc,
+      updateEntity: updateNpc,
+      deleteEntity: deleteNpc,
+      saveEntity: repository.saveNpc,
+      reloadEntity: reloadNpcs,
+    });
     return (
       <NpcEditor
         key={view.id ?? 'new'}
@@ -441,41 +509,34 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         links={linksProp}
         template={templateOverride('npc')}
         renderFields={renderFields?.npc}
-        onCancel={() => setView('npc', { mode: 'list' })}
-        onDelete={npc ? () => runSaving(async () => {
-          await deleteNpc(npc.id);
-          setView('npc', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: NpcFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = npcFormPayload(values);
-            const saved = existingId
-              ? await updateNpc({ ...npc, id: existingId, campaignId, ...payload } as Npc)
-              : await createNpc(payload);
-            setView('npc', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: NpcFormValues, existingId: string | null) => {
-          const payload = npcFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveNpc({ id: existingId, campaignId, ...payload });
-            await reloadNpcs();
-            return { id: saved.id };
-          }
-          const created = await createNpc(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }
 
   if (activeKind === 'group' && view.mode === 'edit') {
     const group = view.id ? (groups ?? []).find((g) => g.id === view.id) ?? null : null;
-    const groupFormPayload = (values: GroupFormValues) => ({
-      name: values.name.trim(),
-      type: values.type.trim() || null,
-      status: values.status.trim() || null,
-      details: values.details,
+    const handlers = buildCrudHandlers({
+      kind: 'group',
+      entity: group,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: GroupFormValues) => ({
+        name: values.name.trim(),
+        type: values.type.trim() || null,
+        status: values.status.trim() || null,
+        details: values.details,
+      }),
+      createEntity: createGroup,
+      updateEntity: updateGroup,
+      deleteEntity: deleteGroup,
+      saveEntity: repository.saveGroup,
+      reloadEntity: reloadGroups,
     });
     return (
       <GroupEditor
@@ -485,41 +546,34 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         links={linksProp}
         template={templateOverride('group')}
         renderFields={renderFields?.group}
-        onCancel={() => setView('group', { mode: 'list' })}
-        onDelete={group ? () => runSaving(async () => {
-          await deleteGroup(group.id);
-          setView('group', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: GroupFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = groupFormPayload(values);
-            const saved = existingId
-              ? await updateGroup({ ...group, id: existingId, campaignId, ...payload } as Group)
-              : await createGroup(payload);
-            setView('group', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: GroupFormValues, existingId: string | null) => {
-          const payload = groupFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveGroup({ id: existingId, campaignId, ...payload });
-            await reloadGroups();
-            return { id: saved.id };
-          }
-          const created = await createGroup(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }
 
   if (activeKind === 'location' && view.mode === 'edit') {
     const location = view.id ? (locations ?? []).find((l) => l.id === view.id) ?? null : null;
-    const locationFormPayload = (values: LocationFormValues) => ({
-      name: values.name.trim(),
-      type: values.type.trim() || null,
-      parentLocationId: values.parentLocationId || null,
-      details: values.details,
+    const handlers = buildCrudHandlers({
+      kind: 'location',
+      entity: location,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: LocationFormValues) => ({
+        name: values.name.trim(),
+        type: values.type.trim() || null,
+        parentLocationId: values.parentLocationId || null,
+        details: values.details,
+      }),
+      createEntity: createLocation,
+      updateEntity: updateLocation,
+      deleteEntity: deleteLocation,
+      saveEntity: repository.saveLocation,
+      reloadEntity: reloadLocations,
     });
     return (
       <LocationEditor
@@ -530,30 +584,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         links={linksProp}
         template={templateOverride('location')}
         renderFields={renderFields?.location}
-        onCancel={() => setView('location', { mode: 'list' })}
-        onDelete={location ? () => runSaving(async () => {
-          await deleteLocation(location.id);
-          setView('location', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: LocationFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = locationFormPayload(values);
-            const saved = existingId
-              ? await updateLocation({ ...location, id: existingId, campaignId, ...payload } as Location)
-              : await createLocation(payload);
-            setView('location', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: LocationFormValues, existingId: string | null) => {
-          const payload = locationFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveLocation({ id: existingId, campaignId, ...payload });
-            await reloadLocations();
-            return { id: saved.id };
-          }
-          const created = await createLocation(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }
@@ -673,11 +707,24 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
 
   if (activeKind === 'storyline' && view.mode === 'edit') {
     const storyline = view.id ? (storylines ?? []).find((s) => s.id === view.id) ?? null : null;
-    const storylineFormPayload = (values: StorylineFormValues) => ({
-      name: values.name.trim(),
-      status: values.status.trim() || null,
-      priority: values.priority.trim() || null,
-      details: values.details,
+    const handlers = buildCrudHandlers({
+      kind: 'storyline',
+      entity: storyline,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: StorylineFormValues) => ({
+        name: values.name.trim(),
+        status: values.status.trim() || null,
+        priority: values.priority.trim() || null,
+        details: values.details,
+      }),
+      createEntity: createStoryline,
+      updateEntity: updateStoryline,
+      deleteEntity: deleteStoryline,
+      saveEntity: repository.saveStoryline,
+      reloadEntity: reloadStorylines,
     });
     return (
       <StorylineEditor
@@ -687,41 +734,34 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         links={linksProp}
         template={templateOverride('storyline')}
         renderFields={renderFields?.storyline}
-        onCancel={() => setView('storyline', { mode: 'list' })}
-        onDelete={storyline ? () => runSaving(async () => {
-          await deleteStoryline(storyline.id);
-          setView('storyline', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: StorylineFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = storylineFormPayload(values);
-            const saved = existingId
-              ? await updateStoryline({ ...storyline, id: existingId, campaignId, ...payload } as Storyline)
-              : await createStoryline(payload);
-            setView('storyline', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: StorylineFormValues, existingId: string | null) => {
-          const payload = storylineFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveStoryline({ id: existingId, campaignId, ...payload });
-            await reloadStorylines();
-            return { id: saved.id };
-          }
-          const created = await createStoryline(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }
 
   if (activeKind === 'thread' && view.mode === 'edit') {
     const thread = view.id ? (threads ?? []).find((t) => t.id === view.id) ?? null : null;
-    const threadFormPayload = (values: ThreadFormValues) => ({
-      name: values.name.trim(),
-      status: values.status.trim() || null,
-      priority: values.priority.trim() || null,
-      details: values.details,
+    const handlers = buildCrudHandlers({
+      kind: 'thread',
+      entity: thread,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: ThreadFormValues) => ({
+        name: values.name.trim(),
+        status: values.status.trim() || null,
+        priority: values.priority.trim() || null,
+        details: values.details,
+      }),
+      createEntity: createThread,
+      updateEntity: updateThread,
+      deleteEntity: deleteThread,
+      saveEntity: repository.saveThread,
+      reloadEntity: reloadThreads,
     });
     return (
       <ThreadEditor
@@ -731,37 +771,30 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         links={linksProp}
         template={templateOverride('thread')}
         renderFields={renderFields?.thread}
-        onCancel={() => setView('thread', { mode: 'list' })}
-        onDelete={thread ? () => runSaving(async () => {
-          await deleteThread(thread.id);
-          setView('thread', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: ThreadFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = threadFormPayload(values);
-            const saved = existingId
-              ? await updateThread({ ...thread, id: existingId, campaignId, ...payload } as Thread)
-              : await createThread(payload);
-            setView('thread', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: ThreadFormValues, existingId: string | null) => {
-          const payload = threadFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveThread({ id: existingId, campaignId, ...payload });
-            await reloadThreads();
-            return { id: saved.id };
-          }
-          const created = await createThread(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }
 
   if (activeKind === 'quest' && view.mode === 'edit') {
     const quest = view.id ? (quests ?? []).find((q) => q.id === view.id) ?? null : null;
-    const questFormPayload = (values: QuestFormValues) => ({ name: values.name.trim(), status: values.status.trim() || null, details: values.details });
+    const handlers = buildCrudHandlers({
+      kind: 'quest',
+      entity: quest,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: QuestFormValues) => ({ name: values.name.trim(), status: values.status.trim() || null, details: values.details }),
+      createEntity: createQuest,
+      updateEntity: updateQuest,
+      deleteEntity: deleteQuest,
+      saveEntity: repository.saveQuest,
+      reloadEntity: reloadQuests,
+    });
     return (
       <QuestEditor
         key={view.id ?? 'new'}
@@ -770,42 +803,35 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         links={linksProp}
         template={templateOverride('quest')}
         renderFields={renderFields?.quest}
-        onCancel={() => setView('quest', { mode: 'list' })}
-        onDelete={quest ? () => runSaving(async () => {
-          await deleteQuest(quest.id);
-          setView('quest', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: QuestFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = questFormPayload(values);
-            const saved = existingId
-              ? await updateQuest({ ...quest, id: existingId, campaignId, ...payload } as Quest)
-              : await createQuest(payload);
-            setView('quest', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: QuestFormValues, existingId: string | null) => {
-          const payload = questFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveQuest({ id: existingId, campaignId, ...payload });
-            await reloadQuests();
-            return { id: saved.id };
-          }
-          const created = await createQuest(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }
 
   if (activeKind === 'event' && view.mode === 'edit') {
     const event = view.id ? (events ?? []).find((e) => e.id === view.id) ?? null : null;
-    const eventFormPayload = (values: EventFormValues) => ({
-      name: values.name.trim(),
-      eventType: values.eventType.trim() || null,
-      status: values.status.trim() || null,
-      date: values.date || null,
-      details: values.details,
+    const handlers = buildCrudHandlers({
+      kind: 'event',
+      entity: event,
+      currentViewId: view.id,
+      setView,
+      runSaving,
+      campaignId,
+      toPayload: (values: EventFormValues) => ({
+        name: values.name.trim(),
+        eventType: values.eventType.trim() || null,
+        status: values.status.trim() || null,
+        date: values.date || null,
+        details: values.details,
+      }),
+      createEntity: createEvent,
+      updateEntity: updateEvent,
+      deleteEntity: deleteEvent,
+      saveEntity: repository.saveEvent,
+      reloadEntity: reloadEvents,
     });
     return (
       <EventEditor
@@ -815,30 +841,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         links={linksProp}
         template={templateOverride('event')}
         renderFields={renderFields?.event}
-        onCancel={() => setView('event', { mode: 'list' })}
-        onDelete={event ? () => runSaving(async () => {
-          await deleteEvent(event.id);
-          setView('event', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: EventFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = eventFormPayload(values);
-            const saved = existingId
-              ? await updateEvent({ ...event, id: existingId, campaignId, ...payload } as Event)
-              : await createEvent(payload);
-            setView('event', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: EventFormValues, existingId: string | null) => {
-          const payload = eventFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveEvent({ id: existingId, campaignId, ...payload });
-            await reloadEvents();
-            return { id: saved.id };
-          }
-          const created = await createEvent(payload);
-          return { id: created.id };
-        }}
+        onCancel={handlers.onCancel}
+        onDelete={handlers.onDelete}
+        onSave={handlers.onSave}
+        onAutosave={handlers.onAutosave}
       />
     );
   }

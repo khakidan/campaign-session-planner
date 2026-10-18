@@ -6,6 +6,12 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Refactor: collapsed 9 copy-pasted CRUD wiring blocks in `CampaignSessionPlanner.tsx`
+
+A code-health audit (ROADMAP.md's "Refactoring Candidates," run against `dnd-gm-dashboard-multiuser`'s own AI-agent standards docs as external criteria) found `CampaignSessionPlanner.tsx`'s `onSave`/`onAutosave`/`onDelete` wiring copy-pasted identically 9 times (Note/Lore/Npc/Group/Location/Storyline/Thread/Quest/Event) — only the entity type, its payload-mapping function, and its CRUD functions ever differed. Collapsed into one shared `buildCrudHandlers` function; Session and Scene stay inlined (genuinely different wiring — Session's extra `onScenesChanged`/two templates, Scene's `sessionId`/`order` resolution for its Session picker).
+
+Purely mechanical — no behavior change, verified by the existing 370-test suite (which already asserts exact `onSave`/`onAutosave` payloads per call) passing unchanged. File size is roughly neutral (934 → 940 lines; the shared helper is about as long as the duplication it replaced) — the value is one place to maintain this wiring instead of 9 that could silently drift out of sync, not a line-count reduction. See ROADMAP.md's "Refactoring Candidates" for the larger, not-yet-acted-on findings from the same audit (this file's remaining size, `SessionEditor.tsx`'s size).
+
 ## Feature: Status/Type/Priority fields are now defined, closed-set dropdowns
 
 Closes every remaining ROADMAP.md item in one pass — "Status fields in Notes, NPCs, Quests, and Events," "Type field in Locations," "Priority fields in Storylines, Threads," and "Event Type field in Events" should each "be better defined so it is clear what the purpose of this field is." Every one of these fields was free text before this (several with no suggested values at all); each is now a strict `<select>` storing only one of an approved, defined set of values (confirmed via `AskUserQuestion` — closed-set over a dropdown-with-custom-fallback), with a one-line helper under the dropdown stating what the field is actually for.
