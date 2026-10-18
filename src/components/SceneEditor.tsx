@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Scene } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field } from './EditorFormControls';
+import { Field, AutosaveIndicator } from './EditorFormControls';
+import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { sceneTemplate as defaultSceneTemplate } from '../lib/entityTemplates';
 
@@ -25,7 +26,14 @@ function sceneToFormValues(scene: Scene | null): SceneFormValues {
 export interface SceneEditorProps {
   /** `null` means "creating a new Scene." */
   scene: Scene | null;
-  onSave: (values: SceneFormValues) => Promise<void> | void;
+  /** `existingId` is this editor's own current best knowledge of the
+   * Scene's id — see `NoteEditorProps.onSave`'s own doc comment for why
+   * this must be branched on instead of `scene`, which never changes
+   * mid-edit even after an autosave has already created a record. */
+  onSave: (values: SceneFormValues, existingId: string | null) => Promise<void> | void;
+  /** Background autosave (ROADMAP.md's "Campaign Planner Notes App") —
+   * omit to disable autosave entirely. See `NoteEditorProps.onAutosave`. */
+  onAutosave?: (values: SceneFormValues, existingId: string | null) => Promise<{ id: string }>;
   onDelete?: () => Promise<void> | void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -67,6 +75,7 @@ export interface SceneEditorProps {
 export const SceneEditor: React.FC<SceneEditorProps> = ({
   scene,
   onSave,
+  onAutosave,
   onDelete,
   onCancel,
   isSaving = false,
@@ -76,6 +85,15 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({
 }) => {
   const [values, setValues] = useState<SceneFormValues>(() => sceneToFormValues(scene));
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(scene?.id ?? null);
+
+  const autosaveStatus = useAutosave(values, {
+    enabled: Boolean(onAutosave) && values.title.trim() !== '',
+    onAutosave: async (current) => {
+      const result = await onAutosave!(current, savedId);
+      setSavedId(result.id);
+    },
+  });
 
   const handleSave = async () => {
     if (!values.title.trim()) {
@@ -83,7 +101,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({
       return;
     }
     setError(null);
-    await onSave(values);
+    await onSave(values, savedId);
   };
 
   const defaultFields = (
@@ -138,7 +156,8 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <AutosaveIndicator status={autosaveStatus} />
           <button
             type="button"
             onClick={onCancel}

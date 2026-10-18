@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SessionEditor } from './SessionEditor';
 import { createFakeHostAdapter, createFakeRepository, makeScene, makeSession, TEST_CAMPAIGN_ID } from '../test/fixtures';
@@ -100,6 +100,66 @@ describe('SessionEditor', () => {
 
     const savedScenes = await props.repository.getScenes('session-1');
     expect(savedScenes).toMatchObject([{ title: 'Arrival at the Temple', sessionId: 'session-1', order: 0 }]);
+  });
+
+  it('a new Scene autosaves in the background — the data survives even if Save is never clicked', async () => {
+    const user = userEvent.setup();
+    const session = makeSession({ id: 'session-1' });
+    const props = baseProps();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    render(<SessionEditor session={session} onSave={vi.fn()} {...props} />);
+
+    await user.click(screen.getByRole('button', { name: '+ Add Scene' }));
+    await user.type(screen.getByLabelText('Title'), 'Arrival at the Temple');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    const savedScenes = await props.repository.getScenes('session-1');
+    expect(savedScenes).toMatchObject([{ title: 'Arrival at the Temple', sessionId: 'session-1', order: 0 }]);
+    vi.useRealTimers();
+  });
+
+  it('never autosaves a blank new Scene — stays disabled until Title is non-empty', async () => {
+    const session = makeSession({ id: 'session-1' });
+    const user = userEvent.setup();
+    const props = baseProps();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    render(<SessionEditor session={session} onSave={vi.fn()} {...props} />);
+
+    await user.click(screen.getByRole('button', { name: '+ Add Scene' }));
+    await user.type(screen.getByLabelText('Scene Number'), '1');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    const savedScenes = await props.repository.getScenes('session-1');
+    expect(savedScenes).toEqual([]);
+    vi.useRealTimers();
+  });
+
+  it('when a background autosave creates the Scene before the explicit Save click, that click updates it rather than creating a duplicate, and still reveals linking for the first time', async () => {
+    const session = makeSession({ id: 'session-1' });
+    const user = userEvent.setup();
+    const props = baseProps();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    render(<SessionEditor session={session} onSave={vi.fn()} {...props} />);
+
+    await user.click(screen.getByRole('button', { name: '+ Add Scene' }));
+    await user.type(screen.getByLabelText('Title'), 'Arrival at the Temple');
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(screen.queryByRole('button', { name: '+ Add Link' })).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Status'), 'Active');
+    await user.click(screen.getByRole('button', { name: 'Save Scene' }));
+
+    expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument();
+    const savedScenes = await props.repository.getScenes('session-1');
+    expect(savedScenes).toHaveLength(1);
+    expect(savedScenes[0]).toMatchObject({ title: 'Arrival at the Temple', status: 'Active' });
+    vi.useRealTimers();
   });
 
   it('reordering Scenes: "move down" swaps this Scene\'s order with its neighbor, not just their positions on screen', async () => {

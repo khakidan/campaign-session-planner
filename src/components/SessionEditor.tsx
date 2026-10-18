@@ -153,7 +153,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
     },
   });
 
-  const { scenes, createScene, updateScene, deleteScene } = useScenes(repository, session?.id ?? null);
+  const { scenes, reload: reloadScenes, createScene, updateScene, deleteScene } = useScenes(repository, session?.id ?? null);
   const briefing = useSessionBriefing(repository, campaignId, hostAdapter);
   const showBriefing = session === null || values.status === 'Draft' || values.status === 'Prepared';
   const sortedScenes = useMemo(() => [...(scenes ?? [])].sort((a, b) => a.order - b.order), [scenes]);
@@ -284,21 +284,55 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
               }
             : undefined
         }
-        onSave={async (sceneValues: SceneFormValues) => {
+        onSave={async (sceneValues: SceneFormValues, existingId: string | null) => {
           const payload = {
             title: sceneValues.title.trim(),
             sceneNumber: sceneValues.sceneNumber.trim() ? Number(sceneValues.sceneNumber) : null,
             status: sceneValues.status.trim() || null,
             details: sceneValues.details,
           };
-          const saved = editingScene
-            ? await updateScene({ ...editingScene, ...payload })
+          const existing = existingId ? sortedScenes.find((s) => s.id === existingId) : null;
+          const saved = existingId
+            ? await updateScene({
+                ...existing,
+                id: existingId,
+                sessionId: session!.id,
+                order: existing?.order ?? sortedScenes.length,
+                ...payload,
+              } as Scene)
             : await createScene({ ...payload, order: sortedScenes.length });
           // Same reasoning as every other editor's onSave in
           // CampaignSessionPlanner.tsx: a brand-new Scene has no id (so
           // no linking) until this first save — don't also close the
-          // editor the instant that becomes available.
+          // editor the instant that becomes available. Branch on
+          // `scenesView.id` (this view's own knowledge), not
+          // `existingId` (the editor's, which a background autosave
+          // may already have set) — an autosave can create the real
+          // Scene without this view ever learning its id, so the
+          // explicit Save click can still be the first moment it's
+          // revealed here.
           setScenesView(scenesView.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
+        }}
+        onAutosave={async (sceneValues: SceneFormValues, existingId: string | null) => {
+          const payload = {
+            title: sceneValues.title.trim(),
+            sceneNumber: sceneValues.sceneNumber.trim() ? Number(sceneValues.sceneNumber) : null,
+            status: sceneValues.status.trim() || null,
+            details: sceneValues.details,
+          };
+          if (existingId) {
+            const existing = sortedScenes.find((s) => s.id === existingId);
+            const saved = await repository.saveScene({
+              id: existingId,
+              sessionId: session!.id,
+              order: existing?.order ?? sortedScenes.length,
+              ...payload,
+            });
+            await reloadScenes();
+            return { id: saved.id };
+          }
+          const created = await createScene({ ...payload, order: sortedScenes.length });
+          return { id: created.id };
         }}
       />
     );

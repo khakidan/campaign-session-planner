@@ -8,12 +8,12 @@ This file tracks **only currently-open work** — pending features/bugs and in-p
 
 ### 🔴 Bugs to Fix
 
-1. Scenes don't autosave — every top-level entity (Note/NPC/Group/Location/Session/Storyline/Thread/Quest/Event) now does via `useAutosave`, but a Scene's fields are still only written on an explicit Save click inside `SessionEditor.tsx`'s nested `SceneEditor`.
+None.
 
 ### 🟡 Features to Add / Test Coverage Gaps
 
 1. Scenes should be pulled out of the Sessions entity and be visible along with all the other top level entities.
-2. Lore should be its own top level entity.
+2. The Note's Lore type should be its own top level entity rather than a type in a Note.
 3. Session Debriefs should be its own top level entity.
 4. Status fields in Notes, NPCs, Quests, and Events should be better defined so that it is clear what the purpose of this field is.
 5. Type field in Locations should be better defined so it is clear what the purpose of this field is.

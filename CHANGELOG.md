@@ -6,6 +6,15 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Fix: Scenes now autosave, like every other entity
+
+Closes ROADMAP.md's remaining bug — autosave (`28e440a`/`c95b84e`) covered every top-level entity but explicitly left Scenes out, since they're edited inline from `SessionEditor.tsx` rather than through `CampaignSessionPlanner.tsx`'s own per-kind `onAutosave` wiring. Same debounced-background-save safety net now applies there too, so a forgotten Save/reload/accidental close no longer loses in-progress Scene edits either.
+
+- **`SceneEditor.tsx`** gains the identical `onAutosave`/`savedId`/`useAutosave`/`AutosaveIndicator` shape every other editor already has — `onSave`'s signature changed to `(values, existingId)`, same as `NoteEditorProps`/`NpcEditorProps`/etc., for the same reason (an autosave may already have assigned an id by the time the explicit Save click happens; branching on the stale `scene` prop instead would create a duplicate record).
+- **`SessionEditor.tsx`** wires it: the autosave *update* path calls `repository.saveScene` directly (not the `useScenes` hook's own `updateScene`, which expects a full `Scene`) and preserves the Scene's existing `order` by looking it up straight from `sortedScenes` by id — not from `editingScene`, which (like `CampaignSessionPlanner.tsx`'s own `note`/`npc`/etc. props) can still be `null` even after an autosave has created the record, since this view's own `scenesView.id` doesn't learn about it until an explicit Save. The *create* path reuses the hook's existing `createScene` unchanged.
+- **The "stay on the editor, don't close it" fix from the previous entry** now also correctly interacts with Scene autosave: the explicit `onSave` branches the create/update decision on `existingId` (so it never creates a duplicate if autosave got there first) but still branches the stay-vs-list decision on `scenesView.id` (so Save is still the first moment *this view* reveals linking, even if autosave already created the row in the background) — verified directly by a new test that autosaves a Scene, then clicks Save, and confirms exactly one row was ever written.
+- **Test coverage**: 3 new tests in `SessionEditor.test.tsx` (a new Scene autosaves and survives without ever clicking Save; a blank Scene never autosaves; an autosave-then-explicit-Save sequence writes one row, not two, and still reveals linking) — 342 tests total, all passing.
+
 ## Fix: saving a brand-new entry no longer closes the editor
 
 Closes ROADMAP.md's "can't use `[[`/`@` until saved, but saving kicks you out" bug. The `[[`/`@` picker and "Add Link" are both genuinely impossible on a record with no id yet — that constraint isn't going away (it's the real `EntityLink` graph a backlink needs, not a styled mention) — but there was no reason the *only* way to lift it (a save) had to also throw the GM back out to the list, right when they'd actually want to start linking something.

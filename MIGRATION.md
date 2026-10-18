@@ -6,6 +6,10 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### Fix: Scenes now autosave, like every other entity
+
+**Action needed: none.** `SceneEditor`/`SceneEditorProps` were never exported from `index.ts`, so the changed `onSave` signature and new `onAutosave` prop are entirely internal — nothing in your own code references them. You'll just see it work: typing into a Scene (inside a Session's editor) now autosaves in the background ~1.5s after you stop, same as every other entity, with the same "Saving…"/"Saved" indicator.
+
 ### Fix: saving a brand-new entry no longer closes the editor
 
 **Action needed: none.** No prop/API changes — purely an internal view-state fix inside `CampaignSessionPlanner`/`SessionEditor`. If your own app relied on the GM landing back on a kind's list immediately after creating its very first entry (unlikely, but technically a behavior change), they now land on that entry's editor instead, already saved and with linking available.
