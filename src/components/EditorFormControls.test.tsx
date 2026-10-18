@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Field, Section, AutosaveIndicator } from './EditorFormControls';
+import { Field, Section, AutosaveIndicator, SelectField } from './EditorFormControls';
 
 function ControlledField() {
   const [value, setValue] = useState('');
@@ -28,6 +28,40 @@ describe('Field', () => {
   it('reflects the given value', () => {
     render(<Field id="npc-name" label="Name" value="Sister Mariel" onChange={vi.fn()} />);
     expect(screen.getByLabelText('Name')).toHaveValue('Sister Mariel');
+  });
+});
+
+describe('SelectField', () => {
+  it('renders a labeled select with a blank option plus each given option, and reports the chosen one', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<SelectField id="npc-status" label="Status" value="" onChange={onChange} options={['Alive', 'Dead', 'Missing', 'Unknown']} />);
+
+    expect(screen.getByLabelText('Status').tagName).toBe('SELECT');
+    expect(screen.getByRole('option', { name: 'Unspecified' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Alive' })).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Status'), 'Dead');
+    expect(onChange).toHaveBeenCalledWith('Dead');
+  });
+
+  it('reflects the given value as the selected option', () => {
+    render(<SelectField id="npc-status" label="Status" value="Missing" onChange={vi.fn()} options={['Alive', 'Dead', 'Missing', 'Unknown']} />);
+    expect(screen.getByLabelText('Status')).toHaveValue('Missing');
+  });
+
+  it('shows helperText when given, and renders nothing extra when omitted', () => {
+    const { container, rerender } = render(<SelectField id="x" label="X" value="" onChange={vi.fn()} options={['A']} />);
+    expect(container.querySelector('p')).toBeNull();
+
+    rerender(<SelectField id="x" label="X" value="" onChange={vi.fn()} options={['A']} helperText="What this field is for." />);
+    expect(screen.getByText('What this field is for.')).toBeInTheDocument();
+  });
+
+  it('a value outside the given options never triggers onChange on its own — nothing silently clears or rewrites it just by rendering', () => {
+    const onChange = vi.fn();
+    render(<SelectField id="npc-status" label="Status" value="Some Old Value" onChange={onChange} options={['Alive', 'Dead', 'Missing', 'Unknown']} />);
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 

@@ -14,8 +14,8 @@ describe('EventEditor', () => {
     render(<EventEditor event={null} onSave={onSave} onCancel={vi.fn()} />);
 
     await user.type(screen.getByLabelText('Name'), 'The Bridge Collapse');
-    await user.type(screen.getByLabelText('Event Type'), 'Disaster');
-    await user.type(screen.getByLabelText('Status'), 'Occurred');
+    await user.selectOptions(screen.getByLabelText('Event Type'), 'Disaster');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Occurred');
     fireEvent.change(screen.getByLabelText('Date / Time'), { target: { value: '2024-03-15' } });
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
 
@@ -85,7 +85,7 @@ describe('EventEditor', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     render(<EventEditor event={null} onSave={vi.fn()} onAutosave={onAutosave} onCancel={vi.fn()} />);
 
-    await user.type(screen.getByLabelText('Event Type'), 'Disaster');
+    await user.selectOptions(screen.getByLabelText('Event Type'), 'Disaster');
     await vi.advanceTimersByTimeAsync(5000);
 
     expect(onAutosave).not.toHaveBeenCalled();

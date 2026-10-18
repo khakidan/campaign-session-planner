@@ -2,18 +2,25 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Npc } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field, AutosaveIndicator } from './EditorFormControls';
+import { Field, AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { npcTemplate as defaultNpcTemplate } from '../lib/entityTemplates';
 
+/** ROADMAP.md's "Status fields... should be better defined" — NPC had
+ * no Status field at all before this (confirmed via `AskUserQuestion`
+ * before adding one); this is the real property it's always been
+ * missing: whether this NPC is still around to interact with. */
+const NPC_STATUSES = ['Alive', 'Dead', 'Missing', 'Unknown'] as const;
+
 export interface NpcFormValues {
   name: string;
+  status: string;
   details: Block[];
 }
 
 function npcToFormValues(npc: Npc | null): NpcFormValues {
-  return { name: npc?.name ?? '', details: npc?.details ?? [] };
+  return { name: npc?.name ?? '', status: npc?.status ?? '', details: npc?.details ?? [] };
 }
 
 export interface NpcEditorProps {
@@ -38,8 +45,9 @@ export interface NpcEditorProps {
    * the shipped default when omitted. */
   template?: PartialBlock[];
   /** Layout customization (ROADMAP.md's "further layout customization
-   * beyond the tab bar") — replaces the default Name field with
-   * host-rendered markup. `defaultFields` is that shipped block; wrap
+   * beyond the tab bar") — replaces the default Name/Status field
+   * block with host-rendered markup. `defaultFields` is that shipped
+   * block; wrap
    * it to add a field alongside it, or ignore it to render your own
    * from `values`/`onChange`. Omit to keep the shipped layout. */
   renderFields?: (ctx: {
@@ -50,8 +58,8 @@ export interface NpcEditorProps {
 }
 
 /**
- * Slice 4.2e — Name is the one real property; everything the doc lists
- * under NPC (Identity, Appearance, Personality, Motivation & Goals,
+ * Slice 4.2e — Name/Status are the real properties; everything the
+ * doc lists under NPC (Identity, Appearance, Personality, Motivation & Goals,
  * Knowledge, History, Current Situation, Roleplaying, Tactics, Secrets,
  * Campaign Role) is one flowing BlockNote document the GM writes
  * naturally, Notion-page style — not a form of ~25 small boxed
@@ -81,7 +89,19 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({ npc, onSave, onAutosave, o
     await onSave(values, savedId);
   };
 
-  const defaultFields = <Field id="npc-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />;
+  const defaultFields = (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Field id="npc-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
+      <SelectField
+        id="npc-status"
+        label="Status"
+        value={values.status}
+        onChange={(v) => setValues((p) => ({ ...p, status: v }))}
+        options={NPC_STATUSES}
+        helperText="Whether this NPC is still around to interact with."
+      />
+    </div>
+  );
 
   return (
     <div className="space-y-4">

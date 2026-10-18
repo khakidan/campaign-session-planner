@@ -24,7 +24,7 @@ describe('NoteEditor', () => {
 
     await user.type(screen.getByLabelText('Title'), 'A Secret');
     await user.type(screen.getByLabelText('Type'), 'Secret');
-    await user.type(screen.getByLabelText('Status'), 'Active');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Active');
     await user.type(screen.getByLabelText('Tags (comma-separated)'), 'ebon-sigil, pandemonium');
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
 

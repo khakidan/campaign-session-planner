@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Storyline } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field, AutosaveIndicator } from './EditorFormControls';
+import { Field, AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { storylineTemplate as defaultStorylineTemplate } from '../lib/entityTemplates';
 
 const SUGGESTED_STATUSES = ['Active', 'Resolved', 'Abandoned', 'Paused'];
+
+/** ROADMAP.md's "Priority fields... should be better defined" — how
+ * urgently this Storyline needs the GM's attention. Converted from
+ * free text (no suggested list at all before this) to a strict
+ * closed-set dropdown (confirmed via `AskUserQuestion`). */
+const STORYLINE_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'] as const;
 
 export interface StorylineFormValues {
   name: string;
@@ -124,7 +130,14 @@ export const StorylineEditor: React.FC<StorylineEditorProps> = ({
             ))}
           </datalist>
         </div>
-        <Field id="storyline-priority" label="Priority" value={values.priority} onChange={(v) => setValues((p) => ({ ...p, priority: v }))} />
+        <SelectField
+          id="storyline-priority"
+          label="Priority"
+          value={values.priority}
+          onChange={(v) => setValues((p) => ({ ...p, priority: v }))}
+          options={STORYLINE_PRIORITIES}
+          helperText="How urgently this Storyline needs your attention."
+        />
       </div>
     </>
   );

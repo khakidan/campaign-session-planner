@@ -6,6 +6,23 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Feature: Status/Type/Priority fields are now defined, closed-set dropdowns
+
+Closes every remaining ROADMAP.md item in one pass — "Status fields in Notes, NPCs, Quests, and Events," "Type field in Locations," "Priority fields in Storylines, Threads," and "Event Type field in Events" should each "be better defined so it is clear what the purpose of this field is." Every one of these fields was free text before this (several with no suggested values at all); each is now a strict `<select>` storing only one of an approved, defined set of values (confirmed via `AskUserQuestion` — closed-set over a dropdown-with-custom-fallback), with a one-line helper under the dropdown stating what the field is actually for.
+
+- **`EditorFormControls.tsx`**: new shared `SelectField` component (label + `<select>` + optional helper text, always including a blank "Unspecified" option) — the same past-the-duplication-threshold reasoning that already justified `Field`/`Section`/`AutosaveIndicator` living here, now covering 8 converted fields across 7 editors instead of 8 near-identical copies.
+- **The approved sets** (each defined as a `const X = [...] as const` in its own editor, right next to the field it backs):
+  - `Note.status` (`NOTE_STATUSES`): Active / Resolved / Outdated / Archived — whether a Note's information is still live.
+  - `Npc.status` (`NPC_STATUSES`, **new field** — NPC had no Status at all before this, confirmed via `AskUserQuestion`): Alive / Dead / Missing / Unknown.
+  - `Quest.status` (`QUEST_STATUSES`): Not Started / Active / Completed / Failed / Abandoned.
+  - `Event.status` (`EVENT_STATUSES`): Anticipated / Occurred / Prevented / Cancelled.
+  - `Event.eventType` (`EVENT_TYPES`): Combat / Social / Political / Discovery / Disaster / Personal / Supernatural / Other.
+  - `Location.type` (`LOCATION_TYPES`): City / Town / Village / Dungeon / Wilderness / Building / Region / Landmark / Other.
+  - `Storyline.priority` / `Thread.priority` (`STORYLINE_PRIORITIES` / `THREAD_PRIORITIES`, same scale for both): Low / Medium / High / Critical.
+- **Untouched by this pass, deliberately**: `Session.status`, `Storyline.status`, `Thread.status`, `Group.type` — already had a suggested-values datalist (a looser, still-free-text convention from before this pass) and weren't named in any of the four ROADMAP items; converting them wasn't asked for and would have been a larger, separate judgment call about an already-working pattern.
+- **Existing data holding a value outside the new set** (e.g. a `Note.status` string from before this change that isn't Active/Resolved/Outdated/Archived) shows as unselected in its dropdown until the GM explicitly picks one — the stored string itself is left alone, never silently cleared just by opening the editor.
+- **Test coverage**: 4 new tests for `SelectField` in `EditorFormControls.test.tsx`, 1 new/updated assertion per converted field across `NoteEditor.test.tsx`/`NpcEditor.test.tsx`/`QuestEditor.test.tsx`/`EventEditor.test.tsx`/`LocationEditor.test.tsx`/`StorylineEditor.test.tsx`/`ThreadEditor.test.tsx` (switched from `user.type` to `user.selectOptions` wherever a field converted) — 370 tests total, all passing.
+
 ## Fix: Session Debriefs are now discoverable, instead of becoming a top-level entity
 
 Closes ROADMAP.md's "Session Debriefs should be its own top level entity" — but not as literally asked. Investigating the request surfaced that the Debrief section was invisible in practice: it's gated entirely on typing the exact string `'Completed'` into Session's free-text Status field, with nothing in the UI hinting that doing so unlocks anything. That's the real problem this item was pointing at.

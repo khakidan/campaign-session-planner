@@ -2,10 +2,18 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Location } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field, AutosaveIndicator } from './EditorFormControls';
+import { Field, AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { locationTemplate as defaultLocationTemplate } from '../lib/entityTemplates';
+
+/** ROADMAP.md's "Type field in Locations should be better defined" —
+ * what kind of place this is. Converted from free text (the doc gave
+ * no suggested list) to a strict closed-set dropdown (confirmed via
+ * `AskUserQuestion`). Title Case, matching every other field converted
+ * in this same pass — not `Group.type`'s own ALL_CAPS convention,
+ * which predates this pass and mirrors a specific Prisma enum. */
+const LOCATION_TYPES = ['City', 'Town', 'Village', 'Dungeon', 'Wilderness', 'Building', 'Region', 'Landmark', 'Other'] as const;
 
 export interface LocationFormValues {
   name: string;
@@ -111,7 +119,14 @@ export const LocationEditor: React.FC<LocationEditorProps> = ({
       <Field id="location-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field id="location-type" label="Type" value={values.type} onChange={(v) => setValues((p) => ({ ...p, type: v }))} />
+        <SelectField
+          id="location-type"
+          label="Type"
+          value={values.type}
+          onChange={(v) => setValues((p) => ({ ...p, type: v }))}
+          options={LOCATION_TYPES}
+          helperText="What kind of place this is."
+        />
         <div>
           <label
             className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1"

@@ -14,12 +14,14 @@ describe('NpcEditor', () => {
     render(<NpcEditor npc={null} onSave={onSave} onCancel={vi.fn()} />);
 
     await user.type(screen.getByLabelText('Name'), 'Sister Mariel');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Alive');
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
     await user.click(screen.getByRole('button', { name: 'Save NPC' }));
 
     expect(onSave).toHaveBeenCalledWith(
       {
         name: 'Sister Mariel',
+        status: 'Alive',
         details: MOCK_TYPED_CONTENT,
       },
       null

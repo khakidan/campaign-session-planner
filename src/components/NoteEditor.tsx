@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { Block, Note } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
-import { AutosaveIndicator } from './EditorFormControls';
+import { AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { MEMORY_NOTE_TYPES, OBSERVATION_CONFIDENCE_LEVELS, getNoteConfidence, withConfidence, type ObservationConfidence } from '../lib/plannerMemory';
 import { RECAP_HIGHLIGHT_TYPE } from '../lib/sessionRecap';
@@ -42,6 +42,14 @@ const SUGGESTED_TYPES = [
   'Player Contribution',
   RECAP_HIGHLIGHT_TYPE,
 ];
+
+/** ROADMAP.md's "Status fields... should be better defined" — tracks
+ * whether a Note's information is still live/useful, independent of
+ * its `type` (what *kind* of Note it is). Converted from free text to
+ * a strict closed-set dropdown (confirmed via `AskUserQuestion`); an
+ * existing Note whose stored `status` predates this and isn't one of
+ * these four shows as unselected until the GM explicitly picks one. */
+const NOTE_STATUSES = ['Active', 'Resolved', 'Outdated', 'Archived'] as const;
 
 export interface NoteFormValues {
   title: string;
@@ -204,18 +212,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onAutosave
             </p>
           )}
         </div>
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="note-status">
-            Status
-          </label>
-          <input
-            id="note-status"
-            type="text"
-            value={values.status}
-            onChange={(e) => setValues((prev) => ({ ...prev, status: e.target.value }))}
-            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
-          />
-        </div>
+        <SelectField
+          id="note-status"
+          label="Status"
+          value={values.status}
+          onChange={(v) => setValues((prev) => ({ ...prev, status: v }))}
+          options={NOTE_STATUSES}
+          helperText="Whether this Note's information is still live, already handled, or kept only for reference."
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

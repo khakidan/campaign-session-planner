@@ -432,7 +432,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
 
   if (activeKind === 'npc' && view.mode === 'edit') {
     const npc = view.id ? (npcs ?? []).find((n) => n.id === view.id) ?? null : null;
-    const npcFormPayload = (values: NpcFormValues) => ({ name: values.name.trim(), details: values.details });
+    const npcFormPayload = (values: NpcFormValues) => ({ name: values.name.trim(), status: values.status.trim() || null, details: values.details });
     return (
       <NpcEditor
         key={view.id ?? 'new'}
@@ -856,7 +856,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   const listConfig: Record<PlannerEntityType, { items: EntityListItem[] | null }> = {
     note: { items: notes === null ? null : notes.map((n): EntityListItem => ({ id: n.id, title: n.title, badge: n.type, tags: n.tags })) },
     lore: { items: lores === null ? null : lores.map((l): EntityListItem => ({ id: l.id, title: l.title, badge: l.status, tags: l.tags })) },
-    npc: { items: npcs === null ? null : npcs.map((n): EntityListItem => ({ id: n.id, title: n.name })) },
+    npc: { items: npcs === null ? null : npcs.map((n): EntityListItem => ({ id: n.id, title: n.name, badge: n.status })) },
     group: { items: groups === null ? null : groups.map((g): EntityListItem => ({ id: g.id, title: g.name, badge: g.type })) },
     location: { items: locations === null ? null : locations.map((l): EntityListItem => ({ id: l.id, title: l.name, badge: l.type })) },
     session: { items: sessions === null ? null : sessions.map((s): EntityListItem => ({ id: s.id, title: s.title, badge: s.status })) },

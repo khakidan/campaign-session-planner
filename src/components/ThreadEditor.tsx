@@ -2,12 +2,20 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Thread } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field, AutosaveIndicator } from './EditorFormControls';
+import { Field, AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { threadTemplate as defaultThreadTemplate } from '../lib/entityTemplates';
 
 const SUGGESTED_STATUSES = ['Open', 'Resolved', 'Abandoned'];
+
+/** ROADMAP.md's "Priority fields... should be better defined" — how
+ * urgently this Thread needs the GM's attention. Converted from free
+ * text (no suggested list at all before this) to a strict closed-set
+ * dropdown (confirmed via `AskUserQuestion`); same scale as
+ * `Storyline.priority` for consistency across the two most similar
+ * kinds. */
+const THREAD_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'] as const;
 
 export interface ThreadFormValues {
   name: string;
@@ -125,7 +133,14 @@ export const ThreadEditor: React.FC<ThreadEditorProps> = ({
             ))}
           </datalist>
         </div>
-        <Field id="thread-priority" label="Priority" value={values.priority} onChange={(v) => setValues((p) => ({ ...p, priority: v }))} />
+        <SelectField
+          id="thread-priority"
+          label="Priority"
+          value={values.priority}
+          onChange={(v) => setValues((p) => ({ ...p, priority: v }))}
+          options={THREAD_PRIORITIES}
+          helperText="How urgently this Thread needs your attention."
+        />
       </div>
     </>
   );

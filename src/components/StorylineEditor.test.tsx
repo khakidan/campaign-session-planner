@@ -15,7 +15,7 @@ describe('StorylineEditor', () => {
 
     await user.type(screen.getByLabelText('Name'), 'The Fey Conspiracy');
     await user.type(screen.getByLabelText('Status'), 'Active');
-    await user.type(screen.getByLabelText('Priority'), 'High');
+    await user.selectOptions(screen.getByLabelText('Priority'), 'High');
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
 
     await user.click(screen.getByRole('button', { name: 'Save Storyline' }));

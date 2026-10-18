@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Quest } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field, AutosaveIndicator } from './EditorFormControls';
+import { Field, AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { questTemplate as defaultQuestTemplate } from '../lib/entityTemplates';
+
+/** ROADMAP.md's "Status fields... should be better defined" — tracks
+ * this Quest's own progress toward completion. Converted from free
+ * text (the doc gave no suggested list) to a strict closed-set
+ * dropdown (confirmed via `AskUserQuestion`). */
+const QUEST_STATUSES = ['Not Started', 'Active', 'Completed', 'Failed', 'Abandoned'] as const;
 
 export interface QuestFormValues {
   name: string;
@@ -56,8 +62,7 @@ export interface QuestEditorProps {
 /**
  * Slice 4.2e — what the players *know* they're pursuing, distinct from
  * a Thread (what the GM is tracking, which players may not know
- * about). Name/Status are the real properties (the doc gives no
- * suggested Status list, so it's plain free text); everything else the
+ * about). Name/Status are the real properties; everything else the
  * doc lists (Overview, Requirements, Current State, Rewards, History)
  * is one flowing BlockNote document, Notion-page style, not a form of
  * small boxed questions (4.2d's original design). Related Storylines/
@@ -99,7 +104,14 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
   const defaultFields = (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <Field id="quest-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
-      <Field id="quest-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
+      <SelectField
+        id="quest-status"
+        label="Status"
+        value={values.status}
+        onChange={(v) => setValues((p) => ({ ...p, status: v }))}
+        options={QUEST_STATUSES}
+        helperText="Where this Quest stands — not started, actively pursued, finished, or called off."
+      />
     </div>
   );
 

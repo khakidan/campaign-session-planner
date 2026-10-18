@@ -26,7 +26,7 @@ describe('LocationEditor', () => {
     render(<LocationEditor location={null} otherLocations={[otherLocation]} onSave={onSave} onCancel={vi.fn()} />);
 
     await user.type(screen.getByLabelText('Name'), 'Blackwater Village');
-    await user.type(screen.getByLabelText('Type'), 'Village');
+    await user.selectOptions(screen.getByLabelText('Type'), 'Village');
     await user.selectOptions(screen.getByLabelText('Parent Location'), 'location-parent');
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
 

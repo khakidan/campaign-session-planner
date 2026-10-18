@@ -6,6 +6,24 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### Feature: Status/Type/Priority fields are now defined, closed-set dropdowns
+
+**Action needed: none for `CampaignPlannerRepository`** — every field involved already existed as `string | null` except one (see below), and stays exactly that type; this is a GM-facing UI change (free text → a `<select>` of defined values), not a schema or interface change.
+
+**One new field**: `Npc.status` didn't exist before this — if you read/write NPCs through your own code outside this package (e.g. a host-side NPC list that doesn't go through `NpcEditor`), you may want to start surfacing it, but nothing breaks if you ignore it; `saveNpc`'s payload simply gains an optional field.
+
+**If your campaigns already have Status/Type/Priority values that aren't in the new approved lists** (every pre-existing value is "whatever free text a GM typed," so this is likely for an established campaign): that data is **not** touched or migrated. The GM will see that field's dropdown show as unselected/blank the next time they open that record — the underlying stored string is left exactly as it was until they explicitly pick a new value from the dropdown and save. Nothing is silently cleared, but nothing is silently coerced into the new vocabulary either. The approved sets, if you want to review or communicate them to your GMs:
+
+- Note Status: Active / Resolved / Outdated / Archived
+- NPC Status (new): Alive / Dead / Missing / Unknown
+- Quest Status: Not Started / Active / Completed / Failed / Abandoned
+- Event Status: Anticipated / Occurred / Prevented / Cancelled
+- Event Type: Combat / Social / Political / Discovery / Disaster / Personal / Supernatural / Other
+- Location Type: City / Town / Village / Dungeon / Wilderness / Building / Region / Landmark / Other
+- Storyline Priority / Thread Priority (same scale): Low / Medium / High / Critical
+
+**Not changed**: Session/Storyline/Thread Status, and Group Type — these already had a suggested-values datalist (still free text) and weren't part of this pass; no behavior change there.
+
 ### Fix: Session Debriefs are now discoverable, instead of becoming a top-level entity
 
 **Action needed: none** — no `CampaignPlannerRepository`/data-shape change; this is a pure UI fix inside `SessionEditor.tsx`.

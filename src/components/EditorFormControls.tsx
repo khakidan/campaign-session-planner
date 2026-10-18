@@ -48,6 +48,59 @@ export function Field({
   );
 }
 
+/** A strict closed-set dropdown — ROADMAP.md's "Status/Type/Priority
+ * fields... should be better defined so it is clear what the purpose
+ * of this field is." Every field this backs was previously free text
+ * with at most a loose datalist suggestion (still editable to anything);
+ * this instead only ever stores one of `options`, or `''` (saved as
+ * `null`, same as every other optional field here) via the always-
+ * present blank option. Existing data holding a value outside
+ * `options` (from before this field was converted) shows as unselected
+ * until the GM explicitly picks one — the underlying string is left
+ * alone, not silently cleared, until that happens. */
+export function SelectField({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+  helperText,
+  placeholder = 'Unspecified',
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: readonly string[];
+  /** One line clarifying what this field tracks and why — the actual
+   * fix for "it is clear what the purpose of this field is," not just
+   * the dropdown itself. */
+  helperText?: string;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor={id}>
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm bg-white"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+      {helperText && <p className="mt-1 text-[11px] text-[var(--csp-neutral-500)]">{helperText}</p>}
+    </div>
+  );
+}
+
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <fieldset className="space-y-3 border-t border-[var(--csp-neutral-200)] pt-4">

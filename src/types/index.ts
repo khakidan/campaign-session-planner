@@ -155,6 +155,11 @@ export interface Note {
    * suggested 'Lore' — pulled out into its own top-level `Lore` entity;
    * see its own doc comment.) */
   type?: string | null;
+  /** Whether this Note's information is still live, already handled,
+   * or kept only for reference — independent of `type` (what *kind* of
+   * Note it is). A strict closed set (ROADMAP.md's "Status fields...
+   * should be better defined"; see `NoteEditor.tsx`'s own
+   * `NOTE_STATUSES`), not free text as before. */
   status?: string | null;
   /** A BlockNote document (Slice 4.2e) — the page body, not a flat
    * string. May contain `entityReference` inline nodes created via the
@@ -212,6 +217,11 @@ export interface Npc {
   id: NpcId;
   campaignId: CampaignId;
   name: string;
+  /** Whether this NPC is still around to interact with — ROADMAP.md's
+   * "Status fields... should be better defined"; NPC had no Status
+   * field at all before this (confirmed via `AskUserQuestion`). A
+   * strict closed set (see `NpcEditor.tsx`'s own `NPC_STATUSES`). */
+  status?: string | null;
   /** One BlockNote document (Slice 4.2e) replacing every doc-listed NPC
    * field (Aliases, Appearance, Personality, Motivation, Knowledge,
    * History, Roleplaying, Tactics, Secrets, Campaign Role, ...) — the
@@ -251,8 +261,10 @@ export interface Location {
   id: LocationId;
   campaignId: CampaignId;
   name: string;
-  /** Free text — the doc gives no suggested list for Location's Type,
-   * unlike Group's, so no datalist suggestions are offered. */
+  /** What kind of place this is — a strict closed set (ROADMAP.md's
+   * "Type field in Locations should be better defined"; see
+   * `LocationEditor.tsx`'s own `LOCATION_TYPES`), not free text as
+   * before. */
   type?: string | null;
   /** Self-referential — supports nested locations (e.g. a district
    * within a city). */
@@ -322,6 +334,10 @@ export interface Storyline {
   /** Free text — suggested values Active / Resolved / Abandoned /
    * Paused, not a closed enum. */
   status?: string | null;
+  /** How urgently this Storyline needs the GM's attention — a strict
+   * closed set (ROADMAP.md's "Priority fields... should be better
+   * defined"; see `StorylineEditor.tsx`'s own `STORYLINE_PRIORITIES`),
+   * not free text as before (which had no suggested list at all). */
   priority?: string | null;
   /** One BlockNote document (Slice 4.2e) replacing every doc-listed
    * Storyline field (Premise, Goals, Progression, Milestones, History,
@@ -339,6 +355,11 @@ export interface Thread {
   /** Free text — suggested values Open / Resolved / Abandoned, not a
    * closed enum. */
   status?: string | null;
+  /** How urgently this Thread needs the GM's attention — a strict
+   * closed set (ROADMAP.md's "Priority fields... should be better
+   * defined"; see `ThreadEditor.tsx`'s own `THREAD_PRIORITIES`), not
+   * free text as before (which had no suggested list at all). Same
+   * scale as `Storyline.priority`. */
   priority?: string | null;
   /** One BlockNote document (Slice 4.2e) replacing every doc-listed
    * Thread field (The Unresolved Element, Origin, Player Knowledge,
@@ -353,8 +374,10 @@ export interface Quest {
   id: QuestId;
   campaignId: CampaignId;
   name: string;
-  /** Free text — the doc gives no suggested list for Quest's Status,
-   * so no datalist suggestions are offered. */
+  /** Where this Quest stands — a strict closed set (ROADMAP.md's
+   * "Status fields... should be better defined"; see
+   * `QuestEditor.tsx`'s own `QUEST_STATUSES`), not free text as before
+   * (which had no suggested list at all). */
   status?: string | null;
   /** One BlockNote document (Slice 4.2e) replacing every doc-listed
    * Quest field (Overview, Requirements, Current State, Rewards,
@@ -369,9 +392,14 @@ export interface Event {
   id: EventId;
   campaignId: CampaignId;
   name: string;
-  /** Free text — the doc gives no suggested list for Event's Type or
-   * Status, so no datalist suggestions are offered for either. */
+  /** What kind of happening this is — a strict closed set (ROADMAP.md's
+   * "Event Type field... should be better defined"; see
+   * `EventEditor.tsx`'s own `EVENT_TYPES`), not free text as before
+   * (which had no suggested list at all). */
   eventType?: string | null;
+  /** Whether this Event has happened yet, and how — a strict closed
+   * set (ROADMAP.md's "Status fields... should be better defined"; see
+   * `EventEditor.tsx`'s own `EVENT_STATUSES`), not free text as before. */
   status?: string | null;
   /** ISO date string. */
   date?: string | null;

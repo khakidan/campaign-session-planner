@@ -74,7 +74,7 @@ export async function fetchEntityQuickView(
     case 'npc': {
       const npc = await repository.getNpc(ref.id);
       if (!npc) return null;
-      return { title: npc.name, badges: [], sections: [{ blocks: npc.details ?? [] }] };
+      return { title: npc.name, badges: [npc.status].filter((v): v is string => !!v), sections: [{ blocks: npc.details ?? [] }] };
     }
     case 'group': {
       const group = await repository.getGroup(ref.id);

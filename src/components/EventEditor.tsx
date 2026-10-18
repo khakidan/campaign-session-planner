@@ -2,10 +2,21 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Event } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field, AutosaveIndicator } from './EditorFormControls';
+import { Field, AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { eventTemplate as defaultEventTemplate } from '../lib/entityTemplates';
+
+/** ROADMAP.md's "Event Type field... should be better defined" — the
+ * kind of happening this Event represents. Converted from free text
+ * (the doc gave no suggested list) to a strict closed-set dropdown
+ * (confirmed via `AskUserQuestion`). */
+const EVENT_TYPES = ['Combat', 'Social', 'Political', 'Discovery', 'Disaster', 'Personal', 'Supernatural', 'Other'] as const;
+
+/** ROADMAP.md's "Status fields... should be better defined" — whether
+ * this Event has happened yet, and how. Same treatment as `eventType`
+ * above. */
+const EVENT_STATUSES = ['Anticipated', 'Occurred', 'Prevented', 'Cancelled'] as const;
 
 export interface EventFormValues {
   name: string;
@@ -60,9 +71,8 @@ export interface EventEditorProps {
 
 /**
  * Slice 4.2e — something that happens in the world whether or not the
- * PCs are present. Name/Type/Status/Date are the real properties (the
- * doc gives no suggested Type or Status list, so both are plain free
- * text); everything else the doc lists (Description, What Happens,
+ * PCs are present. Name/Type/Status/Date are the real properties;
+ * everything else the doc lists (Description, What Happens,
  * Player Involvement, Outcomes, Campaign Impact) is one flowing
  * BlockNote document, Notion-page style, not a form of small boxed
  * questions (4.2d's original design). Participants and every other
@@ -106,8 +116,22 @@ export const EventEditor: React.FC<EventEditorProps> = ({
       <Field id="event-name" label="Name" value={values.name} onChange={(v) => setValues((p) => ({ ...p, name: v }))} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Field id="event-type" label="Event Type" value={values.eventType} onChange={(v) => setValues((p) => ({ ...p, eventType: v }))} />
-        <Field id="event-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
+        <SelectField
+          id="event-type"
+          label="Event Type"
+          value={values.eventType}
+          onChange={(v) => setValues((p) => ({ ...p, eventType: v }))}
+          options={EVENT_TYPES}
+          helperText="What kind of happening this is."
+        />
+        <SelectField
+          id="event-status"
+          label="Status"
+          value={values.status}
+          onChange={(v) => setValues((p) => ({ ...p, status: v }))}
+          options={EVENT_STATUSES}
+          helperText="Whether this Event has happened yet, and how."
+        />
         <div>
           <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="event-date">
             Date / Time

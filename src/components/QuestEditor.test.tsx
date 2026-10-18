@@ -14,7 +14,7 @@ describe('QuestEditor', () => {
     render(<QuestEditor quest={null} onSave={onSave} onCancel={vi.fn()} />);
 
     await user.type(screen.getByLabelText('Name'), 'The Oortgard Amulet');
-    await user.type(screen.getByLabelText('Status'), 'Active');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Active');
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
 
     await user.click(screen.getByRole('button', { name: 'Save Quest' }));
@@ -81,7 +81,7 @@ describe('QuestEditor', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     render(<QuestEditor quest={null} onSave={vi.fn()} onAutosave={onAutosave} onCancel={vi.fn()} />);
 
-    await user.type(screen.getByLabelText('Status'), 'Active');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Active');
     await vi.advanceTimersByTimeAsync(5000);
 
     expect(onAutosave).not.toHaveBeenCalled();

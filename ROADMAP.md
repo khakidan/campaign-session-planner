@@ -12,10 +12,7 @@ None.
 
 ### 🟡 Features to Add / Test Coverage Gaps
 
-1. Status fields in Notes, NPCs, Quests, and Events should be better defined so that it is clear what the purpose of this field is.
-2. Type field in Locations should be better defined so it is clear what the purpose of this field is.
-3. Priority fields in Storylines, Threads should be better defined so it is clear what the purpose of this field is.
-4. Event Type field in Events should be better defined so it is clear what the purpose of this field is.
+None.
 
 ---
 

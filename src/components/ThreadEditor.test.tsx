@@ -15,7 +15,7 @@ describe('ThreadEditor', () => {
 
     await user.type(screen.getByLabelText('Name'), "The Duke's Secret");
     await user.type(screen.getByLabelText('Status'), 'Open');
-    await user.type(screen.getByLabelText('Priority'), 'High');
+    await user.selectOptions(screen.getByLabelText('Priority'), 'High');
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
 
     await user.click(screen.getByRole('button', { name: 'Save Thread' }));
