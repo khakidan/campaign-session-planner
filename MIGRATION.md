@@ -8,9 +8,15 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ### Feature: Status/Type/Priority fields are now defined, closed-set dropdowns
 
-**Action needed: none for `CampaignPlannerRepository`** — every field involved already existed as `string | null` except one (see below), and stays exactly that type; this is a GM-facing UI change (free text → a `<select>` of defined values), not a schema or interface change.
+**Action needed: none for `CampaignPlannerRepository`'s *method signatures*** — every field involved already existed as `string | null` except one (see below, and this is where real action is needed), and every other field stays exactly that type; this is a GM-facing UI change (free text → a `<select>` of defined values), not an interface change.
 
-**One new field**: `Npc.status` didn't exist before this — if you read/write NPCs through your own code outside this package (e.g. a host-side NPC list that doesn't go through `NpcEditor`), you may want to start surfacing it, but nothing breaks if you ignore it; `saveNpc`'s payload simply gains an optional field.
+**Action needed for `Npc.status` specifically — this one is not optional to address.** It's a genuinely new field, and `CampaignSessionPlanner.tsx` now sends it on **every** NPC save (create, update, *and* the background autosave) — `status: null` by default, not just when a GM has actually set one. That means:
+
+1. **Add a `status` (or equivalent) column/field** to whatever your `saveNpc` implementation writes NPCs to. If your implementation does anything like a direct Prisma `update`/`create` with the given payload spread in, and your NPC-equivalent model has no matching field, **every NPC save will start throwing at runtime** the moment you pull this in (e.g. Prisma's "Unknown argument `status`") — this is not a "nothing breaks if you ignore it" case, unlike every other field in this entry.
+2. Make sure `getNpc`/`getNpcs` read that same column back out into the `status` property, so the value round-trips (and so the dropdown shows a GM's previous choice instead of always "Unspecified").
+3. The approved values are listed below for reference, but your storage column doesn't need to enforce them as a DB-level enum — the dropdown is the only enforcement; any string your column already allows is fine to hold.
+
+**Every other field in this entry** (Note/Quest/Event Status, Event Type, Location Type, Storyline/Thread Priority) already existed as a column/field before this change — only the GM-facing input (free text → dropdown) changed, so nothing on your storage side needs to change for those.
 
 **If your campaigns already have Status/Type/Priority values that aren't in the new approved lists** (every pre-existing value is "whatever free text a GM typed," so this is likely for an established campaign): that data is **not** touched or migrated. The GM will see that field's dropdown show as unselected/blank the next time they open that record — the underlying stored string is left exactly as it was until they explicitly pick a new value from the dropdown and save. Nothing is silently cleared, but nothing is silently coerced into the new vocabulary either. The approved sets, if you want to review or communicate them to your GMs:
 
