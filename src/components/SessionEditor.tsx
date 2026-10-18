@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
-import type { Block, CampaignId, CampaignPlannerRepository, EntityReference, Scene, Session, TTRPGHostAdapter } from '../types';
+import type { Block, CampaignId, CampaignPlannerRepository, EntityReference, Session, TTRPGHostAdapter } from '../types';
 import { useScenes } from '../hooks/useScenes';
 import { useSessions } from '../hooks/useSessions';
 import { useSessionBriefing } from '../hooks/useSessionBriefing';

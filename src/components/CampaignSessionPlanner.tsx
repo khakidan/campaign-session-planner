@@ -46,24 +46,12 @@ import { QuestEditorRoute } from './QuestEditorRoute';
 import { EventEditorRoute } from './EventEditorRoute';
 import { EntityListView } from './EntityListView';
 import { TemplateSettingsPanel } from './TemplateSettingsPanel';
-import { DefaultPlannerNav } from './DefaultPlannerNav';
+import { DefaultPlannerNav, type CampaignSessionPlannerNavProps } from './DefaultPlannerNav';
+
+export type { CampaignSessionPlannerNavProps };
 import type { TemplateEntityKind } from '../types';
 import type { View } from '../lib/plannerRoutes';
 import { buildPlannerItems, buildListConfig } from '../lib/plannerEntityIndex';
-
-/** What the default tab-bar nav renders from, and what a `renderNav`
- * override receives instead — every browsable kind's label, which one
- * is active, a setter for it, and the "Templates" trigger. Deliberately
- * plain data/callbacks, not JSX, so a host can build a sidebar, a
- * dropdown, or anything else entirely from the same inputs rather than
- * restyling the shipped tab bar. */
-export interface CampaignSessionPlannerNavProps {
-  kinds: PlannerEntityType[];
-  labels: Record<PlannerEntityType, string>;
-  activeKind: PlannerEntityType;
-  onSelectKind: (kind: PlannerEntityType) => void;
-  onOpenTemplateSettings: () => void;
-}
 
 /** Per-entity-kind field-layout overrides (ROADMAP.md's "further layout
  * customization beyond the tab bar") — each editor's own `renderFields`
@@ -448,7 +436,6 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         setView={(next) => setView('scene', next)}
         runSaving={runSaving}
         isSaving={isSaving}
-        campaignId={campaignId}
         repository={repository}
         links={linksProp}
         template={templateOverride('scene')}

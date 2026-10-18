@@ -6,6 +6,13 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### Fix: live updates now follow `campaignId` changes; default nav is a labelled landmark
+
+**Action needed: none.** No `CampaignPlannerRepository`/`TTRPGHostAdapter` change, no new or removed props, no changed exports (`CampaignSessionPlannerNavProps` is still exported from the package entry point).
+
+- **Behavior fix:** if you switch `campaignId` on `<CampaignSessionPlanner>` or `useSafetyEventAlerts` while keeping the same `repository` object, a repository `subscribeToChanges` event previously reloaded the *previous* campaign's data. It now reloads the current one. Nothing to change on your side; if you worked around this by re-keying the component per campaign, that still works.
+- **Markup change (default tab bar only):** the shipped tab bar's wrapper is now a `<nav aria-label="Planner sections">` instead of a `<div>`, and the active tab button has `aria-current="true"`. Only relevant if your own CSS or tests select that wrapper by element type; a `renderNav` override is unaffected.
+
 ### Feature: Status/Type/Priority fields are now defined, closed-set dropdowns
 
 **Action needed: none for `CampaignPlannerRepository`'s *method signatures*** — every field involved already existed as `string | null` except one (see below, and this is where real action is needed), and every other field stays exactly that type; this is a GM-facing UI change (free text → a `<select>` of defined values), not an interface change.

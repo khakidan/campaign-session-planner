@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -355,5 +354,41 @@ describe('CampaignSessionPlanner: Scenes have their own top-level tab', () => {
 
     await waitFor(() => expect(screen.getByText('Arrival at the Temple')).toBeInTheDocument());
     expect(screen.getByText('The Sunken Temple')).toBeInTheDocument();
+  });
+});
+
+describe('CampaignSessionPlanner live-change subscription', () => {
+  it('reloads lists for the *current* campaign after campaignId changes on the same repository', async () => {
+    const repository = createFakeRepository();
+    let notifyChange: (() => void) | null = null;
+    repository.subscribeToChanges = (cb) => {
+      notifyChange = cb;
+      return () => {};
+    };
+    const getNotes = vi.spyOn(repository, 'getNotes');
+    const hostAdapter = createFakeHostAdapter();
+
+    const { rerender } = render(<CampaignSessionPlanner campaignId="campaign-A" repository={repository} hostAdapter={hostAdapter} />);
+    await waitFor(() => expect(getNotes).toHaveBeenCalledWith('campaign-A'));
+
+    rerender(<CampaignSessionPlanner campaignId="campaign-B" repository={repository} hostAdapter={hostAdapter} />);
+    await waitFor(() => expect(getNotes).toHaveBeenCalledWith('campaign-B'));
+
+    getNotes.mockClear();
+    notifyChange!();
+
+    await waitFor(() => expect(getNotes).toHaveBeenCalled());
+    expect(getNotes).toHaveBeenLastCalledWith('campaign-B');
+    expect(getNotes).not.toHaveBeenCalledWith('campaign-A');
+  });
+});
+
+describe('CampaignSessionPlanner default nav accessibility', () => {
+  it('labels the tab bar as a navigation landmark and marks only the active kind as current', async () => {
+    render(<CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={createFakeRepository()} hostAdapter={createFakeHostAdapter()} />);
+
+    await waitFor(() => expect(screen.getByRole('navigation', { name: 'Planner sections' })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Notes' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: 'NPCs' })).not.toHaveAttribute('aria-current');
   });
 });

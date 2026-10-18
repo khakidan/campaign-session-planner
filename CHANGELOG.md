@@ -6,6 +6,16 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Fix: live-change subscriptions no longer reload the previous campaign after `campaignId` changes; plus a best-practices pass
+
+Double-checking the refactor work against React/package best practices turned up a real bug, in the original code and carried over unchanged by the earlier extraction: the `repository.subscribeToChanges` effect depended only on `[repository]`, but each `reload` it called is bound to the `campaignId` it was created with. A host that switched `campaignId` while keeping the same repository object (a campaign switcher) would, on the next remote change, reload the *old* campaign's data into the new campaign's lists. It affected both `CampaignSessionPlanner` and the exported `useSafetyEventAlerts` hook. Both now share `usePlannerChangeSubscription`, which reads the latest reload functions through a ref at event time; each has a regression test that failed before the fix.
+
+Same pass:
+- `DefaultPlannerNav` is now a labelled `<nav>` landmark and marks the active kind with `aria-current="true"` (it was plain buttons with the active state conveyed only visually). `CampaignSessionPlannerNavProps` moved next to it, which also removes a circular type import; it is still exported from the package entry point.
+- `tsconfig.json` now enables `noUnusedLocals`/`noUnusedParameters`. Turning them on surfaced dead code the previous settings hid — an unused `Scene` import in `SessionEditor.tsx` (introduced by the earlier split), a dead `campaignId` prop on `SceneEditorRoute`, redundant `import React` lines, and an unused test helper — all removed.
+
+373 tests (3 new), `tsc --noEmit`, and `npm run build` all clean.
+
 ## Refactor: pulled `plannerItems`/`listConfig`/the default tab nav/the change-subscription effect out of `CampaignSessionPlanner.tsx`
 
 Follow-up pass looking for more to pull out of `CampaignSessionPlanner.tsx` (still 661 lines after the prior three refactors). None of these were duplicated logic the way the links wiring below was — each is a genuinely separable concern:

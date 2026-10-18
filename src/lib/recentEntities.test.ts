@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadRecents, pushRecent } from './recentEntities';
 import type { PlannerSearchItem } from '../components/EntityLinkPicker';
 

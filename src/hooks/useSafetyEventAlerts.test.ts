@@ -77,4 +77,30 @@ describe('useSafetyEventAlerts', () => {
     await new Promise((r) => setTimeout(r, 10));
     expect(onSafetyEvent).not.toHaveBeenCalled();
   });
+
+  it('keeps reloading the *current* campaign after campaignId changes on the same repository', async () => {
+    const repository = createFakeRepository();
+    let notifyChange: (() => void) | undefined;
+    repository.subscribeToChanges = (onChange) => {
+      notifyChange = onChange;
+      return () => {
+        notifyChange = undefined;
+      };
+    };
+    const getNotes = vi.spyOn(repository, 'getNotes');
+
+    const { rerender } = renderHook(({ campaignId }) => useSafetyEventAlerts(repository, campaignId, vi.fn()), {
+      initialProps: { campaignId: 'campaign-A' },
+    });
+    await waitFor(() => expect(getNotes).toHaveBeenCalledWith('campaign-A'));
+    rerender({ campaignId: 'campaign-B' });
+    await waitFor(() => expect(getNotes).toHaveBeenCalledWith('campaign-B'));
+
+    getNotes.mockClear();
+    notifyChange!();
+
+    await waitFor(() => expect(getNotes).toHaveBeenCalled());
+    expect(getNotes).toHaveBeenLastCalledWith('campaign-B');
+    expect(getNotes).not.toHaveBeenCalledWith('campaign-A');
+  });
 });

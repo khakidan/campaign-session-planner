@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { CampaignId, CampaignPlannerRepository, SessionId } from '../types';
 import { useSessions } from './useSessions';
 import { useNotes } from './useNotes';
+import { usePlannerChangeSubscription } from './usePlannerChangeSubscription';
 import { SAFETY_EVENT_NOTE_TYPE, getSafetyEventSessionId, getSafetyEventTool, getSafetyEventTriggeredBy } from '../lib/safetyEvents';
 
 export interface SafetyEventAlert {
@@ -59,13 +60,7 @@ export function useSafetyEventAlerts(
 
   const { notes, reload: reloadNotes } = useNotes(repository, campaignId);
 
-  useEffect(() => {
-    if (!repository.subscribeToChanges) return;
-    return repository.subscribeToChanges(() => {
-      reloadNotes();
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repository]);
+  usePlannerChangeSubscription(repository, [reloadNotes]);
 
   const onSafetyEventRef = useRef(onSafetyEvent);
   onSafetyEventRef.current = onSafetyEvent;

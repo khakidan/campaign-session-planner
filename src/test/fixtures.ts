@@ -28,7 +28,6 @@ import type {
   SessionId,
   Storyline,
   StorylineId,
-  TemplateEntityKind,
   Thread,
   ThreadId,
   TTRPGAdversary,

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { PartialBlock } from '@blocknote/core';
-import type { CampaignId, CampaignPlannerRepository, Scene, Session } from '../types';
+import type { CampaignPlannerRepository, Scene, Session } from '../types';
 import { SceneEditor, type SceneEditorProps, type SceneFormValues } from './SceneEditor';
 import type { EntityEditorLinksProps } from './EntityLinksPanel';
 import type { View } from '../lib/plannerRoutes';
@@ -12,7 +12,6 @@ export interface SceneEditorRouteProps {
   setView: (next: View) => void;
   runSaving: (fn: () => Promise<void>) => Promise<void>;
   isSaving: boolean;
-  campaignId: CampaignId;
   repository: CampaignPlannerRepository;
   links: EntityEditorLinksProps | undefined;
   template: PartialBlock[] | undefined;
@@ -37,7 +36,6 @@ export const SceneEditorRoute: React.FC<SceneEditorRouteProps> = ({
   setView,
   runSaving,
   isSaving,
-  campaignId,
   repository,
   links,
   template,

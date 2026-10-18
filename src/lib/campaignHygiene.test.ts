@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildCampaignHygiene, selectOrphaned, selectStale } from './campaignHygiene';
 import { makeEntityLink, makeThread, TEST_CAMPAIGN_ID } from '../test/fixtures';
-import type { Group, Location, Npc, Quest, Storyline } from '../types';
+import type { Location, Npc, Quest, Storyline } from '../types';
 
 const ASOF = new Date('2024-06-01T00:00:00.000Z');
 
@@ -10,20 +10,6 @@ function makeNpc(overrides: Partial<Npc> = {}): Npc {
     id: overrides.id ?? 'npc-fixture-1',
     campaignId: TEST_CAMPAIGN_ID,
     name: 'Fixture NPC',
-    details: [],
-    createdAt: '2024-01-01T00:00:00.000Z',
-    updatedAt: '2024-01-01T00:00:00.000Z',
-    ...overrides,
-  };
-}
-
-function makeGroup(overrides: Partial<Group> = {}): Group {
-  return {
-    id: overrides.id ?? 'group-fixture-1',
-    campaignId: TEST_CAMPAIGN_ID,
-    name: 'Fixture Group',
-    type: null,
-    status: null,
     details: [],
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',

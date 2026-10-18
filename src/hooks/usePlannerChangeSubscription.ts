@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { CampaignPlannerRepository } from '../types';
 
 /**
@@ -12,13 +12,23 @@ import type { CampaignPlannerRepository } from '../types';
  * .subscribeToChanges` is optional on the interface, so a host that
  * doesn't implement it (or a test's repository fake) just never fires
  * this — the planner still works exactly as it always has.
+ *
+ * The subscription itself only depends on `repository`, but each
+ * `reload` is bound to the `campaignId` it was created with — so the
+ * latest set is read through a ref at event time. Capturing `reloadAll`
+ * once would keep reloading the previous campaign's data after a host
+ * switches `campaignId` on the same repository.
  */
 export function usePlannerChangeSubscription(repository: CampaignPlannerRepository, reloadAll: Array<() => void | Promise<void>>) {
+  const latestReloads = useRef(reloadAll);
+  useEffect(() => {
+    latestReloads.current = reloadAll;
+  });
+
   useEffect(() => {
     if (!repository.subscribeToChanges) return;
     return repository.subscribeToChanges(() => {
-      reloadAll.forEach((reload) => reload());
+      latestReloads.current.forEach((reload) => reload());
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repository]);
 }
