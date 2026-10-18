@@ -6,18 +6,7 @@ import type {
   EntityId,
   EntityReference,
   EntityType,
-  Event,
-  Group,
-  Location,
-  Lore,
-  Note,
-  Npc,
   PlannerEntityType,
-  Quest,
-  Scene,
-  Session,
-  Storyline,
-  Thread,
   TTRPGHostAdapter,
 } from '../types';
 import { useNotes } from '../hooks/useNotes';
@@ -33,21 +22,32 @@ import { useQuests } from '../hooks/useQuests';
 import { useEvents } from '../hooks/useEvents';
 import { useEntityLinks } from '../hooks/useEntityLinks';
 import { useTemplates } from '../hooks/useTemplates';
-import { NoteEditor, type NoteEditorProps, type NoteFormValues } from './NoteEditor';
-import { LoreEditor, type LoreEditorProps, type LoreFormValues } from './LoreEditor';
-import { NpcEditor, type NpcEditorProps, type NpcFormValues } from './NpcEditor';
-import { GroupEditor, type GroupEditorProps, type GroupFormValues } from './GroupEditor';
-import { LocationEditor, type LocationEditorProps, type LocationFormValues } from './LocationEditor';
-import { SessionEditor, type SessionEditorProps, type SessionFormValues } from './SessionEditor';
-import { SceneEditor, type SceneFormValues } from './SceneEditor';
-import { StorylineEditor, type StorylineEditorProps, type StorylineFormValues } from './StorylineEditor';
-import { ThreadEditor, type ThreadEditorProps, type ThreadFormValues } from './ThreadEditor';
-import { QuestEditor, type QuestEditorProps, type QuestFormValues } from './QuestEditor';
-import { EventEditor, type EventEditorProps, type EventFormValues } from './EventEditor';
+import type { NoteEditorProps } from './NoteEditor';
+import type { LoreEditorProps } from './LoreEditor';
+import type { NpcEditorProps } from './NpcEditor';
+import type { GroupEditorProps } from './GroupEditor';
+import type { LocationEditorProps } from './LocationEditor';
+import type { SessionEditorProps } from './SessionEditor';
+import type { StorylineEditorProps } from './StorylineEditor';
+import type { ThreadEditorProps } from './ThreadEditor';
+import type { QuestEditorProps } from './QuestEditor';
+import type { EventEditorProps } from './EventEditor';
+import { NoteEditorRoute } from './NoteEditorRoute';
+import { LoreEditorRoute } from './LoreEditorRoute';
+import { NpcEditorRoute } from './NpcEditorRoute';
+import { GroupEditorRoute } from './GroupEditorRoute';
+import { LocationEditorRoute } from './LocationEditorRoute';
+import { SessionEditorRoute } from './SessionEditorRoute';
+import { SceneEditorRoute } from './SceneEditorRoute';
+import { StorylineEditorRoute } from './StorylineEditorRoute';
+import { ThreadEditorRoute } from './ThreadEditorRoute';
+import { QuestEditorRoute } from './QuestEditorRoute';
+import { EventEditorRoute } from './EventEditorRoute';
 import { EntityListView, type EntityListItem } from './EntityListView';
 import { TemplateSettingsPanel } from './TemplateSettingsPanel';
 import type { PlannerSearchItem } from './EntityLinkPicker';
 import type { TemplateEntityKind } from '../types';
+import type { View } from '../lib/plannerRoutes';
 
 /** What the default tab-bar nav renders from, and what a `renderNav`
  * override receives instead — every browsable kind's label, which one
@@ -137,92 +137,6 @@ const TAB_LABELS: Record<PlannerEntityType, string> = {
   quest: 'Quests',
   event: 'Events',
 };
-
-type View = { mode: 'list' } | { mode: 'edit'; id: string | null };
-
-function parseTags(raw: string): string[] {
-  return raw
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean);
-}
-
-/** The onSave/onAutosave/onDelete/onCancel wiring every "simple" kind
- * below needs is structurally identical — only the entity type, its
- * payload-mapping function, and its CRUD functions differ. Factored
- * out once there were 9 copies of the same ~15 lines (Note/Lore/Npc/
- * Group/Location/Storyline/Thread/Quest/Event); Session and Scene stay
- * inlined since each has genuinely different wiring (Session's extra
- * `onScenesChanged`/two templates; Scene's `sessionId`/`order`
- * resolution for its own Session picker). Plain function, not a hook —
- * it calls no hooks itself, so there's no rules-of-hooks concern
- * calling it conditionally inside an `if` block below. */
-function buildCrudHandlers<TEntity extends { id: string }, TFormValues, TPayload extends object>({
-  kind,
-  entity,
-  currentViewId,
-  setView,
-  runSaving,
-  campaignId,
-  toPayload,
-  createEntity,
-  updateEntity,
-  deleteEntity,
-  saveEntity,
-  reloadEntity,
-}: {
-  kind: PlannerEntityType;
-  entity: TEntity | null;
-  /** This view's own `view.id` — see the comment on `onSave` below for
-   * why this, not `existingId`, decides whether to stay on the editor. */
-  currentViewId: string | null;
-  setView: (kind: PlannerEntityType, next: View) => void;
-  runSaving: (fn: () => Promise<void>) => Promise<void>;
-  campaignId: CampaignId;
-  toPayload: (values: TFormValues) => TPayload;
-  createEntity: (payload: TPayload) => Promise<TEntity>;
-  updateEntity: (entity: TEntity) => Promise<TEntity>;
-  deleteEntity: (id: string) => Promise<void>;
-  saveEntity: (input: TPayload & { id: string; campaignId: CampaignId }) => Promise<TEntity>;
-  reloadEntity: () => Promise<void>;
-}) {
-  return {
-    onCancel: () => setView(kind, { mode: 'list' }),
-    onDelete: entity
-      ? () =>
-          runSaving(async () => {
-            await deleteEntity(entity.id);
-            setView(kind, { mode: 'list' });
-          })
-      : undefined,
-    onSave: (values: TFormValues, existingId: string | null) =>
-      runSaving(async () => {
-        const payload = toPayload(values);
-        // `existingId` is the *editor's* own knowledge, which an
-        // autosave may already have updated in the background;
-        // `currentViewId` is whether this view has ever actually shown
-        // linking for this record. An autosave can create the real
-        // row without this view learning its id, so this explicit
-        // Save click can still be the first moment it's revealed —
-        // branch on `currentViewId`, not `existingId`, so that moment
-        // doesn't close the editor the instant it happens.
-        const saved = existingId
-          ? await updateEntity({ ...entity, id: existingId, campaignId, ...payload } as unknown as TEntity)
-          : await createEntity(payload);
-        setView(kind, currentViewId ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-      }),
-    onAutosave: async (values: TFormValues, existingId: string | null) => {
-      const payload = toPayload(values);
-      if (existingId) {
-        const saved = await saveEntity({ ...payload, id: existingId, campaignId });
-        await reloadEntity();
-        return { id: saved.id };
-      }
-      const created = await createEntity(payload);
-      return { id: created.id };
-    },
-  };
-}
 
 /**
  * Slice 4.2a's first real vertical slice was Notes only. Slice 4.2b
@@ -412,205 +326,127 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
     );
   }
 
+  // Every kind's own edit-view wiring lives in its own `*EditorRoute`
+  // component (ROADMAP.md's "Refactoring Candidates") — this dispatch
+  // just resolves `activeKind`/`view.mode` and hands each one the
+  // shared pieces (`repository`, `campaignId`, `isSaving`, `linksProp`,
+  // `setView`/`runSaving`) plus its own kind-specific lists/CRUD
+  // functions/template/renderFields.
   if (activeKind === 'note' && view.mode === 'edit') {
-    const note = view.id ? (notes ?? []).find((n) => n.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'note',
-      entity: note,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: NoteFormValues) => ({
-        title: values.title.trim(),
-        type: values.type.trim() || null,
-        status: values.status.trim() || null,
-        content: values.content,
-        tags: parseTags(values.tags),
-      }),
-      createEntity: createNote,
-      updateEntity: updateNote,
-      deleteEntity: deleteNote,
-      saveEntity: repository.saveNote,
-      reloadEntity: reloadNotes,
-    });
     return (
-      <NoteEditor
-        key={view.id ?? 'new'}
-        note={note}
+      <NoteEditorRoute
+        notes={notes}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         renderFields={renderFields?.note}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createNote={createNote}
+        updateNote={updateNote}
+        deleteNote={deleteNote}
+        reloadNotes={reloadNotes}
       />
     );
   }
 
   if (activeKind === 'lore' && view.mode === 'edit') {
-    const lore = view.id ? (lores ?? []).find((l) => l.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'lore',
-      entity: lore,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: LoreFormValues) => ({
-        title: values.title.trim(),
-        status: values.status.trim() || null,
-        content: values.content,
-        tags: parseTags(values.tags),
-      }),
-      createEntity: createLore,
-      updateEntity: updateLore,
-      deleteEntity: deleteLore,
-      saveEntity: repository.saveLore,
-      reloadEntity: reloadLores,
-    });
     return (
-      <LoreEditor
-        key={view.id ?? 'new'}
-        lore={lore}
+      <LoreEditorRoute
+        lores={lores}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         renderFields={renderFields?.lore}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createLore={createLore}
+        updateLore={updateLore}
+        deleteLore={deleteLore}
+        reloadLores={reloadLores}
       />
     );
   }
 
   if (activeKind === 'npc' && view.mode === 'edit') {
-    const npc = view.id ? (npcs ?? []).find((n) => n.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'npc',
-      entity: npc,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: NpcFormValues) => ({ name: values.name.trim(), status: values.status.trim() || null, details: values.details }),
-      createEntity: createNpc,
-      updateEntity: updateNpc,
-      deleteEntity: deleteNpc,
-      saveEntity: repository.saveNpc,
-      reloadEntity: reloadNpcs,
-    });
     return (
-      <NpcEditor
-        key={view.id ?? 'new'}
-        npc={npc}
+      <NpcEditorRoute
+        npcs={npcs}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         template={templateOverride('npc')}
         renderFields={renderFields?.npc}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createNpc={createNpc}
+        updateNpc={updateNpc}
+        deleteNpc={deleteNpc}
+        reloadNpcs={reloadNpcs}
       />
     );
   }
 
   if (activeKind === 'group' && view.mode === 'edit') {
-    const group = view.id ? (groups ?? []).find((g) => g.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'group',
-      entity: group,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: GroupFormValues) => ({
-        name: values.name.trim(),
-        type: values.type.trim() || null,
-        status: values.status.trim() || null,
-        details: values.details,
-      }),
-      createEntity: createGroup,
-      updateEntity: updateGroup,
-      deleteEntity: deleteGroup,
-      saveEntity: repository.saveGroup,
-      reloadEntity: reloadGroups,
-    });
     return (
-      <GroupEditor
-        key={view.id ?? 'new'}
-        group={group}
+      <GroupEditorRoute
+        groups={groups}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         template={templateOverride('group')}
         renderFields={renderFields?.group}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createGroup={createGroup}
+        updateGroup={updateGroup}
+        deleteGroup={deleteGroup}
+        reloadGroups={reloadGroups}
       />
     );
   }
 
   if (activeKind === 'location' && view.mode === 'edit') {
-    const location = view.id ? (locations ?? []).find((l) => l.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'location',
-      entity: location,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: LocationFormValues) => ({
-        name: values.name.trim(),
-        type: values.type.trim() || null,
-        parentLocationId: values.parentLocationId || null,
-        details: values.details,
-      }),
-      createEntity: createLocation,
-      updateEntity: updateLocation,
-      deleteEntity: deleteLocation,
-      saveEntity: repository.saveLocation,
-      reloadEntity: reloadLocations,
-    });
     return (
-      <LocationEditor
-        key={view.id ?? 'new'}
-        location={location}
-        otherLocations={(locations ?? []).filter((l) => l.id !== location?.id)}
+      <LocationEditorRoute
+        locations={locations}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         template={templateOverride('location')}
         renderFields={renderFields?.location}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createLocation={createLocation}
+        updateLocation={updateLocation}
+        deleteLocation={deleteLocation}
+        reloadLocations={reloadLocations}
       />
     );
   }
 
   if (activeKind === 'session' && view.mode === 'edit') {
-    const session = view.id ? (sessions ?? []).find((s) => s.id === view.id) ?? null : null;
-    const sessionFormPayload = (values: SessionFormValues) => ({
-      title: values.title.trim(),
-      sessionNumber: values.sessionNumber.trim() ? Number(values.sessionNumber) : null,
-      date: values.date || null,
-      status: values.status.trim() || null,
-      details: values.details,
-      debrief: values.debrief,
-    });
     return (
-      <SessionEditor
-        key={view.id ?? 'new'}
-        session={session}
-        repository={repository}
+      <SessionEditorRoute
+        sessions={sessions}
+        viewId={view.id}
+        setView={(next) => setView('session', next)}
+        runSaving={runSaving}
+        isSaving={isSaving}
         campaignId={campaignId}
+        repository={repository}
         hostAdapter={hostAdapter}
         plannerItems={plannerItems}
-        isSaving={isSaving}
         links={linksProp}
         template={templateOverride('session')}
         debriefTemplate={templateOverride('sessionDebrief')}
@@ -620,231 +456,116 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         onScenesChanged={reloadAllScenes}
         onOpenPlannerEntity={openPlannerEntity}
         onOpenHostEntity={onOpenHostEntity}
-        onCancel={() => setView('session', { mode: 'list' })}
-        onDelete={session ? () => runSaving(async () => {
-          await deleteSession(session.id);
-          setView('session', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: SessionFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = sessionFormPayload(values);
-            const saved = existingId
-              ? await updateSession({ ...session, id: existingId, campaignId, ...payload } as Session)
-              : await createSession(payload);
-            setView('session', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: SessionFormValues, existingId: string | null) => {
-          const payload = sessionFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveSession({ id: existingId, campaignId, ...payload });
-            await reloadSessions();
-            return { id: saved.id };
-          }
-          const created = await createSession(payload);
-          return { id: created.id };
-        }}
+        createSession={createSession}
+        updateSession={updateSession}
+        deleteSession={deleteSession}
+        reloadSessions={reloadSessions}
       />
     );
   }
 
   if (activeKind === 'scene' && view.mode === 'edit') {
-    const scene = view.id ? (allScenes ?? []).find((s) => s.id === view.id) ?? null : null;
-    const sceneFormPayload = (values: SceneFormValues) => ({
-      title: values.title.trim(),
-      sceneNumber: values.sceneNumber.trim() ? Number(values.sceneNumber) : null,
-      status: values.status.trim() || null,
-      details: values.details,
-    });
-    // A Scene's `order` only has meaning within its own Session — keep
-    // it when the Session is unchanged, otherwise append at the end of
-    // the newly-chosen Session's own Scenes (same as `SessionEditor
-    // .tsx`'s "+ Add Scene", just picking the Session explicitly here
-    // instead of it being implicit).
-    const resolveOrder = (sessionId: string) =>
-      scene && scene.sessionId === sessionId ? scene.order : (allScenes ?? []).filter((s) => s.sessionId === sessionId).length;
     return (
-      <SceneEditor
-        key={view.id ?? 'new'}
-        scene={scene}
-        sessions={(sessions ?? []).map((s) => ({ id: s.id, title: s.title }))}
+      <SceneEditorRoute
+        allScenes={allScenes}
+        sessions={sessions}
+        viewId={view.id}
+        setView={(next) => setView('scene', next)}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         template={templateOverride('scene')}
         renderFields={renderFields?.scene}
-        onCancel={() => setView('scene', { mode: 'list' })}
-        onDelete={scene ? () => runSaving(async () => {
-          await deleteScene(scene.id);
-          setView('scene', { mode: 'list' });
-        }) : undefined}
-        onSave={(values: SceneFormValues, existingId: string | null) =>
-          runSaving(async () => {
-            const payload = sceneFormPayload(values);
-            const saved = existingId
-              ? await updateScene({ ...scene, id: existingId, sessionId: values.sessionId, order: resolveOrder(values.sessionId), ...payload } as Scene)
-              : await createScene({ ...payload, sessionId: values.sessionId, order: resolveOrder(values.sessionId) });
-            setView('scene', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
-          })
-        }
-        onAutosave={async (values: SceneFormValues, existingId: string | null) => {
-          const payload = sceneFormPayload(values);
-          if (existingId) {
-            const saved = await repository.saveScene({
-              id: existingId,
-              sessionId: values.sessionId,
-              order: resolveOrder(values.sessionId),
-              ...payload,
-            });
-            await reloadAllScenes();
-            return { id: saved.id };
-          }
-          const created = await createScene({ ...payload, sessionId: values.sessionId, order: resolveOrder(values.sessionId) });
-          return { id: created.id };
-        }}
+        createScene={createScene}
+        updateScene={updateScene}
+        deleteScene={deleteScene}
+        reloadAllScenes={reloadAllScenes}
       />
     );
   }
 
   if (activeKind === 'storyline' && view.mode === 'edit') {
-    const storyline = view.id ? (storylines ?? []).find((s) => s.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'storyline',
-      entity: storyline,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: StorylineFormValues) => ({
-        name: values.name.trim(),
-        status: values.status.trim() || null,
-        priority: values.priority.trim() || null,
-        details: values.details,
-      }),
-      createEntity: createStoryline,
-      updateEntity: updateStoryline,
-      deleteEntity: deleteStoryline,
-      saveEntity: repository.saveStoryline,
-      reloadEntity: reloadStorylines,
-    });
     return (
-      <StorylineEditor
-        key={view.id ?? 'new'}
-        storyline={storyline}
+      <StorylineEditorRoute
+        storylines={storylines}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         template={templateOverride('storyline')}
         renderFields={renderFields?.storyline}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createStoryline={createStoryline}
+        updateStoryline={updateStoryline}
+        deleteStoryline={deleteStoryline}
+        reloadStorylines={reloadStorylines}
       />
     );
   }
 
   if (activeKind === 'thread' && view.mode === 'edit') {
-    const thread = view.id ? (threads ?? []).find((t) => t.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'thread',
-      entity: thread,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: ThreadFormValues) => ({
-        name: values.name.trim(),
-        status: values.status.trim() || null,
-        priority: values.priority.trim() || null,
-        details: values.details,
-      }),
-      createEntity: createThread,
-      updateEntity: updateThread,
-      deleteEntity: deleteThread,
-      saveEntity: repository.saveThread,
-      reloadEntity: reloadThreads,
-    });
     return (
-      <ThreadEditor
-        key={view.id ?? 'new'}
-        thread={thread}
+      <ThreadEditorRoute
+        threads={threads}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         template={templateOverride('thread')}
         renderFields={renderFields?.thread}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createThread={createThread}
+        updateThread={updateThread}
+        deleteThread={deleteThread}
+        reloadThreads={reloadThreads}
       />
     );
   }
 
   if (activeKind === 'quest' && view.mode === 'edit') {
-    const quest = view.id ? (quests ?? []).find((q) => q.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'quest',
-      entity: quest,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: QuestFormValues) => ({ name: values.name.trim(), status: values.status.trim() || null, details: values.details }),
-      createEntity: createQuest,
-      updateEntity: updateQuest,
-      deleteEntity: deleteQuest,
-      saveEntity: repository.saveQuest,
-      reloadEntity: reloadQuests,
-    });
     return (
-      <QuestEditor
-        key={view.id ?? 'new'}
-        quest={quest}
+      <QuestEditorRoute
+        quests={quests}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         template={templateOverride('quest')}
         renderFields={renderFields?.quest}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createQuest={createQuest}
+        updateQuest={updateQuest}
+        deleteQuest={deleteQuest}
+        reloadQuests={reloadQuests}
       />
     );
   }
 
   if (activeKind === 'event' && view.mode === 'edit') {
-    const event = view.id ? (events ?? []).find((e) => e.id === view.id) ?? null : null;
-    const handlers = buildCrudHandlers({
-      kind: 'event',
-      entity: event,
-      currentViewId: view.id,
-      setView,
-      runSaving,
-      campaignId,
-      toPayload: (values: EventFormValues) => ({
-        name: values.name.trim(),
-        eventType: values.eventType.trim() || null,
-        status: values.status.trim() || null,
-        date: values.date || null,
-        details: values.details,
-      }),
-      createEntity: createEvent,
-      updateEntity: updateEvent,
-      deleteEntity: deleteEvent,
-      saveEntity: repository.saveEvent,
-      reloadEntity: reloadEvents,
-    });
     return (
-      <EventEditor
-        key={view.id ?? 'new'}
-        event={event}
+      <EventEditorRoute
+        events={events}
+        viewId={view.id}
+        setView={setView}
+        runSaving={runSaving}
         isSaving={isSaving}
+        campaignId={campaignId}
+        repository={repository}
         links={linksProp}
         template={templateOverride('event')}
         renderFields={renderFields?.event}
-        onCancel={handlers.onCancel}
-        onDelete={handlers.onDelete}
-        onSave={handlers.onSave}
-        onAutosave={handlers.onAutosave}
+        createEvent={createEvent}
+        updateEvent={updateEvent}
+        deleteEvent={deleteEvent}
+        reloadEvents={reloadEvents}
       />
     );
   }
