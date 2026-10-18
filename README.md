@@ -499,7 +499,18 @@ nothing specific to this repo). You don't need this for most changes —
 only if you're touching `EntityReferenceInlineContent.tsx` or
 `BlockNoteFreeformField.tsx`'s `[[`/`@` wiring itself.
 
+`npm run lint` runs ESLint (TypeScript rules plus the React hooks rules);
+run it alongside `npm test` and `npx tsc --noEmit` before committing.
+
 ## Known gaps / things to know before extending this further
+
+- **No error boundary.** If a component inside the planner throws while
+  rendering, React unmounts the whole embedded planner up to the nearest
+  error boundary above it — and if the host has none, that can blank the
+  entire page. This package deliberately doesn't wrap itself in one,
+  since how a failure should look (a toast, a fallback panel, a retry)
+  is the host's call. If you want one, wrap the planner in your own:
+  `<MyErrorBoundary><CampaignSessionPlanner ... /></MyErrorBoundary>`.
 
 - **Single game-system assumption isn't hardcoded, but isn't exercised
   either.** `TTRPGHostAdapter.getGameSystem()` exists so the planner
