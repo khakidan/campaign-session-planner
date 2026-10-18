@@ -246,20 +246,40 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="session-status">
             Status
           </label>
-          <input
-            id="session-status"
-            type="text"
-            list="session-status-suggestions"
-            value={values.status}
-            onChange={(e) => setValues((prev) => ({ ...prev, status: e.target.value }))}
-            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
-            placeholder="Draft"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              id="session-status"
+              type="text"
+              list="session-status-suggestions"
+              value={values.status}
+              onChange={(e) => setValues((prev) => ({ ...prev, status: e.target.value }))}
+              className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
+              placeholder="Draft"
+            />
+            {values.status !== 'Completed' && (
+              <button
+                type="button"
+                onClick={() => setValues((prev) => ({ ...prev, status: 'Completed' }))}
+                className="shrink-0 px-2 py-1.5 text-[11px] font-semibold text-[var(--csp-accent-700)] border border-[var(--csp-accent-600)] rounded-lg hover:bg-[var(--csp-accent-50)] whitespace-nowrap cursor-pointer"
+              >
+                Mark Completed
+              </button>
+            )}
+          </div>
           <datalist id="session-status-suggestions">
             {SUGGESTED_STATUSES.map((s) => (
               <option key={s} value={s} />
             ))}
           </datalist>
+          {/* Discoverability fix (ROADMAP.md's "Session Debriefs" item) —
+           * the Debrief section below is entirely gated on this field
+           * reading exactly 'Completed', with nothing else in the UI
+           * hinting that. This line, plus the "Mark Completed" shortcut
+           * above, are the fix: a GM who's never typed that exact string
+           * in has no other way to discover the Debrief exists at all. */}
+          {values.status !== 'Completed' && (
+            <p className="mt-1 text-[11px] text-[var(--csp-neutral-500)]">Set to "Completed" to unlock this Session's Debrief below.</p>
+          )}
         </div>
       </div>
     </>
@@ -440,6 +460,9 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       {values.status === 'Completed' && (
         <fieldset className="space-y-3 border-t border-[var(--csp-neutral-200)] pt-4">
           <legend className="text-xs font-bold uppercase tracking-wider text-[var(--csp-neutral-600)] mb-1">Debrief</legend>
+          <p className="text-[11px] text-[var(--csp-neutral-400)] italic">
+            Captured once this Session wraps up — new information, what to remember, how the table felt it went.
+          </p>
           <BlockNoteFreeformField
             value={values.debrief}
             onChange={(blocks) => setValues((prev) => ({ ...prev, debrief: blocks }))}

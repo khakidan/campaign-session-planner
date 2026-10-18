@@ -67,6 +67,21 @@ describe('SessionEditor', () => {
     expect(screen.getByText('Debrief')).toBeInTheDocument();
   });
 
+  it('"Mark Completed" sets Status in one click and reveals the Debrief field, same as typing it', async () => {
+    const user = userEvent.setup();
+    render(<SessionEditor session={null} onSave={vi.fn()} {...baseProps()} />);
+
+    expect(screen.getByText('Set to "Completed" to unlock this Session\'s Debrief below.')).toBeInTheDocument();
+    expect(screen.queryByText('Debrief')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Mark Completed' }));
+
+    expect(screen.getByLabelText('Status')).toHaveValue('Completed');
+    expect(screen.getByText('Debrief')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mark Completed' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Set to "Completed" to unlock this Session\'s Debrief below.')).not.toBeInTheDocument();
+  });
+
   it('disables "+ Add Scene" until the Session itself has been saved', () => {
     render(<SessionEditor session={null} onSave={vi.fn()} {...baseProps()} />);
 

@@ -6,6 +6,14 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### Fix: Session Debriefs are now discoverable, instead of becoming a top-level entity
+
+**Action needed: none** — no `CampaignPlannerRepository`/data-shape change; this is a pure UI fix inside `SessionEditor.tsx`.
+
+**How a GM reaches this workflow** (asked about directly, since it was genuinely hard to find before this fix): open an existing Session in the editor, then either type `Completed` into its Status field or — new — click the "Mark Completed" button that now sits right next to it. The moment Status reads `Completed`, a "Debrief" section appears further down the same page with a BlockNote document to write in (what happened, what to remember, how the table felt it went), plus a hint confirming what unlocked it. There's still no separate screen, route, or notification for this — it's the Session's own editor, conditionally revealing a section, exactly as it worked before. The only change is that it's no longer a secret: a visible hint under Status now tells the GM this exists *before* they've typed the magic string, and the one-click button means they don't have to type it exactly right.
+
+**If you were already relying on `Session.debrief`** in your own `CampaignPlannerRepository` implementation or UI: nothing changed there — `Session.debrief` is still the same `Block[] | null` field it always was, saved the same way, through the same `saveSession` call. This fix only changed when/how the GM-facing editor reveals the field to edit it.
+
 ### Feature: Lore is now its own top-level entity, pulled out of Note
 
 **Action needed: implement four new `CampaignPlannerRepository` methods** — `getLores(campaignId)`, `getLore(id)`, `saveLore(lore)`, `deleteLore(id)`, identical in shape to the existing Note methods. This is a breaking change to the repository interface: a host's own implementation of `CampaignPlannerRepository` won't satisfy the updated type until these four are added (mirroring whatever your `getNotes`/`saveNote`/etc. already do, minus the `type` column — a Lore row doesn't have one). If you store Notes and Lore in the same underlying table today, a Lore row can be a plain row in that same table filtered by whatever marked it `type: 'Lore'` before — this package has no opinion on your storage layout, only the contract.

@@ -6,6 +6,19 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Fix: Session Debriefs are now discoverable, instead of becoming a top-level entity
+
+Closes ROADMAP.md's "Session Debriefs should be its own top level entity" — but not as literally asked. Investigating the request surfaced that the Debrief section was invisible in practice: it's gated entirely on typing the exact string `'Completed'` into Session's free-text Status field, with nothing in the UI hinting that doing so unlocks anything. That's the real problem this item was pointing at.
+
+Pulling Debrief out into its own entity (mirroring Scene/Lore) was evaluated and deliberately **not** done: unlike Scene (many per Session, each independently meaningful) or Lore (no parent at all), a Debrief is at most one per Session with no identity of its own beyond "this Session's wrap-up" — a top-level "Debriefs" tab would just be a list of Sessions wearing a different hat, not a real independent browsing surface a GM would reach for. It would have also been a breaking `CampaignPlannerRepository` change for no corresponding workflow improvement.
+
+Instead, fixed the actual discoverability gap directly in `SessionEditor.tsx`:
+
+- **A "Mark Completed" button** next to the Status field — sets it in one click instead of requiring the exact string typed correctly (the field stays free text otherwise; this is additive, not a new constraint).
+- **A visible hint** under Status, shown whenever it isn't yet `'Completed'`: `Set to "Completed" to unlock this Session's Debrief below.`
+- **A one-line description** inside the Debrief section itself once it's visible, clarifying what it's for.
+- **Test coverage**: 1 new test in `SessionEditor.test.tsx` (clicking "Mark Completed" sets Status and reveals Debrief, same as typing it) — 366 tests total, all passing.
+
 ## Feature: Lore is now its own top-level entity, pulled out of Note
 
 Closes ROADMAP.md's "The Note's Lore type should be its own top level entity rather than a type in a Note." `'Lore'` was previously just one suggested free-text value for `Note.type` — a plain Note like any other, distinguished only by that string. It's now a real, independent entity with its own repository methods, hook, editor, and top-level tab, same as every other kind.
