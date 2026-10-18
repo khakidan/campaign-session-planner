@@ -6,6 +6,17 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### Feature: Lore/Group/Scene Status fields are now closed-set dropdowns too
+
+**Action needed: none.** Same shape of change as the "Status/Type/Priority fields are now defined, closed-set dropdowns" entry below, extended to the three fields that pass missed (Lore didn't exist as its own entity yet when that pass ran; Group/Scene Status were simply not included). All three fields already existed as `status: string | null` — nothing new sent to `saveLore`/`saveGroup`/`saveScene`, no column/field to add, unlike that earlier pass's `Npc.status` case.
+
+**If your campaigns already have Lore/Group/Scene Status values that aren't in the new approved lists**: not touched or migrated, same as every other field in the earlier entry — the dropdown shows unselected/blank until the GM explicitly picks a new value and saves; the stored string is left exactly as it was until then.
+
+- Lore Status (new vocabulary): Active / Resolved / Outdated / Archived
+- Group Status (new vocabulary): Active / Dormant / Disbanded / Unknown
+- Scene Status (new vocabulary): Planned / Running / Completed / Skipped
+
+
 ### New: ESLint tooling (`npm run lint`)
 
 **Action needed: none.** Dev-only: `eslint`, `typescript-eslint`, `eslint-plugin-react-hooks`, `@eslint/js`, and `globals` were added to `devDependencies`, plus an `eslint.config.js` and a `lint` script. Nothing here is part of `dist/` or what your app imports, and a production install (`npm ci --omit=dev`) skips it, same as the existing test tooling. Two tiny behavior notes from the fixes it prompted: the entity-link and Quick Reference quick-view loaders now also refetch if only an entity reference's `source` changes (previously they ignored that), and the inline entity-reference chip is now a named internal component — rendering is unchanged.

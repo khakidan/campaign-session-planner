@@ -13,7 +13,7 @@ describe('LoreEditor', () => {
     render(<LoreEditor lore={null} onSave={onSave} onCancel={vi.fn()} />);
 
     await user.type(screen.getByLabelText('Title'), 'The Ebon Sigil');
-    await user.type(screen.getByLabelText('Status'), 'Established');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Resolved');
     await user.type(screen.getByLabelText('Tags (comma-separated)'), 'ebon-sigil, pandemonium');
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
 
@@ -22,7 +22,7 @@ describe('LoreEditor', () => {
     expect(onSave).toHaveBeenCalledWith(
       {
         title: 'The Ebon Sigil',
-        status: 'Established',
+        status: 'Resolved',
         tags: 'ebon-sigil, pandemonium',
         content: MOCK_TYPED_CONTENT,
       },
@@ -48,7 +48,7 @@ describe('LoreEditor', () => {
           id: 'lore-1',
           campaignId: 'campaign-1',
           title: 'The Ebon Sigil',
-          status: 'Established',
+          status: 'Resolved',
           content: [],
           tags: ['a', 'b'],
           createdAt: 'x',
@@ -60,7 +60,7 @@ describe('LoreEditor', () => {
     );
 
     expect(screen.getByLabelText('Title')).toHaveValue('The Ebon Sigil');
-    expect(screen.getByLabelText('Status')).toHaveValue('Established');
+    expect(screen.getByLabelText('Status')).toHaveValue('Resolved');
     expect(screen.getByLabelText('Tags (comma-separated)')).toHaveValue('a, b');
   });
 
@@ -114,7 +114,7 @@ describe('LoreEditor', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     render(<LoreEditor lore={null} onSave={vi.fn()} onAutosave={onAutosave} onCancel={vi.fn()} />);
 
-    await user.type(screen.getByLabelText('Status'), 'Established');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Resolved');
     await vi.advanceTimersByTimeAsync(5000);
 
     expect(onAutosave).not.toHaveBeenCalled();

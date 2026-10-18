@@ -6,6 +6,16 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Feature: Lore/Group/Scene Status fields are now closed-set dropdowns too
+
+The earlier "Status/Type/Priority fields are now defined, closed-set dropdowns" pass missed three fields: Lore didn't exist as its own entity yet when that pass ran (still a `Note.type: 'Lore'` at the time), and Group/Scene Status were plain free-text `Field`s that pass simply didn't touch. Converted all three to `SelectField`, same pattern as everywhere else — confirmed each vocabulary via `AskUserQuestion` before implementing:
+
+- **Lore Status**: Active / Resolved / Outdated / Archived — identical to Note Status, since Lore tracks the same thing (still-live vs. only-for-reference) a Note did before it was split out.
+- **Group Status**: Active / Dormant / Disbanded / Unknown — a Group isn't a person, so NPC's Alive/Dead vocabulary didn't fit; this tracks the faction/org's standing in the campaign instead. `Group.type` (FACTION/ORGANIZATION/etc.) stays free text with suggestions, unchanged — not part of this pass, same as the earlier one's "Not changed: ... Group Type."
+- **Scene Status**: Planned / Running / Completed / Skipped — mirrors Session's own Draft/Prepared/Running/Completed lifecycle, plus "Skipped" for a prepped beat the table never reached.
+
+All three fields already existed as `status: string | null` — no new field, no repository interface change, nothing new sent on save. Existing values outside the new lists are left untouched, same handling as the earlier pass (dropdown shows unselected until the GM picks a new value). 373 tests (3 updated for the new `<select>`s), `tsc`, `lint`, and `build` all clean.
+
 ## New: ESLint (`npm run lint`) with `typescript-eslint` and the React hooks rules
 
 The previous entry's review found that the source carried `eslint-disable react-hooks/exhaustive-deps` comments while no linter existed — and that the missing rule would have caught the stale-`campaignId` subscription bug. `eslint.config.js` (flat config) now runs `@eslint/js` + `typescript-eslint` recommended, plus `react-hooks/rules-of-hooks` (error) and `react-hooks/exhaustive-deps` (warn). The React Compiler diagnostics in the plugin's v7 preset are deliberately left off, since this package doesn't use the compiler.

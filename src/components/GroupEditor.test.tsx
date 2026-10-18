@@ -14,7 +14,7 @@ describe('GroupEditor', () => {
 
     await user.type(screen.getByLabelText('Name'), 'The Ashen Circle');
     await user.type(screen.getByLabelText('Type'), 'CULT');
-    await user.type(screen.getByLabelText('Status'), 'Active');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Active');
     await user.click(screen.getByRole('button', { name: 'Simulate typing content' }));
 
     await user.click(screen.getByRole('button', { name: 'Save Group' }));

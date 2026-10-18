@@ -2,8 +2,20 @@ import React, { useState } from 'react';
 import type { Block, Lore } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
-import { AutosaveIndicator } from './EditorFormControls';
+import { AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
+
+/** ROADMAP.md's "Status fields... should be better defined" — Lore was
+ * pulled out of Note (see this file's own doc comment below) and kept
+ * the same free-text `status` Note's had before its own conversion;
+ * this closes that gap with the identical vocabulary, since a Lore
+ * entry's status tracks the same thing a Note's did: whether its
+ * information is still live/useful, not what kind of entry it is.
+ * Converted from free text to a strict closed-set dropdown (confirmed
+ * via `AskUserQuestion`); an existing Lore entry whose stored `status`
+ * predates this and isn't one of these four shows as unselected until
+ * the GM explicitly picks one. */
+const LORE_STATUSES = ['Active', 'Resolved', 'Outdated', 'Archived'] as const;
 
 export interface LoreFormValues {
   title: string;
@@ -100,18 +112,14 @@ export const LoreEditor: React.FC<LoreEditorProps> = ({ lore, onSave, onAutosave
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="lore-status">
-            Status
-          </label>
-          <input
-            id="lore-status"
-            type="text"
-            value={values.status}
-            onChange={(e) => setValues((prev) => ({ ...prev, status: e.target.value }))}
-            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm"
-          />
-        </div>
+        <SelectField
+          id="lore-status"
+          label="Status"
+          value={values.status}
+          onChange={(v) => setValues((prev) => ({ ...prev, status: v }))}
+          options={LORE_STATUSES}
+          helperText="Whether this Lore entry's information is still live/useful, already handled, or kept only for reference."
+        />
         <div>
           <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="lore-tags">
             Tags (comma-separated)

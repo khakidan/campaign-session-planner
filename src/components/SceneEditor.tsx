@@ -2,10 +2,20 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Scene } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field, AutosaveIndicator } from './EditorFormControls';
+import { Field, AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { sceneTemplate as defaultSceneTemplate } from '../lib/entityTemplates';
+
+/** ROADMAP.md's "Status fields... should be better defined" — tracks
+ * whether this planned beat actually happened at the table, mirroring
+ * Session's own Draft/Prepared/Running/Completed lifecycle, plus
+ * "Skipped" for a prepped Scene the table never got to. Converted from
+ * free text to a strict closed-set dropdown (confirmed via
+ * `AskUserQuestion`); an existing Scene whose stored `status` predates
+ * this and isn't one of these four shows as unselected until the GM
+ * explicitly picks one. */
+const SCENE_STATUSES = ['Planned', 'Running', 'Completed', 'Skipped'] as const;
 
 export interface SceneFormValues {
   sessionId: string;
@@ -160,7 +170,14 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({
           onChange={(v) => setValues((p) => ({ ...p, sceneNumber: v }))}
         />
       </div>
-      <Field id="scene-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
+      <SelectField
+        id="scene-status"
+        label="Status"
+        value={values.status}
+        onChange={(v) => setValues((p) => ({ ...p, status: v }))}
+        options={SCENE_STATUSES}
+        helperText="Whether this planned beat actually happened at the table, is happening now, or was skipped."
+      />
     </>
   );
 

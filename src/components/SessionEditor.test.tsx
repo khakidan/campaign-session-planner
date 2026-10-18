@@ -166,13 +166,13 @@ describe('SessionEditor', () => {
     await vi.advanceTimersByTimeAsync(1500);
     expect(screen.queryByRole('button', { name: '+ Add Link' })).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('Status'), 'Active');
+    await user.selectOptions(screen.getByLabelText('Status'), 'Running');
     await user.click(screen.getByRole('button', { name: 'Save Scene' }));
 
     expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument();
     const savedScenes = await props.repository.getScenes('session-1');
     expect(savedScenes).toHaveLength(1);
-    expect(savedScenes[0]).toMatchObject({ title: 'Arrival at the Temple', status: 'Active' });
+    expect(savedScenes[0]).toMatchObject({ title: 'Arrival at the Temple', status: 'Running' });
     vi.useRealTimers();
   });
 

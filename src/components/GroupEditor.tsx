@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { Block, Group } from '../types';
 import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
-import { Field, AutosaveIndicator } from './EditorFormControls';
+import { Field, AutosaveIndicator, SelectField } from './EditorFormControls';
 import { useAutosave } from '../hooks/useAutosave';
 import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { groupTemplate as defaultGroupTemplate } from '../lib/entityTemplates';
@@ -17,6 +17,16 @@ const SUGGESTED_TYPES = [
   'MILITARY',
   'CRIMINAL_SYNDICATE',
 ];
+
+/** ROADMAP.md's "Status fields... should be better defined" — tracks
+ * whether this Group is currently active in the campaign, independent
+ * of its `type` (what *kind* of Group it is, still free text via the
+ * suggestions above — not part of this pass, same as before).
+ * Converted from free text to a strict closed-set dropdown (confirmed
+ * via `AskUserQuestion`); an existing Group whose stored `status`
+ * predates this and isn't one of these four shows as unselected until
+ * the GM explicitly picks one. */
+const GROUP_STATUSES = ['Active', 'Dormant', 'Disbanded', 'Unknown'] as const;
 
 export interface GroupFormValues {
   name: string;
@@ -136,7 +146,14 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
             ))}
           </datalist>
         </div>
-        <Field id="group-status" label="Status" value={values.status} onChange={(v) => setValues((p) => ({ ...p, status: v }))} />
+        <SelectField
+          id="group-status"
+          label="Status"
+          value={values.status}
+          onChange={(v) => setValues((p) => ({ ...p, status: v }))}
+          options={GROUP_STATUSES}
+          helperText="Whether this Group is currently active, inactive, broken up, or its state is unclear to you."
+        />
       </div>
     </>
   );
