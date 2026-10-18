@@ -12,13 +12,12 @@ None.
 
 ### 🟡 Features to Add / Test Coverage Gaps
 
-1. Scenes should be pulled out of the Sessions entity and be visible along with all the other top level entities.
-2. The Note's Lore type should be its own top level entity rather than a type in a Note.
-3. Session Debriefs should be its own top level entity.
-4. Status fields in Notes, NPCs, Quests, and Events should be better defined so that it is clear what the purpose of this field is.
-5. Type field in Locations should be better defined so it is clear what the purpose of this field is.
-6. Priority fields in Storylines, Threads should be better defined so it is clear what the purpose of this field is.
-7. Event Type field in Events should be better defined so it is clear what the purpose of this field is.
+1. The Note's Lore type should be its own top level entity rather than a type in a Note.
+2. Session Debriefs should be its own top level entity.
+3. Status fields in Notes, NPCs, Quests, and Events should be better defined so that it is clear what the purpose of this field is.
+4. Type field in Locations should be better defined so it is clear what the purpose of this field is.
+5. Priority fields in Storylines, Threads should be better defined so it is clear what the purpose of this field is.
+6. Event Type field in Events should be better defined so it is clear what the purpose of this field is.
 
 ---
 

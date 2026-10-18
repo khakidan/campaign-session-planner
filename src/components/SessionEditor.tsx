@@ -94,6 +94,12 @@ export interface SessionEditorProps {
   /** Same idea, forwarded to the nested `SceneEditor` shown while
    * adding/editing one of this Session's Scenes. */
   renderSceneFields?: SceneEditorProps['renderFields'];
+  /** Called after any inline Scene create/update/delete/reorder here —
+   * this component's own `useScenes` call is a separate cache from
+   * `CampaignSessionPlanner.tsx`'s campaign-wide one backing its
+   * top-level "Scenes" tab, so a change made here wouldn't otherwise
+   * be reflected there until something else happens to reload it. */
+  onScenesChanged?: () => void;
 }
 
 type ScenesView = { mode: 'list' } | { mode: 'edit'; id: string | null };
@@ -113,12 +119,13 @@ type ScenesView = { mode: 'list' } | { mode: 'edit'; id: string | null };
  * of scope this slice (confirmed via `AskUserQuestion`); the GM links
  * Threads/Storylines manually via "Add Link" instead.
  *
- * Scenes are managed entirely inline here (add/reorder/edit/delete) —
- * per the doc's own tree (Sessions → Scenes → Encounters), a Scene
- * outside its Session's context is close to meaningless, so it gets no
- * top-level tab of its own (confirmed via `AskUserQuestion`). Scene is
- * still a real, independently-linkable entity — each open Scene gets
- * its own `EntityLinksPanel`, separate from the Session's.
+ * Scenes can be added/reordered/edited/deleted inline here, same as
+ * always, AND browsed/created/edited from their own top-level "Scenes"
+ * tab in `CampaignSessionPlanner.tsx` (confirmed via `AskUserQuestion`)
+ * — reordering stays Session-scoped and so stays here only, since
+ * `Scene.order` only has meaning within one Session. Scene is a real,
+ * independently-linkable entity either way — each open Scene gets its
+ * own `EntityLinksPanel`, separate from the Session's.
  */
 export const SessionEditor: React.FC<SessionEditorProps> = ({
   session,
@@ -139,6 +146,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   sceneTemplate,
   renderFields,
   renderSceneFields,
+  onScenesChanged,
 }) => {
   const [values, setValues] = useState<SessionFormValues>(() => sessionToFormValues(session));
   const [error, setError] = useState<string | null>(null);
@@ -178,10 +186,6 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const editingScene = scenesView.mode === 'edit' && scenesView.id ? sortedScenes.find((s) => s.id === scenesView.id) ?? null : null;
   const editingSceneRef: EntityReference | null =
     scenesView.mode === 'edit' && scenesView.id ? { type: 'scene', id: scenesView.id, source: 'planner' } : null;
-  const scenePlannerItems: PlannerSearchItem[] = useMemo(
-    () => [...plannerItems, ...sortedScenes.map((s): PlannerSearchItem => ({ type: 'scene', id: s.id, label: s.title }))],
-    [plannerItems, sortedScenes]
-  );
   const sceneLabel = editingScene?.title;
   const { outgoing: sceneOutgoing, incoming: sceneIncoming, addLink: addSceneLink, removeLink: removeSceneLink } = useEntityLinks(
     repository,
@@ -191,7 +195,11 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   );
   const sceneLinks: EntityEditorLinksProps | undefined = editingSceneRef
     ? {
-        plannerItems: scenePlannerItems,
+        // `plannerItems` already includes every Scene campaign-wide
+        // (CampaignSessionPlanner.tsx aggregates them for its own
+        // top-level "Scenes" tab) — no need to re-append this
+        // Session's own `sortedScenes` on top.
+        plannerItems,
         hostAdapter,
         outgoing: sceneOutgoing,
         incoming: sceneIncoming,
@@ -264,6 +272,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
     const neighbor = sortedScenes[swapIndex];
     await updateScene({ ...scene, order: neighbor.order });
     await updateScene({ ...neighbor, order: scene.order });
+    onScenesChanged?.();
   };
 
   if (scenesView.mode === 'edit') {
@@ -271,6 +280,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       <SceneEditor
         key={scenesView.id ?? 'new'}
         scene={editingScene}
+        defaultSessionId={session!.id}
         links={sceneLinks}
         template={sceneTemplate}
         renderFields={renderSceneFields}
@@ -280,6 +290,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           editingScene
             ? async () => {
                 await deleteScene(editingScene.id);
+                onScenesChanged?.();
                 setScenesView({ mode: 'list' });
               }
             : undefined
@@ -301,6 +312,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
                 ...payload,
               } as Scene)
             : await createScene({ ...payload, order: sortedScenes.length });
+          onScenesChanged?.();
           // Same reasoning as every other editor's onSave in
           // CampaignSessionPlanner.tsx: a brand-new Scene has no id (so
           // no linking) until this first save — don't also close the
@@ -329,9 +341,11 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
               ...payload,
             });
             await reloadScenes();
+            onScenesChanged?.();
             return { id: saved.id };
           }
           const created = await createScene({ ...payload, order: sortedScenes.length });
+          onScenesChanged?.();
           return { id: created.id };
         }}
       />

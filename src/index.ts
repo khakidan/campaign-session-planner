@@ -18,7 +18,7 @@ export { useNpcs } from './hooks/useNpcs';
 export { useGroups } from './hooks/useGroups';
 export { useLocations } from './hooks/useLocations';
 export { useSessions } from './hooks/useSessions';
-export { useScenes } from './hooks/useScenes';
+export { useScenes, useAllScenes } from './hooks/useScenes';
 export { useStorylines } from './hooks/useStorylines';
 export { useThreads } from './hooks/useThreads';
 export { useQuests } from './hooks/useQuests';

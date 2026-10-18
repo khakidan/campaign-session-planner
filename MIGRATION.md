@@ -6,6 +6,16 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### Feature: Scenes now have their own top-level tab
+
+**Action needed: none for the shipped tab bar** — `BROWSABLE_KINDS` gained `scene` and the shipped tab bar just renders it, nothing to opt into.
+
+**If you use `renderNav`**: your own nav UI maps over `props.kinds`, so a new "Scenes" button/entry appears there automatically too — not a code change, just a new tab your GM will now see.
+
+**If you construct a `SceneFormValues` object yourself** (e.g. inside a `renderFields.scene` override that builds `values` from scratch rather than spreading/updating the one it's given): it now has a required `sessionId: string` field, alongside the existing `title`/`sceneNumber`/`status`/`details`. Most `renderFields` implementations only read/patch the given `values`, which already has it — only a from-scratch construction needs updating.
+
+**If you use `SceneEditor` directly** (exported from `index.ts`): it has two new optional props, `sessions` (every Session, `{id, title}`, renders a required Session picker — pass this for a standalone/top-level usage of your own) and `defaultSessionId` (pre-seeds a brand-new Scene's Session when you don't show a picker). Both are optional and default to the previous behavior (no picker, `sessionId` seeded from the `scene` prop alone) if omitted.
+
 ### Fix: Scenes now autosave, like every other entity
 
 **Action needed: none.** `SceneEditor`/`SceneEditorProps` were never exported from `index.ts`, so the changed `onSave` signature and new `onAutosave` prop are entirely internal — nothing in your own code references them. You'll just see it work: typing into a Scene (inside a Session's editor) now autosaves in the background ~1.5s after you stop, same as every other entity, with the same "Saving…"/"Saved" indicator.

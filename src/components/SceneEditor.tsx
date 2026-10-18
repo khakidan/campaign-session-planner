@@ -8,14 +8,16 @@ import { BlockNoteFreeformField } from './BlockNoteFreeformField';
 import { sceneTemplate as defaultSceneTemplate } from '../lib/entityTemplates';
 
 export interface SceneFormValues {
+  sessionId: string;
   title: string;
   sceneNumber: string;
   status: string;
   details: Block[];
 }
 
-function sceneToFormValues(scene: Scene | null): SceneFormValues {
+function sceneToFormValues(scene: Scene | null, defaultSessionId: string | null): SceneFormValues {
   return {
+    sessionId: scene?.sessionId ?? defaultSessionId ?? '',
     title: scene?.title ?? '',
     sceneNumber: scene?.sceneNumber != null ? String(scene.sceneNumber) : '',
     status: scene?.status ?? '',
@@ -26,6 +28,18 @@ function sceneToFormValues(scene: Scene | null): SceneFormValues {
 export interface SceneEditorProps {
   /** `null` means "creating a new Scene." */
   scene: Scene | null;
+  /** Every Session in the campaign, for the required Session picker —
+   * provide this for the top-level "Scenes" tab (`CampaignSessionPlanner.tsx`),
+   * where a brand-new Scene has no Session context of its own yet.
+   * Omit for the nested usage inside `SessionEditor.tsx`, which already
+   * knows its Session and passes `defaultSessionId` instead — no picker
+   * is shown there. */
+  sessions?: Array<{ id: string; title: string }>;
+  /** Pre-seeds a brand-new Scene's Session when `sessions` (the picker)
+   * is omitted — the fixed Session id of the `SessionEditor.tsx` this
+   * Scene is nested under. Ignored once `scene` is non-null (its own
+   * `sessionId` wins) or when `sessions` is provided (the GM picks). */
+  defaultSessionId?: string;
   /** `existingId` is this editor's own current best knowledge of the
    * Scene's id — see `NoteEditorProps.onSave`'s own doc comment for why
    * this must be branched on instead of `scene`, which never changes
@@ -62,9 +76,10 @@ export interface SceneEditorProps {
 
 /**
  * Slice 4.2e — a discrete, bounded moment within a Session; rendered
- * inline from `SessionEditor.tsx`'s Scenes sub-section, never from a
- * top-level tab (a Scene browsed outside its Session's context is
- * fairly meaningless). Title/Number/Status are the real properties;
+ * both inline from `SessionEditor.tsx`'s Scenes sub-section and from
+ * its own top-level "Scenes" tab in `CampaignSessionPlanner.tsx`
+ * (which supplies `sessions` for the Session picker, since a Scene
+ * always belongs to one). Title/Number/Status are the real properties;
  * everything else the doc lists (Situation, GM Guidance, Player
  * Context, Challenge, Outcomes) is one flowing BlockNote document,
  * Notion-page style, not a form of small boxed questions (4.2d's
@@ -74,6 +89,8 @@ export interface SceneEditorProps {
  */
 export const SceneEditor: React.FC<SceneEditorProps> = ({
   scene,
+  sessions,
+  defaultSessionId,
   onSave,
   onAutosave,
   onDelete,
@@ -83,7 +100,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({
   template,
   renderFields,
 }) => {
-  const [values, setValues] = useState<SceneFormValues>(() => sceneToFormValues(scene));
+  const [values, setValues] = useState<SceneFormValues>(() => sceneToFormValues(scene, defaultSessionId ?? null));
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(scene?.id ?? null);
 
@@ -100,12 +117,38 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({
       setError('Title is required.');
       return;
     }
+    if (!values.sessionId) {
+      setError('Session is required.');
+      return;
+    }
     setError(null);
     await onSave(values, savedId);
   };
 
   const defaultFields = (
     <>
+      {sessions && (
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)] mb-1" htmlFor="scene-session">
+            Session
+          </label>
+          <select
+            id="scene-session"
+            value={values.sessionId}
+            onChange={(e) => setValues((prev) => ({ ...prev, sessionId: e.target.value }))}
+            className="w-full px-3 py-2 border border-[var(--csp-neutral-300)] rounded-lg text-sm bg-white"
+          >
+            <option value="" disabled>
+              Select a Session…
+            </option>
+            {sessions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="sm:col-span-2">
           <Field id="scene-title" label="Title" value={values.title} onChange={(v) => setValues((p) => ({ ...p, title: v }))} />

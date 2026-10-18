@@ -43,9 +43,12 @@ export type EntityLinkId = string;
 /** A host-owned entity type this package can reference but never owns. */
 export type HostEntityType = 'character' | 'adversary' | 'environment' | 'encounter' | 'item';
 
-/** A planner-owned entity type. Scene is planner-owned but has no
- * top-level tab (Slice 4.2d) — it only exists nested under a Session —
- * yet it's still a real, independently-linkable `EntityType`. */
+/** A planner-owned entity type. Scene (Slice 4.2d, given its own
+ * top-level tab in a later pass) is browsable campaign-wide like every
+ * other kind here, in addition to being manageable inline from within
+ * its own Session (`SessionEditor.tsx`'s Scenes sub-section) — a
+ * Scene always belongs to exactly one Session, so the top-level editor
+ * requires picking one. */
 export type PlannerEntityType =
   | 'note'
   | 'npc'
@@ -263,10 +266,10 @@ export interface Session {
   updatedAt: string;
 }
 
-/** A Scene only ever exists nested under one Session (the doc's tree:
- * Sessions → Scenes → Encounters) and has no top-level tab in the UI,
- * but is still a real, independently-linkable entity — see "Scene has
- * no top-level tab" in docs/markdown/ROADMAP.md's Slice 4.2d write-up. */
+/** A Scene always belongs to exactly one Session (the doc's tree:
+ * Sessions → Scenes → Encounters) — manageable both inline from that
+ * Session and from its own top-level tab, independently linkable
+ * either way. */
 export interface Scene {
   id: SceneId;
   sessionId: SessionId;
@@ -410,7 +413,9 @@ export interface CampaignPlannerRepository {
   getSession(id: SessionId): Promise<Session | null>;
   saveSession(session: Omit<Session, 'id' | 'createdAt' | 'updatedAt'> & { id?: SessionId }): Promise<Session>;
   deleteSession(id: SessionId): Promise<void>;
-  /** Scoped to one Session — Scenes are never listed campaign-wide. */
+  /** Scoped to one Session. A campaign-wide listing is assembled by
+   * calling this once per Session (see `useAllScenes` in
+   * `useScenes.ts`) rather than adding a second repository method. */
   getScenes(sessionId: SessionId): Promise<Scene[]>;
   getScene(id: SceneId): Promise<Scene | null>;
   saveScene(scene: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'> & { id?: SceneId }): Promise<Scene>;

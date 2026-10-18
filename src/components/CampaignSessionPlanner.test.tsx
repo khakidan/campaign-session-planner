@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CampaignSessionPlanner, type CampaignSessionPlannerNavProps } from './CampaignSessionPlanner';
-import { createFakeHostAdapter, createFakeRepository, TEST_CAMPAIGN_ID } from '../test/fixtures';
+import { createFakeHostAdapter, createFakeRepository, makeScene, makeSession, TEST_CAMPAIGN_ID } from '../test/fixtures';
 
 vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
@@ -207,5 +207,98 @@ describe('CampaignSessionPlanner: saving a brand-new entry', () => {
     await user.click(screen.getByRole('button', { name: 'Save Note' }));
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'New Note' })).toBeInTheDocument());
+  });
+});
+
+describe('CampaignSessionPlanner: Scenes have their own top-level tab', () => {
+  it('lists every Scene across every Session, showing which Session each belongs to', async () => {
+    const user = userEvent.setup();
+    const sessionA = makeSession({ id: 'session-a', title: 'Session A' });
+    const sessionB = makeSession({ id: 'session-b', title: 'Session B' });
+    const sceneA = makeScene({ id: 'scene-a', sessionId: 'session-a', title: 'Arrival' });
+    const sceneB = makeScene({ id: 'scene-b', sessionId: 'session-b', title: 'Ambush' });
+    const repository = createFakeRepository({ sessions: [sessionA, sessionB], scenes: [sceneA, sceneB] });
+
+    render(<CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={repository} hostAdapter={createFakeHostAdapter()} />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Scenes' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Scenes' }));
+
+    await waitFor(() => expect(screen.getByText('Arrival')).toBeInTheDocument());
+    expect(screen.getByText('Ambush')).toBeInTheDocument();
+    expect(screen.getByText('Session A')).toBeInTheDocument();
+    expect(screen.getByText('Session B')).toBeInTheDocument();
+  });
+
+  it('creating a new Scene from its own tab requires picking a Session, then stays open and reveals linking like any other new record', async () => {
+    const user = userEvent.setup();
+    const session = makeSession({ id: 'session-1', title: 'The Sunken Temple' });
+    const repository = createFakeRepository({ sessions: [session] });
+
+    render(<CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={repository} hostAdapter={createFakeHostAdapter()} />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Scenes' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Scenes' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New Scene' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'New Scene' }));
+
+    await user.type(screen.getByLabelText('Title'), 'Arrival at the Temple');
+    await user.click(screen.getByRole('button', { name: 'Save Scene' }));
+    expect(screen.getByText('Session is required.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '+ Add Link' })).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Session'), 'session-1');
+    await user.click(screen.getByRole('button', { name: 'Save Scene' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete Scene' })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument();
+
+    const saved = await repository.getScenes('session-1');
+    expect(saved).toMatchObject([{ title: 'Arrival at the Temple', sessionId: 'session-1', order: 0 }]);
+  });
+
+  it('editing an existing Scene from its own tab returns to the Scenes list after Save', async () => {
+    const user = userEvent.setup();
+    const session = makeSession({ id: 'session-1' });
+    const scene = makeScene({ id: 'scene-1', sessionId: 'session-1', title: 'Arrival' });
+    const repository = createFakeRepository({ sessions: [session], scenes: [scene] });
+
+    render(<CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={repository} hostAdapter={createFakeHostAdapter()} />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Scenes' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Scenes' }));
+    await waitFor(() => expect(screen.getByText('Arrival')).toBeInTheDocument());
+    await user.click(screen.getByText('Arrival'));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Save Scene' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New Scene' })).toBeInTheDocument());
+  });
+
+  it('a Scene added inline from within its Session shows up in the top-level Scenes tab too (one shared source of truth)', async () => {
+    const user = userEvent.setup();
+    const session = makeSession({ id: 'session-1', title: 'The Sunken Temple' });
+    const repository = createFakeRepository({ sessions: [session] });
+
+    render(<CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={repository} hostAdapter={createFakeHostAdapter()} />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Sessions' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Sessions' }));
+    await waitFor(() => expect(screen.getByText('The Sunken Temple')).toBeInTheDocument());
+    await user.click(screen.getByText('The Sunken Temple'));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Add Scene' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '+ Add Scene' }));
+    await user.type(screen.getByLabelText('Title'), 'Arrival at the Temple');
+    await user.click(screen.getByRole('button', { name: 'Save Scene' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete Scene' })).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: '← Back to Scenes' }));
+    await user.click(screen.getByRole('button', { name: '← Back to Sessions' }));
+    await user.click(screen.getByRole('button', { name: 'Scenes' }));
+
+    await waitFor(() => expect(screen.getByText('Arrival at the Temple')).toBeInTheDocument());
+    expect(screen.getByText('The Sunken Temple')).toBeInTheDocument();
   });
 });

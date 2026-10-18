@@ -13,6 +13,7 @@ import type {
   Npc,
   PlannerEntityType,
   Quest,
+  Scene,
   Session,
   Storyline,
   Thread,
@@ -23,6 +24,7 @@ import { useNpcs } from '../hooks/useNpcs';
 import { useGroups } from '../hooks/useGroups';
 import { useLocations } from '../hooks/useLocations';
 import { useSessions } from '../hooks/useSessions';
+import { useAllScenes } from '../hooks/useScenes';
 import { useStorylines } from '../hooks/useStorylines';
 import { useThreads } from '../hooks/useThreads';
 import { useQuests } from '../hooks/useQuests';
@@ -34,6 +36,7 @@ import { NpcEditor, type NpcEditorProps, type NpcFormValues } from './NpcEditor'
 import { GroupEditor, type GroupEditorProps, type GroupFormValues } from './GroupEditor';
 import { LocationEditor, type LocationEditorProps, type LocationFormValues } from './LocationEditor';
 import { SessionEditor, type SessionEditorProps, type SessionFormValues } from './SessionEditor';
+import { SceneEditor, type SceneFormValues } from './SceneEditor';
 import { StorylineEditor, type StorylineEditorProps, type StorylineFormValues } from './StorylineEditor';
 import { ThreadEditor, type ThreadEditorProps, type ThreadFormValues } from './ThreadEditor';
 import { QuestEditor, type QuestEditorProps, type QuestFormValues } from './QuestEditor';
@@ -61,8 +64,9 @@ export interface CampaignSessionPlannerNavProps {
  * customization beyond the tab bar") — each editor's own `renderFields`
  * prop, keyed the same way `TemplateEntityKind`/template overrides are.
  * Every key is independent and optional: customize one kind's fields
- * without touching any other. `scene` covers the `SceneEditor` shown
- * inline from `SessionEditor`'s own Scenes sub-section. */
+ * without touching any other. `scene` covers `SceneEditor` wherever
+ * it's shown — both its own top-level tab and inline from
+ * `SessionEditor`'s own Scenes sub-section. */
 export interface CampaignSessionPlannerRenderFields {
   note?: NoteEditorProps['renderFields'];
   npc?: NpcEditorProps['renderFields'];
@@ -96,16 +100,18 @@ export interface CampaignSessionPlannerProps {
 
 /** Slice 4.2c gave Notes/NPCs/Groups/Locations each their own tab;
  * Slice 4.2d added Sessions/Storylines/Threads/Quests/Events the same
- * way — 9 tabs total. Scene has no tab (managed inline inside
- * `SessionEditor.tsx` — see its own doc comment). Each kind keeps
- * fully independent list/edit state (no cross-kind coupling) so a bug
- * in one kind's view can't bleed into another's. */
+ * way; a later pass gave Scene one too, alongside (not instead of) its
+ * existing inline management in `SessionEditor.tsx` — see its own doc
+ * comment. 10 tabs total. Each kind keeps fully independent list/edit
+ * state (no cross-kind coupling) so a bug in one kind's view can't
+ * bleed into another's. */
 const BROWSABLE_KINDS: PlannerEntityType[] = [
   'note',
   'npc',
   'group',
   'location',
   'session',
+  'scene',
   'storyline',
   'thread',
   'quest',
@@ -161,6 +167,14 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
     campaignId
   );
   const { sessions, error: sessionsError, reload: reloadSessions, createSession, updateSession, deleteSession } = useSessions(repository, campaignId);
+  // Campaign-wide Scenes, backing the top-level "Scenes" tab — scoped
+  // to whichever Sessions this campaign already has (Scene itself
+  // carries no `campaignId`; see `useAllScenes`'s own doc comment).
+  const sessionIds = useMemo(() => (sessions ?? []).map((s) => s.id), [sessions]);
+  const { scenes: allScenes, error: scenesError, reload: reloadAllScenes, createScene, updateScene, deleteScene } = useAllScenes(
+    repository,
+    sessionIds
+  );
   const { storylines, error: storylinesError, reload: reloadStorylines, createStoryline, updateStoryline, deleteStoryline } = useStorylines(
     repository,
     campaignId
@@ -188,6 +202,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
       reloadGroups();
       reloadLocations();
       reloadSessions();
+      reloadAllScenes();
       reloadStorylines();
       reloadThreads();
       reloadQuests();
@@ -212,7 +227,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
     group: { mode: 'list' },
     location: { mode: 'list' },
     session: { mode: 'list' },
-    scene: { mode: 'list' }, // unused — Scene has no top-level tab, kept only so the Record type is total
+    scene: { mode: 'list' },
     storyline: { mode: 'list' },
     thread: { mode: 'list' },
     quest: { mode: 'list' },
@@ -226,7 +241,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
     group: groupsError,
     location: locationsError,
     session: sessionsError,
-    scene: null,
+    scene: scenesError,
     storyline: storylinesError,
     thread: threadsError,
     quest: questsError,
@@ -250,8 +265,6 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   // Flattened across every browsable kind — the link picker's
   // planner-owned search results and the fallback label source for
   // pre-4.2c (Note-only) backlinks that predate `metadata.sourceLabel`.
-  // Scenes are added separately, inside `SessionEditor.tsx`, scoped to
-  // whichever Session is currently open (they're never loaded here).
   const plannerItems: PlannerSearchItem[] = useMemo(
     () => [
       ...(notes ?? []).map((n): PlannerSearchItem => ({ type: 'note', id: n.id, label: n.title })),
@@ -259,17 +272,17 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
       ...(groups ?? []).map((g): PlannerSearchItem => ({ type: 'group', id: g.id, label: g.name })),
       ...(locations ?? []).map((l): PlannerSearchItem => ({ type: 'location', id: l.id, label: l.name })),
       ...(sessions ?? []).map((s): PlannerSearchItem => ({ type: 'session', id: s.id, label: s.title })),
+      ...(allScenes ?? []).map((s): PlannerSearchItem => ({ type: 'scene', id: s.id, label: s.title })),
       ...(storylines ?? []).map((s): PlannerSearchItem => ({ type: 'storyline', id: s.id, label: s.name })),
       ...(threads ?? []).map((t): PlannerSearchItem => ({ type: 'thread', id: t.id, label: t.name })),
       ...(quests ?? []).map((q): PlannerSearchItem => ({ type: 'quest', id: q.id, label: q.name })),
       ...(events ?? []).map((e): PlannerSearchItem => ({ type: 'event', id: e.id, label: e.name })),
     ],
-    [notes, npcs, groups, locations, sessions, storylines, threads, quests, events]
+    [notes, npcs, groups, locations, sessions, allScenes, storylines, threads, quests, events]
   );
 
   const openPlannerEntity = (ref: EntityReference) => {
     const kind = ref.type as PlannerEntityType;
-    if (kind === 'scene') return; // Scenes open from inside their own Session's editor, not via a tab switch.
     setActiveKind(kind);
     setView(kind, { mode: 'edit', id: ref.id });
   };
@@ -514,6 +527,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
         sceneTemplate={templateOverride('scene')}
         renderFields={renderFields?.session}
         renderSceneFields={renderFields?.scene}
+        onScenesChanged={reloadAllScenes}
         onOpenPlannerEntity={openPlannerEntity}
         onOpenHostEntity={onOpenHostEntity}
         onCancel={() => setView('session', { mode: 'list' })}
@@ -538,6 +552,63 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
             return { id: saved.id };
           }
           const created = await createSession(payload);
+          return { id: created.id };
+        }}
+      />
+    );
+  }
+
+  if (activeKind === 'scene' && view.mode === 'edit') {
+    const scene = view.id ? (allScenes ?? []).find((s) => s.id === view.id) ?? null : null;
+    const sceneFormPayload = (values: SceneFormValues) => ({
+      title: values.title.trim(),
+      sceneNumber: values.sceneNumber.trim() ? Number(values.sceneNumber) : null,
+      status: values.status.trim() || null,
+      details: values.details,
+    });
+    // A Scene's `order` only has meaning within its own Session — keep
+    // it when the Session is unchanged, otherwise append at the end of
+    // the newly-chosen Session's own Scenes (same as `SessionEditor
+    // .tsx`'s "+ Add Scene", just picking the Session explicitly here
+    // instead of it being implicit).
+    const resolveOrder = (sessionId: string) =>
+      scene && scene.sessionId === sessionId ? scene.order : (allScenes ?? []).filter((s) => s.sessionId === sessionId).length;
+    return (
+      <SceneEditor
+        key={view.id ?? 'new'}
+        scene={scene}
+        sessions={(sessions ?? []).map((s) => ({ id: s.id, title: s.title }))}
+        isSaving={isSaving}
+        links={linksProp}
+        template={templateOverride('scene')}
+        renderFields={renderFields?.scene}
+        onCancel={() => setView('scene', { mode: 'list' })}
+        onDelete={scene ? () => runSaving(async () => {
+          await deleteScene(scene.id);
+          setView('scene', { mode: 'list' });
+        }) : undefined}
+        onSave={(values: SceneFormValues, existingId: string | null) =>
+          runSaving(async () => {
+            const payload = sceneFormPayload(values);
+            const saved = existingId
+              ? await updateScene({ ...scene, id: existingId, sessionId: values.sessionId, order: resolveOrder(values.sessionId), ...payload } as Scene)
+              : await createScene({ ...payload, sessionId: values.sessionId, order: resolveOrder(values.sessionId) });
+            setView('scene', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
+          })
+        }
+        onAutosave={async (values: SceneFormValues, existingId: string | null) => {
+          const payload = sceneFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveScene({
+              id: existingId,
+              sessionId: values.sessionId,
+              order: resolveOrder(values.sessionId),
+              ...payload,
+            });
+            await reloadAllScenes();
+            return { id: saved.id };
+          }
+          const created = await createScene({ ...payload, sessionId: values.sessionId, order: resolveOrder(values.sessionId) });
           return { id: created.id };
         }}
       />
@@ -716,22 +787,39 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
     );
   }
 
+  // A Scene's own list row shows which Session it belongs to (as
+  // `subtitle`, not `badge` — `badge` is reserved for `status`, same as
+  // every other kind) since, unlike every other top-level kind, Scenes
+  // span multiple parents here.
+  const sessionTitleById = new Map((sessions ?? []).map((s): [string, string] => [s.id, s.title]));
+
   // The list view for every browsable kind is uniform (search/"New X"/
   // a row per record with an optional badge) — fully collapsed into one
   // config lookup, unlike the edit views above (each Editor's props
   // differ too much, Session's especially, to unify safely).
-  const listConfig: Record<Exclude<PlannerEntityType, 'scene'>, { items: EntityListItem[] | null }> = {
+  const listConfig: Record<PlannerEntityType, { items: EntityListItem[] | null }> = {
     note: { items: notes === null ? null : notes.map((n): EntityListItem => ({ id: n.id, title: n.title, badge: n.type, tags: n.tags })) },
     npc: { items: npcs === null ? null : npcs.map((n): EntityListItem => ({ id: n.id, title: n.name })) },
     group: { items: groups === null ? null : groups.map((g): EntityListItem => ({ id: g.id, title: g.name, badge: g.type })) },
     location: { items: locations === null ? null : locations.map((l): EntityListItem => ({ id: l.id, title: l.name, badge: l.type })) },
     session: { items: sessions === null ? null : sessions.map((s): EntityListItem => ({ id: s.id, title: s.title, badge: s.status })) },
+    scene: {
+      items:
+        allScenes === null
+          ? null
+          : allScenes.map((s): EntityListItem => ({
+              id: s.id,
+              title: s.title,
+              badge: s.status,
+              subtitle: sessionTitleById.get(s.sessionId) ?? null,
+            })),
+    },
     storyline: { items: storylines === null ? null : storylines.map((s): EntityListItem => ({ id: s.id, title: s.name, badge: s.status })) },
     thread: { items: threads === null ? null : threads.map((t): EntityListItem => ({ id: t.id, title: t.name, badge: t.status })) },
     quest: { items: quests === null ? null : quests.map((q): EntityListItem => ({ id: q.id, title: q.name, badge: q.status })) },
     event: { items: events === null ? null : events.map((e): EntityListItem => ({ id: e.id, title: e.name, badge: e.eventType })) },
   };
-  const listItems = listConfig[activeKind as Exclude<PlannerEntityType, 'scene'>].items;
+  const listItems = listConfig[activeKind].items;
   const tabLabel = TAB_LABELS[activeKind];
 
   const navProps: CampaignSessionPlannerNavProps = {
