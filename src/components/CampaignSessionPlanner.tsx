@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type {
   CampaignId,
@@ -20,7 +20,8 @@ import { useStorylines } from '../hooks/useStorylines';
 import { useThreads } from '../hooks/useThreads';
 import { useQuests } from '../hooks/useQuests';
 import { useEvents } from '../hooks/useEvents';
-import { useEntityLinks } from '../hooks/useEntityLinks';
+import { useEntityLinksProp } from '../hooks/useEntityLinksProp';
+import { usePlannerChangeSubscription } from '../hooks/usePlannerChangeSubscription';
 import { useTemplates } from '../hooks/useTemplates';
 import type { NoteEditorProps } from './NoteEditor';
 import type { LoreEditorProps } from './LoreEditor';
@@ -43,11 +44,12 @@ import { StorylineEditorRoute } from './StorylineEditorRoute';
 import { ThreadEditorRoute } from './ThreadEditorRoute';
 import { QuestEditorRoute } from './QuestEditorRoute';
 import { EventEditorRoute } from './EventEditorRoute';
-import { EntityListView, type EntityListItem } from './EntityListView';
+import { EntityListView } from './EntityListView';
 import { TemplateSettingsPanel } from './TemplateSettingsPanel';
-import type { PlannerSearchItem } from './EntityLinkPicker';
+import { DefaultPlannerNav } from './DefaultPlannerNav';
 import type { TemplateEntityKind } from '../types';
 import type { View } from '../lib/plannerRoutes';
+import { buildPlannerItems, buildListConfig } from '../lib/plannerEntityIndex';
 
 /** What the default tab-bar nav renders from, and what a `renderNav`
  * override receives instead — every browsable kind's label, which one
@@ -184,34 +186,21 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   const { events, error: eventsError, reload: reloadEvents, createEvent, updateEvent, deleteEvent } = useEvents(repository, campaignId);
   const { templates, error: templatesError, reload: reloadTemplates, saveTemplate, deleteTemplate } = useTemplates(repository, campaignId);
 
-  // Phase 5, Slice 5.4 (docs/markdown/ROADMAP.md) — another connected
-  // DM/Co-GM's write anywhere in the planner reloads every top-level list
-  // here, so a newly-created NPC (for example) shows up without a manual
-  // refresh. Coarse by design (docs/campaign_session_notes_app.md`'s no
-  // Player-facing surface means no time-critical concurrent-editing
-  // scenario here the way Live Encounter has) — one event, reload
-  // everything, rather than per-entity-kind events. `repository
-  // .subscribeToChanges` is optional on the interface, so a host that
-  // doesn't implement it (or a test's repository fake) just never fires
-  // this — the planner still works exactly as it always has.
-  useEffect(() => {
-    if (!repository.subscribeToChanges) return;
-    return repository.subscribeToChanges(() => {
-      reloadNotes();
-      reloadLores();
-      reloadNpcs();
-      reloadGroups();
-      reloadLocations();
-      reloadSessions();
-      reloadAllScenes();
-      reloadStorylines();
-      reloadThreads();
-      reloadQuests();
-      reloadEvents();
-      reloadTemplates();
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repository]);
+  // See `usePlannerChangeSubscription`'s own doc comment.
+  usePlannerChangeSubscription(repository, [
+    reloadNotes,
+    reloadLores,
+    reloadNpcs,
+    reloadGroups,
+    reloadLocations,
+    reloadSessions,
+    reloadAllScenes,
+    reloadStorylines,
+    reloadThreads,
+    reloadQuests,
+    reloadEvents,
+    reloadTemplates,
+  ]);
 
   // Slice 4.2f — a campaign's saved template override for one kind, or
   // `undefined` when uncustomized (each editor already falls back to
@@ -268,20 +257,10 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   // Flattened across every browsable kind — the link picker's
   // planner-owned search results and the fallback label source for
   // pre-4.2c (Note-only) backlinks that predate `metadata.sourceLabel`.
-  const plannerItems: PlannerSearchItem[] = useMemo(
-    () => [
-      ...(notes ?? []).map((n): PlannerSearchItem => ({ type: 'note', id: n.id, label: n.title })),
-      ...(lores ?? []).map((l): PlannerSearchItem => ({ type: 'lore', id: l.id, label: l.title })),
-      ...(npcs ?? []).map((n): PlannerSearchItem => ({ type: 'npc', id: n.id, label: n.name })),
-      ...(groups ?? []).map((g): PlannerSearchItem => ({ type: 'group', id: g.id, label: g.name })),
-      ...(locations ?? []).map((l): PlannerSearchItem => ({ type: 'location', id: l.id, label: l.name })),
-      ...(sessions ?? []).map((s): PlannerSearchItem => ({ type: 'session', id: s.id, label: s.title })),
-      ...(allScenes ?? []).map((s): PlannerSearchItem => ({ type: 'scene', id: s.id, label: s.title })),
-      ...(storylines ?? []).map((s): PlannerSearchItem => ({ type: 'storyline', id: s.id, label: s.name })),
-      ...(threads ?? []).map((t): PlannerSearchItem => ({ type: 'thread', id: t.id, label: t.name })),
-      ...(quests ?? []).map((q): PlannerSearchItem => ({ type: 'quest', id: q.id, label: q.name })),
-      ...(events ?? []).map((e): PlannerSearchItem => ({ type: 'event', id: e.id, label: e.name })),
-    ],
+  // See `buildPlannerItems`'s own doc comment for why this is a plain
+  // lib function instead of inline JSX-adjacent logic.
+  const plannerItems = useMemo(
+    () => buildPlannerItems({ notes, lores, npcs, groups, locations, sessions, allScenes, storylines, threads, quests, events }),
     [notes, lores, npcs, groups, locations, sessions, allScenes, storylines, threads, quests, events]
   );
 
@@ -299,20 +278,16 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   const editingRef: EntityReference | null =
     view.mode === 'edit' && view.id ? { type: activeKind, id: view.id, source: 'planner' } : null;
   const editingLabel = editingRef ? plannerItems.find((i) => i.type === editingRef.type && i.id === editingRef.id)?.label : undefined;
-  const { outgoing, incoming, addLink, removeLink } = useEntityLinks(repository, editingRef, campaignId, editingLabel);
-
-  const linksProp = editingRef
-    ? {
-        plannerItems,
-        hostAdapter,
-        outgoing,
-        incoming,
-        onAddLink: addLink,
-        onRemoveLink: removeLink,
-        onOpenPlannerEntity: openPlannerEntity,
-        onOpenHostEntity,
-      }
-    : undefined;
+  const linksProp = useEntityLinksProp(
+    repository,
+    campaignId,
+    editingRef,
+    editingLabel,
+    plannerItems,
+    hostAdapter,
+    openPlannerEntity,
+    onOpenHostEntity
+  );
 
   if (showTemplateSettings) {
     return (
@@ -570,39 +545,13 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
     );
   }
 
-  // A Scene's own list row shows which Session it belongs to (as
-  // `subtitle`, not `badge` — `badge` is reserved for `status`, same as
-  // every other kind) since, unlike every other top-level kind, Scenes
-  // span multiple parents here.
-  const sessionTitleById = new Map((sessions ?? []).map((s): [string, string] => [s.id, s.title]));
-
   // The list view for every browsable kind is uniform (search/"New X"/
   // a row per record with an optional badge) — fully collapsed into one
   // config lookup, unlike the edit views above (each Editor's props
-  // differ too much, Session's especially, to unify safely).
-  const listConfig: Record<PlannerEntityType, { items: EntityListItem[] | null }> = {
-    note: { items: notes === null ? null : notes.map((n): EntityListItem => ({ id: n.id, title: n.title, badge: n.type, tags: n.tags })) },
-    lore: { items: lores === null ? null : lores.map((l): EntityListItem => ({ id: l.id, title: l.title, badge: l.status, tags: l.tags })) },
-    npc: { items: npcs === null ? null : npcs.map((n): EntityListItem => ({ id: n.id, title: n.name, badge: n.status })) },
-    group: { items: groups === null ? null : groups.map((g): EntityListItem => ({ id: g.id, title: g.name, badge: g.type })) },
-    location: { items: locations === null ? null : locations.map((l): EntityListItem => ({ id: l.id, title: l.name, badge: l.type })) },
-    session: { items: sessions === null ? null : sessions.map((s): EntityListItem => ({ id: s.id, title: s.title, badge: s.status })) },
-    scene: {
-      items:
-        allScenes === null
-          ? null
-          : allScenes.map((s): EntityListItem => ({
-              id: s.id,
-              title: s.title,
-              badge: s.status,
-              subtitle: sessionTitleById.get(s.sessionId) ?? null,
-            })),
-    },
-    storyline: { items: storylines === null ? null : storylines.map((s): EntityListItem => ({ id: s.id, title: s.name, badge: s.status })) },
-    thread: { items: threads === null ? null : threads.map((t): EntityListItem => ({ id: t.id, title: t.name, badge: t.status })) },
-    quest: { items: quests === null ? null : quests.map((q): EntityListItem => ({ id: q.id, title: q.name, badge: q.status })) },
-    event: { items: events === null ? null : events.map((e): EntityListItem => ({ id: e.id, title: e.name, badge: e.eventType })) },
-  };
+  // differ too much, Session's especially, to unify safely). See
+  // `buildListConfig`'s own doc comment for why this is a plain lib
+  // function instead of inline JSX-adjacent logic.
+  const listConfig = buildListConfig({ notes, lores, npcs, groups, locations, sessions, allScenes, storylines, threads, quests, events });
   const listItems = listConfig[activeKind].items;
   const tabLabel = TAB_LABELS[activeKind];
 
@@ -616,35 +565,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
 
   return (
     <div className="space-y-4">
-      {renderNav ? (
-        renderNav(navProps)
-      ) : (
-        <div className="flex items-center justify-between gap-1 border-b border-[var(--csp-neutral-200)]">
-          <div className="flex items-center gap-1 overflow-x-auto">
-            {BROWSABLE_KINDS.map((kind) => (
-              <button
-                key={kind}
-                type="button"
-                onClick={() => setActiveKind(kind)}
-                className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
-                  activeKind === kind
-                    ? 'border-[var(--csp-accent-600)] text-[var(--csp-accent-700)]'
-                    : 'border-transparent text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)]'
-                }`}
-              >
-                {TAB_LABELS[kind]}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowTemplateSettings(true)}
-            className="px-3 py-2 text-xs font-semibold text-[var(--csp-neutral-500)] hover:text-[var(--csp-neutral-800)] whitespace-nowrap cursor-pointer"
-          >
-            Templates
-          </button>
-        </div>
-      )}
+      {renderNav ? renderNav(navProps) : <DefaultPlannerNav {...navProps} />}
 
       {listError && <div className="text-xs font-semibold text-[var(--csp-danger-600)]">{listError}</div>}
 

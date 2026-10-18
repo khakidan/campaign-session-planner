@@ -6,6 +6,24 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Refactor: pulled `plannerItems`/`listConfig`/the default tab nav/the change-subscription effect out of `CampaignSessionPlanner.tsx`
+
+Follow-up pass looking for more to pull out of `CampaignSessionPlanner.tsx` (still 661 lines after the prior three refactors). None of these were duplicated logic the way the links wiring below was — each is a genuinely separable concern:
+
+- `buildPlannerItems`/`buildListConfig` — the search-index and per-kind list-item builders, both pure data shaping with no React involved — moved to a new `src/lib/plannerEntityIndex.ts`, directly unit-testable without rendering anything.
+- The default tab-bar JSX shown whenever `CampaignSessionPlannerProps.renderNav` is omitted — moved to a new `DefaultPlannerNav.tsx`, built from the exact same `CampaignSessionPlannerNavProps` a host's own `renderNav` override receives, so it now also serves as a worked example of what's available to build a replacement from.
+- The `repository.subscribeToChanges` reload-everything effect — moved to a new `usePlannerChangeSubscription` hook (`src/hooks/usePlannerChangeSubscription.ts`).
+
+Considered and rejected: bundling the 11 `useX`/`useTemplates` hook calls into one orchestrator hook. It wouldn't reduce real complexity — `CampaignSessionPlanner.tsx` still needs each list/error/reload/CRUD function individually by name — just wrap them in an extra layer of indirection.
+
+`CampaignSessionPlanner.tsx` dropped from 661 to 582 lines. Purely mechanical: the same 370-test suite passes unchanged, `tsc --noEmit` clean, `npm run build` clean.
+
+## Refactor: deduplicated `EntityEditorLinksProps` wiring into a shared `useEntityLinksProp` hook
+
+A follow-up look at `CampaignSessionPlanner.tsx` and the recently-extracted `SessionScenesSection.tsx` found a real duplication the prior refactor passes missed: both built the exact same wrapper around `useEntityLinks` — compute an `EntityReference` for whatever's currently being edited, call `useEntityLinks`, then shape the result into the `EntityEditorLinksProps` every editor's `links` prop expects, or `undefined` while nothing has an id yet. One for whichever top-level record `CampaignSessionPlanner.tsx` has open, one for whichever Scene `SessionScenesSection.tsx` has open inline.
+
+Collapsed into one shared `useEntityLinksProp` hook (`src/hooks/useEntityLinksProp.ts`); both call sites now just call it with their own `ref`/label instead of hand-rolling the wrapper. Along the way, an `EntityLinksPanel` import left over in `SessionScenesSection.tsx` from the earlier split — unused there, since that file never renders the panel itself, only builds the prop another component renders — came out too. Purely mechanical: same 370-test suite passes unchanged.
+
 ## Refactor: extracted `SessionScenesSection` out of `SessionEditor.tsx`
 
 Acted on the audit's other open finding: `SessionEditor.tsx` was ~510 lines, past `react-patterns.md`'s "over 400: almost certainly doing too much" line. Unlike `CampaignSessionPlanner.tsx`'s prior two refactors, this wasn't duplication — it was genuine breadth across several responsibilities (Session's own fields, inline Scene list/reorder/edit, Debrief, Briefing/Readiness/Campaign-Changes panels, two autosave hooks, two sets of entity links). The flagged candidate — the Scene-management slice (`scenesView` state, the inline Scene-editing switch, the "Scenes" `<fieldset>`, each editing Scene's own `EntityLinksPanel` wiring, and reorder) — is a real, self-contained "manage this Session's Scenes inline" responsibility, so it moved into a new `SessionScenesSection.tsx`.

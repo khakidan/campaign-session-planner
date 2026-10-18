@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import type { PartialBlock } from '@blocknote/core';
 import type { CampaignId, CampaignPlannerRepository, EntityReference, Scene, TTRPGHostAdapter } from '../types';
-import { useEntityLinks } from '../hooks/useEntityLinks';
-import { EntityLinksPanel, type EntityEditorLinksProps } from './EntityLinksPanel';
+import { useEntityLinksProp } from '../hooks/useEntityLinksProp';
 import { SceneEditor, type SceneEditorProps, type SceneFormValues } from './SceneEditor';
 import type { PlannerSearchItem } from './EntityLinkPicker';
 
@@ -74,25 +73,16 @@ export const SessionScenesSection: React.FC<SessionScenesSectionProps> = ({
   const editingScene = scenesView.mode === 'edit' && scenesView.id ? sortedScenes.find((s) => s.id === scenesView.id) ?? null : null;
   const editingSceneRef: EntityReference | null =
     scenesView.mode === 'edit' && scenesView.id ? { type: 'scene', id: scenesView.id, source: 'planner' } : null;
-  const sceneLabel = editingScene?.title;
-  const { outgoing: sceneOutgoing, incoming: sceneIncoming, addLink: addSceneLink, removeLink: removeSceneLink } = useEntityLinks(
+  const sceneLinks = useEntityLinksProp(
     repository,
-    editingSceneRef,
     campaignId,
-    sceneLabel
+    editingSceneRef,
+    editingScene?.title,
+    plannerItems,
+    hostAdapter,
+    onOpenPlannerEntity,
+    onOpenHostEntity
   );
-  const sceneLinks: EntityEditorLinksProps | undefined = editingSceneRef
-    ? {
-        plannerItems,
-        hostAdapter,
-        outgoing: sceneOutgoing,
-        incoming: sceneIncoming,
-        onAddLink: addSceneLink,
-        onRemoveLink: removeSceneLink,
-        onOpenPlannerEntity,
-        onOpenHostEntity,
-      }
-    : undefined;
 
   const handleReorder = async (scene: Scene, direction: 'up' | 'down') => {
     const index = sortedScenes.findIndex((s) => s.id === scene.id);
