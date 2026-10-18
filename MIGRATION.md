@@ -6,6 +6,14 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### Feature: Lore is now its own top-level entity, pulled out of Note
+
+**Action needed: implement four new `CampaignPlannerRepository` methods** — `getLores(campaignId)`, `getLore(id)`, `saveLore(lore)`, `deleteLore(id)`, identical in shape to the existing Note methods. This is a breaking change to the repository interface: a host's own implementation of `CampaignPlannerRepository` won't satisfy the updated type until these four are added (mirroring whatever your `getNotes`/`saveNote`/etc. already do, minus the `type` column — a Lore row doesn't have one). If you store Notes and Lore in the same underlying table today, a Lore row can be a plain row in that same table filtered by whatever marked it `type: 'Lore'` before — this package has no opinion on your storage layout, only the contract.
+
+**If you want to migrate existing Lore-typed Notes into real Lore entities**: this package does not do that automatically — a Note with `type: 'Lore'` is left exactly as it was (still a Note, still shows up in the Notes tab). Writing a one-time migration (reading every Note with `type: 'Lore'` and calling `saveLore` with its title/status/content/tags, then deleting or re-typing the original) is your own call; this package doesn't assume you want data moved for you.
+
+**No other action needed**: `'Lore'` was removed from `NoteEditor`'s suggested `Note.type` values, but `Note.type` itself is still free text — nothing breaks if a Note somewhere still has `type: 'Lore'`, it just won't be suggested for new ones. `LoreEditor`/`LoreEditorProps`/`LoreFormValues`/`useLores` are new, additive exports — nothing to change if you don't construct them directly, since `CampaignSessionPlanner.tsx` wires its own top-level "Lore" tab internally.
+
 ### Feature: Scenes now have their own top-level tab
 
 **Action needed: none for the shipped tab bar** — `BROWSABLE_KINDS` gained `scene` and the shipped tab bar just renders it, nothing to opt into.

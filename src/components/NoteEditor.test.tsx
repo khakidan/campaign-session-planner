@@ -120,7 +120,7 @@ describe('NoteEditor', () => {
           id: 'note-1',
           campaignId: 'campaign-1',
           title: 'Existing Note',
-          type: 'Lore',
+          type: 'Research',
           status: 'Active',
           content: [],
           tags: ['a', 'b'],
@@ -133,7 +133,7 @@ describe('NoteEditor', () => {
     );
 
     expect(screen.getByLabelText('Title')).toHaveValue('Existing Note');
-    expect(screen.getByLabelText('Type')).toHaveValue('Lore');
+    expect(screen.getByLabelText('Type')).toHaveValue('Research');
     expect(screen.getByLabelText('Tags (comma-separated)')).toHaveValue('a, b');
   });
 

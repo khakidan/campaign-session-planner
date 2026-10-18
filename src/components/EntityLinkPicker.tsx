@@ -19,6 +19,7 @@ export interface PlannerSearchItem {
 
 const PLANNER_TYPE_LABELS: Record<PlannerEntityType, string> = {
   note: 'Notes',
+  lore: 'Lore',
   npc: 'NPCs',
   group: 'Groups',
   location: 'Locations',

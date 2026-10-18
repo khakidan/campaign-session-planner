@@ -14,6 +14,7 @@ export type {
 export { QuickReferenceDrawerProvider, useQuickReferenceDrawer } from './components/QuickReferenceDrawer';
 export type { QuickReferenceDrawerProviderProps } from './components/QuickReferenceDrawer';
 export { useNotes } from './hooks/useNotes';
+export { useLores } from './hooks/useLores';
 export { useNpcs } from './hooks/useNpcs';
 export { useGroups } from './hooks/useGroups';
 export { useLocations } from './hooks/useLocations';
@@ -108,6 +109,8 @@ export {
 // a screen from scratch.
 export { NoteEditor } from './components/NoteEditor';
 export type { NoteEditorProps, NoteFormValues } from './components/NoteEditor';
+export { LoreEditor } from './components/LoreEditor';
+export type { LoreEditorProps, LoreFormValues } from './components/LoreEditor';
 export { NpcEditor } from './components/NpcEditor';
 export type { NpcEditorProps, NpcFormValues } from './components/NpcEditor';
 export { GroupEditor } from './components/GroupEditor';
@@ -167,6 +170,8 @@ export type {
   HostEntityType,
   Location,
   LocationId,
+  Lore,
+  LoreId,
   Note,
   NoteId,
   Npc,

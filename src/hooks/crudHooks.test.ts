@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { createFakeRepository, TEST_CAMPAIGN_ID } from '../test/fixtures';
 import type { CampaignPlannerRepository } from '../types';
 import { useNotes } from './useNotes';
+import { useLores } from './useLores';
 import { useNpcs } from './useNpcs';
 import { useGroups } from './useGroups';
 import { useLocations } from './useLocations';
@@ -30,7 +31,7 @@ interface CrudHookConfig<T extends { id: string }> {
   deleteKey: string;
   buildCreateInput: (label: string) => Record<string, unknown>;
   displayField: 'title' | 'name';
-  seedListKey: 'notes' | 'npcs' | 'groups' | 'locations' | 'sessions' | 'storylines' | 'threads' | 'quests' | 'events';
+  seedListKey: 'notes' | 'lores' | 'npcs' | 'groups' | 'locations' | 'sessions' | 'storylines' | 'threads' | 'quests' | 'events';
   makeSeedRow: (id: string, campaignId: string) => T;
 }
 
@@ -50,6 +51,27 @@ const configs: CrudHookConfig<any>[] = [
       campaignId,
       title: 'Seeded Note',
       type: null,
+      status: null,
+      content: [],
+      tags: [],
+      createdAt: 'x',
+      updatedAt: 'x',
+    }),
+  },
+  {
+    name: 'useLores',
+    useHook: useLores,
+    listKey: 'lores',
+    createKey: 'createLore',
+    updateKey: 'updateLore',
+    deleteKey: 'deleteLore',
+    displayField: 'title',
+    buildCreateInput: (label) => ({ title: label, status: null, content: [], tags: [] }),
+    seedListKey: 'lores',
+    makeSeedRow: (id, campaignId) => ({
+      id,
+      campaignId,
+      title: 'Seeded Lore',
       status: null,
       content: [],
       tags: [],

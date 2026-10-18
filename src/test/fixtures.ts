@@ -13,6 +13,8 @@ import type {
   GroupId,
   Location,
   LocationId,
+  Lore,
+  LoreId,
   Note,
   NoteId,
   Npc,
@@ -47,6 +49,7 @@ import type {
  */
 export interface FakeRepositorySeed {
   notes?: Note[];
+  lores?: Lore[];
   npcs?: Npc[];
   groups?: Group[];
   locations?: Location[];
@@ -66,6 +69,7 @@ export function createFakeRepository(seed: FakeRepositorySeed = {}): CampaignPla
   const now = () => new Date('2024-01-01T00:00:00.000Z').toISOString();
 
   const notes = new Map<NoteId, Note>((seed.notes ?? []).map((n) => [n.id, n]));
+  const lores = new Map<LoreId, Lore>((seed.lores ?? []).map((l) => [l.id, l]));
   const npcs = new Map<NpcId, Npc>((seed.npcs ?? []).map((n) => [n.id, n]));
   const groups = new Map<GroupId, Group>((seed.groups ?? []).map((g) => [g.id, g]));
   const locations = new Map<LocationId, Location>((seed.locations ?? []).map((l) => [l.id, l]));
@@ -106,6 +110,7 @@ export function createFakeRepository(seed: FakeRepositorySeed = {}): CampaignPla
   }
 
   const noteCrud = makeCrud(notes, 'note');
+  const loreCrud = makeCrud(lores, 'lore');
   const npcCrud = makeCrud(npcs, 'npc');
   const groupCrud = makeCrud(groups, 'group');
   const locationCrud = makeCrud(locations, 'location');
@@ -121,6 +126,11 @@ export function createFakeRepository(seed: FakeRepositorySeed = {}): CampaignPla
     getNote: (noteId) => noteCrud.getOne(noteId),
     saveNote: (note) => noteCrud.save(note),
     deleteNote: (noteId) => noteCrud.delete(noteId),
+
+    getLores: (campaignId) => loreCrud.getAll((l) => l.campaignId === campaignId),
+    getLore: (loreId) => loreCrud.getOne(loreId),
+    saveLore: (lore) => loreCrud.save(lore),
+    deleteLore: (loreId) => loreCrud.delete(loreId),
 
     getNpcs: (campaignId) => npcCrud.getAll((n) => n.campaignId === campaignId),
     getNpc: (npcId) => npcCrud.getOne(npcId),
@@ -231,6 +241,20 @@ export function makeNote(overrides: Partial<Note> = {}): Note {
     campaignId: TEST_CAMPAIGN_ID,
     title: 'Fixture Note',
     type: null,
+    status: null,
+    content: [] as Block[],
+    tags: [],
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export function makeLore(overrides: Partial<Lore> = {}): Lore {
+  return {
+    id: overrides.id ?? 'lore-fixture-1',
+    campaignId: TEST_CAMPAIGN_ID,
+    title: 'Fixture Lore',
     status: null,
     content: [] as Block[],
     tags: [],

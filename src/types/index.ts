@@ -29,6 +29,7 @@ export type Block = CoreBlock<any, any, any>; // eslint-disable-line @typescript
 export type EntityId = string;
 export type CampaignId = string;
 export type NoteId = string;
+export type LoreId = string;
 export type NpcId = string;
 export type GroupId = string;
 export type LocationId = string;
@@ -51,6 +52,7 @@ export type HostEntityType = 'character' | 'adversary' | 'environment' | 'encoun
  * requires picking one. */
 export type PlannerEntityType =
   | 'note'
+  | 'lore'
   | 'npc'
   | 'group'
   | 'location'
@@ -149,8 +151,33 @@ export interface Note {
   /** Free text, matching this app's own house style for status-like
    * fields (see prisma/schema.prisma's Character.status, etc.) — not a
    * closed enum. Suggested values: General / Idea / Reminder / Research
-   * / Lore / Session Note / GM Note / Player Note / Secret. */
+   * / Session Note / GM Note / Player Note / Secret. (Formerly also
+   * suggested 'Lore' — pulled out into its own top-level `Lore` entity;
+   * see its own doc comment.) */
   type?: string | null;
+  status?: string | null;
+  /** A BlockNote document (Slice 4.2e) — the page body, not a flat
+   * string. May contain `entityReference` inline nodes created via the
+   * `[[`/`@` picker, each backed by a real `EntityLink` row. */
+  content?: Block[] | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Worldbuilding/campaign lore — a durable fact about the setting,
+ * independent of any one Session or NPC/Group/Location. Originally
+ * just a suggested `Note.type` value; pulled out into its own
+ * top-level entity (ROADMAP.md) once it became clear "a kind of Note"
+ * undersold how much of a campaign's own content this actually is.
+ * Deliberately the same shape Note already gave it (Title/Status/Tags/
+ * one freeform BlockNote document, no fixed template — like Note
+ * itself, a Lore entry has no one shape to transcribe into sections)
+ * minus `type`, which no longer has anything left to distinguish. */
+export interface Lore {
+  id: LoreId;
+  campaignId: CampaignId;
+  title: string;
   status?: string | null;
   /** A BlockNote document (Slice 4.2e) — the page body, not a flat
    * string. May contain `entityReference` inline nodes created via the
@@ -397,6 +424,10 @@ export interface CampaignPlannerRepository {
   getNote(id: NoteId): Promise<Note | null>;
   saveNote(note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'> & { id?: NoteId }): Promise<Note>;
   deleteNote(id: NoteId): Promise<void>;
+  getLores(campaignId: CampaignId): Promise<Lore[]>;
+  getLore(id: LoreId): Promise<Lore | null>;
+  saveLore(lore: Omit<Lore, 'id' | 'createdAt' | 'updatedAt'> & { id?: LoreId }): Promise<Lore>;
+  deleteLore(id: LoreId): Promise<void>;
   getNpcs(campaignId: CampaignId): Promise<Npc[]>;
   getNpc(id: NpcId): Promise<Npc | null>;
   saveNpc(npc: Omit<Npc, 'id' | 'createdAt' | 'updatedAt'> & { id?: NpcId }): Promise<Npc>;

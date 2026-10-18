@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CampaignSessionPlanner, type CampaignSessionPlannerNavProps } from './CampaignSessionPlanner';
-import { createFakeHostAdapter, createFakeRepository, makeScene, makeSession, TEST_CAMPAIGN_ID } from '../test/fixtures';
+import { createFakeHostAdapter, createFakeRepository, makeLore, makeScene, makeSession, TEST_CAMPAIGN_ID } from '../test/fixtures';
 
 vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
 
@@ -207,6 +207,61 @@ describe('CampaignSessionPlanner: saving a brand-new entry', () => {
     await user.click(screen.getByRole('button', { name: 'Save Note' }));
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'New Note' })).toBeInTheDocument());
+  });
+});
+
+describe('CampaignSessionPlanner: Lore has its own top-level tab, pulled out of Note', () => {
+  it('lists every Lore entry, independent of Notes', async () => {
+    const user = userEvent.setup();
+    const lore = makeLore({ id: 'lore-1', title: 'The Ebon Sigil' });
+    const repository = createFakeRepository({ lores: [lore] });
+
+    render(<CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={repository} hostAdapter={createFakeHostAdapter()} />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Lore' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Lore' }));
+
+    await waitFor(() => expect(screen.getByText('The Ebon Sigil')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'New Note' })).not.toBeInTheDocument();
+  });
+
+  it('creating a new Lore entry stays open and reveals linking, same as every other new record', async () => {
+    const user = userEvent.setup();
+    render(
+      <CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={createFakeRepository()} hostAdapter={createFakeHostAdapter()} />
+    );
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Lore' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Lore' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New Lore' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'New Lore' }));
+
+    expect(screen.queryByRole('button', { name: '+ Add Link' })).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Title'), 'The Ebon Sigil');
+    await user.click(screen.getByRole('button', { name: 'Save Lore' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete Lore' })).toBeInTheDocument());
+    expect(screen.getByLabelText('Title')).toHaveValue('The Ebon Sigil');
+    expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument();
+  });
+
+  it('editing an existing Lore entry still returns to the list after Save', async () => {
+    const user = userEvent.setup();
+    const lore = makeLore({ id: 'lore-1', title: 'The Ebon Sigil' });
+    const repository = createFakeRepository({ lores: [lore] });
+
+    render(<CampaignSessionPlanner campaignId={TEST_CAMPAIGN_ID} repository={repository} hostAdapter={createFakeHostAdapter()} />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Lore' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Lore' }));
+    await waitFor(() => expect(screen.getByText('The Ebon Sigil')).toBeInTheDocument());
+    await user.click(screen.getByText('The Ebon Sigil'));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Add Link' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Save Lore' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New Lore' })).toBeInTheDocument());
   });
 });
 

@@ -6,6 +6,16 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## Feature: Lore is now its own top-level entity, pulled out of Note
+
+Closes ROADMAP.md's "The Note's Lore type should be its own top level entity rather than a type in a Note." `'Lore'` was previously just one suggested free-text value for `Note.type` — a plain Note like any other, distinguished only by that string. It's now a real, independent entity with its own repository methods, hook, editor, and top-level tab, same as every other kind.
+
+- **`src/types/index.ts`**: new `Lore` interface — kept the exact shape Note already gave it (`title`/`status`/`content`/`tags`, no starter template) minus `type`, which no longer has anything left to distinguish now that Lore isn't a flavor of something else. `'lore'` joins `PlannerEntityType`. Four new repository methods (`getLores`/`getLore`/`saveLore`/`deleteLore`), mirroring Note's own exactly — no change to any existing method.
+- **`useLores` (new, `useLores.ts`)** and **`LoreEditor.tsx` (new)**: structurally identical to `useNotes`/a trimmed-down `NoteEditor` (no Type field — Lore itself is the type now; no Confidence/Memory-type machinery, which was always specific to Note's own session-briefing feature and never applied to Lore anyway).
+- **`NoteEditor.tsx`**: `'Lore'` removed from the Type field's suggested values. An existing Note with `type: 'Lore'` is completely untouched (`type` stays free text) — this only changes what's suggested for new ones; no automatic migration of old Lore-typed Notes into the new entity is performed by this package (data migration, if wanted, is the host app's own call).
+- **`CampaignSessionPlanner.tsx`**: `lore` joins `BROWSABLE_KINDS`/`TAB_LABELS` ("Lore"), wired the same way every other simple kind is (list/edit view, `plannerItems`, autosave). Every other place that special-cases planner entity kinds for linking/search/the Quick-reference Drawer (`EntityLinkPicker.tsx`, `EntityLinksPanel.tsx`, `QuickReferenceDrawer.tsx`, `SessionRunPanel.tsx`, `usePlannerSearchIndex.ts`, `entityQuickView.ts`) got a matching `lore` case too, so a Lore entry is linkable, searchable, and openable from the Drawer exactly like Note/NPC/etc. — this is the main reason a new top-level kind touches more than just `CampaignSessionPlanner.tsx` itself.
+- **Test coverage**: new `LoreEditor.test.tsx` (8 tests), `useLores` folded into the existing table-driven `crudHooks.test.ts` suite (+5 tests), 3 new tests in `CampaignSessionPlanner.test.tsx` — 365 tests total, all passing.
+
 ## Feature: Scenes now have their own top-level tab, alongside their existing inline Session management
 
 Closes ROADMAP.md's "Scenes should be pulled out of the Sessions entity and be visible along with all the other top level entities." A Scene still belongs to exactly one Session and is still fully manageable inline there (add/reorder/edit/delete, unchanged) — this adds a second, independent way to browse, search, and edit any Scene in the campaign without first finding its parent Session, same as every other kind's tab.

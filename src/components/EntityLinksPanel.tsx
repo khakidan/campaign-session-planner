@@ -4,6 +4,7 @@ import { EntityLinkPicker, type PlannerSearchItem } from './EntityLinkPicker';
 
 const PLANNER_TYPES: PlannerEntityType[] = [
   'note',
+  'lore',
   'npc',
   'group',
   'location',

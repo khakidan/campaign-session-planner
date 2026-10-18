@@ -9,6 +9,7 @@ import type {
   Event,
   Group,
   Location,
+  Lore,
   Note,
   Npc,
   PlannerEntityType,
@@ -20,6 +21,7 @@ import type {
   TTRPGHostAdapter,
 } from '../types';
 import { useNotes } from '../hooks/useNotes';
+import { useLores } from '../hooks/useLores';
 import { useNpcs } from '../hooks/useNpcs';
 import { useGroups } from '../hooks/useGroups';
 import { useLocations } from '../hooks/useLocations';
@@ -32,6 +34,7 @@ import { useEvents } from '../hooks/useEvents';
 import { useEntityLinks } from '../hooks/useEntityLinks';
 import { useTemplates } from '../hooks/useTemplates';
 import { NoteEditor, type NoteEditorProps, type NoteFormValues } from './NoteEditor';
+import { LoreEditor, type LoreEditorProps, type LoreFormValues } from './LoreEditor';
 import { NpcEditor, type NpcEditorProps, type NpcFormValues } from './NpcEditor';
 import { GroupEditor, type GroupEditorProps, type GroupFormValues } from './GroupEditor';
 import { LocationEditor, type LocationEditorProps, type LocationFormValues } from './LocationEditor';
@@ -69,6 +72,7 @@ export interface CampaignSessionPlannerNavProps {
  * `SessionEditor`'s own Scenes sub-section. */
 export interface CampaignSessionPlannerRenderFields {
   note?: NoteEditorProps['renderFields'];
+  lore?: LoreEditorProps['renderFields'];
   npc?: NpcEditorProps['renderFields'];
   group?: GroupEditorProps['renderFields'];
   location?: LocationEditorProps['renderFields'];
@@ -102,11 +106,14 @@ export interface CampaignSessionPlannerProps {
  * Slice 4.2d added Sessions/Storylines/Threads/Quests/Events the same
  * way; a later pass gave Scene one too, alongside (not instead of) its
  * existing inline management in `SessionEditor.tsx` — see its own doc
- * comment. 10 tabs total. Each kind keeps fully independent list/edit
- * state (no cross-kind coupling) so a bug in one kind's view can't
- * bleed into another's. */
+ * comment. Lore (ROADMAP.md) got its own tab too, pulled out of what
+ * used to be just a suggested `Note.type` value — see `LoreEditor.tsx`.
+ * 11 tabs total. Each kind keeps fully independent list/edit state (no
+ * cross-kind coupling) so a bug in one kind's view can't bleed into
+ * another's. */
 const BROWSABLE_KINDS: PlannerEntityType[] = [
   'note',
+  'lore',
   'npc',
   'group',
   'location',
@@ -119,6 +126,7 @@ const BROWSABLE_KINDS: PlannerEntityType[] = [
 ];
 const TAB_LABELS: Record<PlannerEntityType, string> = {
   note: 'Notes',
+  lore: 'Lore',
   npc: 'NPCs',
   group: 'Groups',
   location: 'Locations',
@@ -160,6 +168,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   renderFields,
 }) => {
   const { notes, error: notesError, reload: reloadNotes, createNote, updateNote, deleteNote } = useNotes(repository, campaignId);
+  const { lores, error: loresError, reload: reloadLores, createLore, updateLore, deleteLore } = useLores(repository, campaignId);
   const { npcs, error: npcsError, reload: reloadNpcs, createNpc, updateNpc, deleteNpc } = useNpcs(repository, campaignId);
   const { groups, error: groupsError, reload: reloadGroups, createGroup, updateGroup, deleteGroup } = useGroups(repository, campaignId);
   const { locations, error: locationsError, reload: reloadLocations, createLocation, updateLocation, deleteLocation } = useLocations(
@@ -198,6 +207,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
     if (!repository.subscribeToChanges) return;
     return repository.subscribeToChanges(() => {
       reloadNotes();
+      reloadLores();
       reloadNpcs();
       reloadGroups();
       reloadLocations();
@@ -223,6 +233,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   const [activeKind, setActiveKind] = useState<PlannerEntityType>('note');
   const [views, setViews] = useState<Record<PlannerEntityType, View>>({
     note: { mode: 'list' },
+    lore: { mode: 'list' },
     npc: { mode: 'list' },
     group: { mode: 'list' },
     location: { mode: 'list' },
@@ -237,6 +248,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
 
   const listError = {
     note: notesError,
+    lore: loresError,
     npc: npcsError,
     group: groupsError,
     location: locationsError,
@@ -268,6 +280,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   const plannerItems: PlannerSearchItem[] = useMemo(
     () => [
       ...(notes ?? []).map((n): PlannerSearchItem => ({ type: 'note', id: n.id, label: n.title })),
+      ...(lores ?? []).map((l): PlannerSearchItem => ({ type: 'lore', id: l.id, label: l.title })),
       ...(npcs ?? []).map((n): PlannerSearchItem => ({ type: 'npc', id: n.id, label: n.name })),
       ...(groups ?? []).map((g): PlannerSearchItem => ({ type: 'group', id: g.id, label: g.name })),
       ...(locations ?? []).map((l): PlannerSearchItem => ({ type: 'location', id: l.id, label: l.name })),
@@ -278,7 +291,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
       ...(quests ?? []).map((q): PlannerSearchItem => ({ type: 'quest', id: q.id, label: q.name })),
       ...(events ?? []).map((e): PlannerSearchItem => ({ type: 'event', id: e.id, label: e.name })),
     ],
-    [notes, npcs, groups, locations, sessions, allScenes, storylines, threads, quests, events]
+    [notes, lores, npcs, groups, locations, sessions, allScenes, storylines, threads, quests, events]
   );
 
   const openPlannerEntity = (ref: EntityReference) => {
@@ -368,6 +381,49 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
             return { id: saved.id };
           }
           const created = await createNote(payload);
+          return { id: created.id };
+        }}
+      />
+    );
+  }
+
+  if (activeKind === 'lore' && view.mode === 'edit') {
+    const lore = view.id ? (lores ?? []).find((l) => l.id === view.id) ?? null : null;
+    const loreFormPayload = (values: LoreFormValues) => ({
+      title: values.title.trim(),
+      status: values.status.trim() || null,
+      content: values.content,
+      tags: parseTags(values.tags),
+    });
+    return (
+      <LoreEditor
+        key={view.id ?? 'new'}
+        lore={lore}
+        isSaving={isSaving}
+        links={linksProp}
+        renderFields={renderFields?.lore}
+        onCancel={() => setView('lore', { mode: 'list' })}
+        onDelete={lore ? () => runSaving(async () => {
+          await deleteLore(lore.id);
+          setView('lore', { mode: 'list' });
+        }) : undefined}
+        onSave={(values: LoreFormValues, existingId: string | null) =>
+          runSaving(async () => {
+            const payload = loreFormPayload(values);
+            const saved = existingId
+              ? await updateLore({ ...lore, id: existingId, campaignId, ...payload } as Lore)
+              : await createLore(payload);
+            setView('lore', view.id ? { mode: 'list' } : { mode: 'edit', id: saved.id });
+          })
+        }
+        onAutosave={async (values: LoreFormValues, existingId: string | null) => {
+          const payload = loreFormPayload(values);
+          if (existingId) {
+            const saved = await repository.saveLore({ id: existingId, campaignId, ...payload });
+            await reloadLores();
+            return { id: saved.id };
+          }
+          const created = await createLore(payload);
           return { id: created.id };
         }}
       />
@@ -799,6 +855,7 @@ export const CampaignSessionPlanner: React.FC<CampaignSessionPlannerProps> = ({
   // differ too much, Session's especially, to unify safely).
   const listConfig: Record<PlannerEntityType, { items: EntityListItem[] | null }> = {
     note: { items: notes === null ? null : notes.map((n): EntityListItem => ({ id: n.id, title: n.title, badge: n.type, tags: n.tags })) },
+    lore: { items: lores === null ? null : lores.map((l): EntityListItem => ({ id: l.id, title: l.title, badge: l.status, tags: l.tags })) },
     npc: { items: npcs === null ? null : npcs.map((n): EntityListItem => ({ id: n.id, title: n.name })) },
     group: { items: groups === null ? null : groups.map((g): EntityListItem => ({ id: g.id, title: g.name, badge: g.type })) },
     location: { items: locations === null ? null : locations.map((l): EntityListItem => ({ id: l.id, title: l.name, badge: l.type })) },

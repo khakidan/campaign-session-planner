@@ -19,6 +19,7 @@ export interface EntityQuickView {
 
 const PLANNER_TYPE_LABELS: Record<PlannerEntityType, string> = {
   note: 'Note',
+  lore: 'Lore',
   npc: 'NPC',
   group: 'Group',
   location: 'Location',
@@ -59,6 +60,15 @@ export async function fetchEntityQuickView(
         title: note.title,
         badges: [note.type, note.status].filter((v): v is string => !!v),
         sections: [{ blocks: note.content ?? [] }],
+      };
+    }
+    case 'lore': {
+      const lore = await repository.getLore(ref.id);
+      if (!lore) return null;
+      return {
+        title: lore.title,
+        badges: [lore.status].filter((v): v is string => !!v),
+        sections: [{ blocks: lore.content ?? [] }],
       };
     }
     case 'npc': {

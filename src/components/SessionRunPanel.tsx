@@ -8,6 +8,7 @@ import { EntityReferenceLinkingContext } from './EntityReferenceInlineContent';
 
 const PLANNER_TYPES: PlannerEntityType[] = [
   'note',
+  'lore',
   'npc',
   'group',
   'location',

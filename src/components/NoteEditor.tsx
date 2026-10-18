@@ -20,13 +20,15 @@ import { NOTE_TYPE_TEMPLATES } from '../lib/noteTypeTemplates';
  * rather than `MEMORY_NOTE_TYPES`. `'Session Safety'` (item 8) and
  * `'Player Contribution'` (item 6) each have matching starter content
  * in `NOTE_TYPE_TEMPLATES`. Every addition is purely additive to the
- * existing free-text `type` field; no schema change. */
+ * existing free-text `type` field; no schema change. ('Lore' was
+ * removed from this list — pulled out into its own top-level `Lore`
+ * entity, see `LoreEditor.tsx`; an existing Note with `type: 'Lore'`
+ * is untouched, just no longer suggested for new ones.) */
 const SUGGESTED_TYPES = [
   'General',
   'Idea',
   'Reminder',
   'Research',
-  'Lore',
   'Session Note',
   'GM Note',
   'Player Note',

@@ -4,8 +4,9 @@ import type { PlannerSearchItem } from '../components/EntityLinkPicker';
 import { extractBlockText } from '../lib/blockNoteUtils';
 
 /**
- * Slice 4.2g — every Note/NPC/Group/Location/Session/Storyline/Thread/
- * Quest/Event in the campaign, flattened into one searchable list, for
+ * Slice 4.2g — every Note/Lore/NPC/Group/Location/Session/Storyline/
+ * Thread/Quest/Event in the campaign, flattened into one searchable
+ * list, for
  * the Quick-reference Drawer's search box. Scene is deliberately
  * excluded — same convention `CampaignSessionPlanner.tsx`'s own
  * `plannerItems` list already establishes (a Scene is only ever reached
@@ -31,6 +32,7 @@ export function usePlannerSearchIndex(repository: CampaignPlannerRepository, cam
     setError(null);
     Promise.all([
       repository.getNotes(campaignId),
+      repository.getLores(campaignId),
       repository.getNpcs(campaignId),
       repository.getGroups(campaignId),
       repository.getLocations(campaignId),
@@ -40,10 +42,11 @@ export function usePlannerSearchIndex(repository: CampaignPlannerRepository, cam
       repository.getQuests(campaignId),
       repository.getEvents(campaignId),
     ])
-      .then(([notes, npcs, groups, locations, sessions, storylines, threads, quests, events]) => {
+      .then(([notes, lores, npcs, groups, locations, sessions, storylines, threads, quests, events]) => {
         if (cancelled) return;
         setItems([
           ...notes.map((n): PlannerSearchItem => ({ type: 'note', id: n.id, label: n.title, content: extractBlockText(n.content) })),
+          ...lores.map((l): PlannerSearchItem => ({ type: 'lore', id: l.id, label: l.title, content: extractBlockText(l.content) })),
           ...npcs.map((n): PlannerSearchItem => ({ type: 'npc', id: n.id, label: n.name, content: extractBlockText(n.details) })),
           ...groups.map((g): PlannerSearchItem => ({ type: 'group', id: g.id, label: g.name, content: extractBlockText(g.details) })),
           ...locations.map((l): PlannerSearchItem => ({ type: 'location', id: l.id, label: l.name, content: extractBlockText(l.details) })),
