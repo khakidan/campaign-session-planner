@@ -6,6 +6,22 @@ This package has no release/version scheme yet (`package.json` is still `0.0.0`,
 
 ---
 
+## New: "Last Session" recap in `SessionBriefingPanel` — the prior Session's Debrief and Recap Highlights, surfaced while writing the next one
+
+`SessionBriefingPanel`'s existing "Previously Established" groups are all forward-looking (open threads, player theories, character goals — things still unresolved). This adds a backward-looking "Last Session" section above them: the most recent prior Session's own `debrief` text (read-only, so a GM can re-read what they wrote last time without leaving this panel) and whichever `'Recap Highlight'` Notes were linked to it — the same selection `useSessionRecap`/`SessionRecapView` already use for the player-facing recap, reused here for GM-facing prep instead. Skips entirely (no empty-state message) when there's no prior Session or it has neither — same convention "Why This Session Matters" already uses.
+
+- **`useSessionBriefing`** gained an optional 4th parameter, `previousSessionId`, and a new `previousSessionHighlights: Note[]` field on its result — composes its own already-loaded `notes` with a `useEntityLinks` call against that Session's ref, via the existing `selectSessionRecapHighlights`. `undefined`/`null` keeps the previous behavior (empty array), so every existing caller is unaffected.
+- **`SessionBriefingPanel`** gained two new optional props, `previousSessionDebrief`/`previousSessionHighlights`. The Debrief renders via `ReadOnlyBlockNoteView` inside `EntityReferenceLinkingContext.Provider` (so any `[[`/`@` mentions inside it stay clickable); Highlights render as a simple linked list, matching the panel's own existing group style, not the full document — the highlight's whole point is a short, scannable beat, unlike the Debrief itself.
+- **`SessionEditor`** wires `mostRecentPriorSession` (already computed for `CampaignChangesPanel`) into both new pieces, and extends that computation's own gating to run for a Draft/Prepared Session being edited, not just a brand-new one — previously it only ran when `session === null`. Fixed a latent self-reference bug surfaced by that extension: `mostRecentPriorSession` didn't exclude the Session currently being edited from its own candidate list, so an already-saved Draft/Prepared Session with the latest date in the campaign could resolve to itself. Now excludes `session?.id` explicitly; a regression test (editing a Draft Session dated after the real prior one) fails without the fix.
+
+Same side-by-side layout from the previous entry below still applies — "Last Session" lives inside the right-hand "Previously Established" panel, not a third column. 381 tests (8 new), `tsc`, `lint`, and `build` all clean.
+
+## Layout: "What Changed Since Last Session" and "Previously Established" now sit side by side when both show
+
+Both only ever show together for a brand-new, never-saved Session — `CampaignChangesPanel` ("What Changed," backward-looking) never shows for an already-saved Session, while `SessionBriefingPanel` ("Previously Established," forward-looking prep) shows for new *and* Draft/Prepared ones. `SessionEditor.tsx` now renders them in a `grid-cols-1 lg:grid-cols-2` layout — "What Changed" on the left, "Previously Established" on the right — only when both are present; either alone still renders full-width, same as before. `SessionReadinessChecklist` (previously bundled into the same conditional as `SessionBriefingPanel`) now renders on its own, still gated on `showBriefing`, so this layout change doesn't touch it.
+
+---
+
 ## Feature: Lore/Group/Scene Status fields are now closed-set dropdowns too
 
 The earlier "Status/Type/Priority fields are now defined, closed-set dropdowns" pass missed three fields: Lore didn't exist as its own entity yet when that pass ran (still a `Note.type: 'Lore'` at the time), and Group/Scene Status were plain free-text `Field`s that pass simply didn't touch. Converted all three to `SelectField`, same pattern as everywhere else — confirmed each vocabulary via `AskUserQuestion` before implementing:

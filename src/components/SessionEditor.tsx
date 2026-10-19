@@ -159,7 +159,6 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   });
 
   const { scenes, reload: reloadScenes, createScene, updateScene, deleteScene } = useScenes(repository, session?.id ?? null);
-  const briefing = useSessionBriefing(repository, campaignId, hostAdapter);
   const showBriefing = session === null || values.status === 'Draft' || values.status === 'Prepared';
   const sortedScenes = useMemo(() => [...(scenes ?? [])].sort((a, b) => a.order - b.order), [scenes]);
 
@@ -171,14 +170,19 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   // Phase 2 item 5 (Campaign Changes) — the backward-looking
   // counterpart to `SessionBriefingPanel`, shown only for a brand-new
   // Session created after a prior one already exists, using the most
-  // recent prior Session's date as the "since" boundary.
+  // recent prior Session's date as the "since" boundary. Also backs
+  // `SessionBriefingPanel`'s "Last Session" recap (ROADMAP.md) —
+  // excludes `session` itself so an already-saved Draft/Prepared
+  // Session (which, unlike a brand-new one, is already in `allSessions`)
+  // never resolves to itself here.
   const { sessions: allSessions } = useSessions(repository, campaignId);
   const mostRecentPriorSession = useMemo(() => {
-    const withDates = (allSessions ?? []).filter((s): s is typeof s & { date: string } => !!s.date);
+    const withDates = (allSessions ?? []).filter((s): s is typeof s & { date: string } => !!s.date && s.id !== session?.id);
     return [...withDates].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
-  }, [allSessions]);
+  }, [allSessions, session?.id]);
   const showCampaignChanges = session === null && !!mostRecentPriorSession;
   const campaignChanges = useCampaignChanges(repository, campaignId, mostRecentPriorSession?.date ?? '1970-01-01T00:00:00.000Z');
+  const briefing = useSessionBriefing(repository, campaignId, hostAdapter, mostRecentPriorSession?.id ?? null);
 
   const handleSave = async () => {
     if (!values.title.trim()) {
@@ -288,14 +292,38 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
 
           {renderFields ? renderFields({ values, onChange: setValues, defaultFields }) : defaultFields}
 
-          {showCampaignChanges && <CampaignChangesPanel changes={campaignChanges} onOpenPlannerEntity={onOpenPlannerEntity} />}
-
-          {showBriefing && (
+          {showCampaignChanges && showBriefing ? (
+            // Side by side once both have something to show for a
+            // brand-new Session — "What Changed" (backward-looking) on
+            // the left, "Previously Established" (forward-looking prep)
+            // on the right. Either alone still renders full-width below,
+            // same as before this layout existed.
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <CampaignChangesPanel changes={campaignChanges} onOpenPlannerEntity={onOpenPlannerEntity} />
+              <SessionBriefingPanel
+                briefing={briefing}
+                byCharacter={briefing.byCharacter}
+                onOpenPlannerEntity={onOpenPlannerEntity}
+                previousSessionDebrief={mostRecentPriorSession?.debrief}
+                previousSessionHighlights={briefing.previousSessionHighlights}
+              />
+            </div>
+          ) : (
             <>
-              <SessionBriefingPanel briefing={briefing} byCharacter={briefing.byCharacter} onOpenPlannerEntity={onOpenPlannerEntity} />
-              <SessionReadinessChecklist checks={readinessChecks} />
+              {showCampaignChanges && <CampaignChangesPanel changes={campaignChanges} onOpenPlannerEntity={onOpenPlannerEntity} />}
+              {showBriefing && (
+                <SessionBriefingPanel
+                  briefing={briefing}
+                  byCharacter={briefing.byCharacter}
+                  onOpenPlannerEntity={onOpenPlannerEntity}
+                  previousSessionDebrief={mostRecentPriorSession?.debrief}
+                  previousSessionHighlights={briefing.previousSessionHighlights}
+                />
+              )}
             </>
           )}
+
+          {showBriefing && <SessionReadinessChecklist checks={readinessChecks} />}
 
           <BlockNoteFreeformField
             value={values.details}

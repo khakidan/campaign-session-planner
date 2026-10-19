@@ -6,6 +6,19 @@ For host apps (`daggerheart-gm-dashboard-multiuser`, `dnd-gm-dashboard-multiuser
 
 ## Unreleased (current `master` branch state)
 
+### New: "Last Session" recap in `SessionBriefingPanel`; side-by-side layout for the Session prep panels
+
+**Action needed: none.** No `CampaignPlannerRepository`/`TTRPGHostAdapter` change. Both `useSessionBriefing` and `SessionBriefingPanel` are exported from the package entry point and gained new parameters/props, but every new one is optional and defaults to the exact previous behavior when omitted:
+
+- `useSessionBriefing(repository, campaignId, hostAdapter, previousSessionId?)` — the new 4th parameter is optional; omit it (or any existing 3-argument call) and `previousSessionHighlights` on the result is just always `[]`, same as before this existed.
+- `SessionBriefingPanel`'s new `previousSessionDebrief`/`previousSessionHighlights` props — omit either (or both) and the new "Last Session" section simply never renders; every other section is unaffected.
+
+**If you use `SessionEditor` or `CampaignSessionPlanner` as shipped** (the normal way of using this package): you'll just see two things change visually, both GM-facing only:
+1. A new "Last Session" section in the "Previously Established" panel while creating/prepping a Session, showing the prior Session's Debrief text and any `'Recap Highlight'` Notes linked to it — only appears once a prior Session actually has one or the other.
+2. "What Changed Since Last Session" and "Previously Established" now sit side by side (two columns, stacking on narrow screens) on a brand-new Session, instead of stacked. Either one alone (e.g. once the Session is saved and only "Previously Established" still shows) still renders full-width.
+
+**If you call `SessionBriefingPanel`/`useSessionBriefing` directly** (building your own custom Session screen rather than using the shipped `SessionEditor`): to get the new "Last Session" section, resolve your own "most recent prior Session" (excluding whichever one you're currently editing) and pass its `id` as `useSessionBriefing`'s 4th argument and its `debrief` field as `SessionBriefingPanel`'s `previousSessionDebrief` prop.
+
 ### Feature: Lore/Group/Scene Status fields are now closed-set dropdowns too
 
 **Action needed: none.** Same shape of change as the "Status/Type/Priority fields are now defined, closed-set dropdowns" entry below, extended to the three fields that pass missed (Lore didn't exist as its own entity yet when that pass ran; Group/Scene Status were simply not included). All three fields already existed as `status: string | null` — nothing new sent to `saveLore`/`saveGroup`/`saveScene`, no column/field to add, unlike that earlier pass's `Npc.status` case.

@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import type { EntityReference, Note, Thread } from '../types';
+import React, { useMemo, useState } from 'react';
+import type { Block, EntityReference, Note, Thread } from '../types';
 import type { SessionBriefing } from '../lib/plannerMemory';
 import { getNoteConfidence, isSessionBriefingEmpty } from '../lib/plannerMemory';
 import type { CharacterMemoryGroup } from '../hooks/useSessionBriefing';
+import { ReadOnlyBlockNoteView } from './ReadOnlyBlockNoteView';
+import { EntityReferenceLinkingContext } from './EntityReferenceInlineContent';
+import { extractBlockText } from '../lib/blockNoteUtils';
 
 const TIP_DISMISSED_KEY = 'campaign-planner:session-briefing-tip-dismissed';
 
@@ -53,6 +56,20 @@ export interface SessionBriefingPanelProps {
    * Session Matters" section entirely — every other group still
    * renders campaign-wide regardless. */
   byCharacter?: CharacterMemoryGroup[];
+  /** ROADMAP.md's "Last Session" recap — the prior Session's own
+   * `debrief`, so the GM can re-read what they wrote last time without
+   * leaving this panel. `undefined`/`null`, or a Debrief with no actual
+   * text, skips the "Last Session" section entirely alongside
+   * `previousSessionHighlights` below (see that prop's own comment for
+   * why both are checked together). */
+  previousSessionDebrief?: Block[] | null;
+  /** The other half of "Last Session" — `useSessionBriefing`'s
+   * `previousSessionHighlights`, the same `'Recap Highlight'` Notes
+   * `SessionRecapView` shows a player-facing version of. Shown here as
+   * a simple linked list (not the full document) since, unlike the
+   * Debrief, a highlight's whole point is a short, scannable beat —
+   * click through to read or edit the real Note. */
+  previousSessionHighlights?: Note[];
 }
 
 interface Group {
@@ -98,9 +115,25 @@ const ConfidenceBadge: React.FC<{ item: Note | Thread }> = ({ item }) => {
  * Phase 2 item 3 additionally surfaces a "Why This Session Matters"
  * section, one sub-list per PC, when `byCharacter` is supplied.
  */
-export const SessionBriefingPanel: React.FC<SessionBriefingPanelProps> = ({ briefing, onOpenPlannerEntity, byCharacter }) => {
+export const SessionBriefingPanel: React.FC<SessionBriefingPanelProps> = ({
+  briefing,
+  onOpenPlannerEntity,
+  byCharacter,
+  previousSessionDebrief,
+  previousSessionHighlights,
+}) => {
   const [tipDismissed, setTipDismissed] = useState(loadTipDismissed);
   const showTip = isSessionBriefingEmpty(briefing) && !tipDismissed;
+
+  // Checked together, not separately: a prior Session that was never
+  // completed (no Debrief written) but does have a linked highlight —
+  // or the reverse, a Debrief with no highlights linked yet — should
+  // still show whichever half it has, rather than an all-or-nothing
+  // gate hiding real content.
+  const hasDebriefText = extractBlockText(previousSessionDebrief ?? []).trim().length > 0;
+  const highlights = previousSessionHighlights ?? [];
+  const showLastSession = hasDebriefText || highlights.length > 0;
+  const linkingHandlers = useMemo(() => ({ onOpenPlannerEntity }), [onOpenPlannerEntity]);
 
   const dismissTip = () => {
     setTipDismissed(true);
@@ -171,6 +204,38 @@ export const SessionBriefingPanel: React.FC<SessionBriefingPanelProps> = ({ brie
       </h3>
 
       {showTip && <IntroTip onDismiss={dismissTip} />}
+
+      {showLastSession && (
+        <div className="space-y-3 pb-3 border-b border-[var(--csp-neutral-200)]">
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--csp-neutral-500)]">Last Session</h4>
+          {hasDebriefText && (
+            <div>
+              <p className="text-xs font-semibold text-[var(--csp-neutral-700)] mb-1">Debrief</p>
+              <EntityReferenceLinkingContext.Provider value={linkingHandlers}>
+                <ReadOnlyBlockNoteView blocks={previousSessionDebrief ?? []} />
+              </EntityReferenceLinkingContext.Provider>
+            </div>
+          )}
+          {highlights.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-[var(--csp-neutral-700)] mb-1">Recap Highlights</p>
+              <ul className="space-y-1">
+                {highlights.map((note) => (
+                  <li key={note.id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenPlannerEntity({ type: 'note', id: note.id, source: 'planner' })}
+                      className="text-left text-sm text-[var(--csp-accent-700)] hover:underline cursor-pointer truncate"
+                    >
+                      {note.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {byCharacter && byCharacter.length > 0 && (
         <div>

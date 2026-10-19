@@ -2,10 +2,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SessionEditor } from './SessionEditor';
-import { createFakeHostAdapter, createFakeRepository, makeScene, makeSession, TEST_CAMPAIGN_ID } from '../test/fixtures';
+import {
+  createFakeHostAdapter,
+  createFakeRepository,
+  makeEntityLink,
+  makeNote,
+  makeScene,
+  makeSession,
+  TEST_CAMPAIGN_ID,
+} from '../test/fixtures';
 import { MOCK_TYPED_CONTENT } from '../test/mocks/blockNote';
 
 vi.mock('./BlockNoteFreeformField', async () => (await import('../test/mocks/blockNote')).mockBlockNoteFreeformField());
+vi.mock('./ReadOnlyBlockNoteView', async () => (await import('../test/mocks/blockNote')).mockReadOnlyBlockNoteView());
 
 function baseProps() {
   return {
@@ -283,5 +292,58 @@ describe('SessionEditor', () => {
 
     expect(screen.getByLabelText('Title')).toBeInTheDocument();
     expect(screen.getByLabelText('Extra Scene Field')).toBeInTheDocument();
+  });
+
+  describe('"Last Session" recap', () => {
+    it('surfaces the most recent prior Session\'s Debrief and linked Recap Highlights when creating a new Session', async () => {
+      const priorSession = makeSession({
+        id: 'session-1',
+        title: 'The Sunken Temple',
+        date: '2024-01-01T00:00:00.000Z',
+        status: 'Completed',
+        debrief: [{ type: 'paragraph', content: [{ type: 'text', text: 'The vault collapsed.', styles: {} }] }] as never,
+      });
+      const highlight = makeNote({ id: 'note-1', title: 'The vault collapsed', type: 'Recap Highlight' });
+      const repository = createFakeRepository({
+        sessions: [priorSession],
+        notes: [highlight],
+        links: [makeEntityLink({ id: 'link-1', sourceType: 'session', sourceId: 'session-1', targetType: 'note', targetId: 'note-1' })],
+      });
+
+      render(<SessionEditor session={null} onSave={vi.fn()} {...baseProps()} repository={repository} />);
+
+      await waitFor(() => expect(screen.getByText('The vault collapsed.')).toBeInTheDocument());
+      // The Debrief (synchronous, read straight off `mostRecentPriorSession`)
+      // and the Recap Highlights (async — resolved via its own
+      // `useEntityLinks` fetch) can land a tick apart; wait for each.
+      await waitFor(() => expect(screen.getByText('The vault collapsed', { selector: 'button' })).toBeInTheDocument());
+      expect(screen.getByText('Last Session')).toBeInTheDocument();
+      expect(screen.getByText('Recap Highlights')).toBeInTheDocument();
+    });
+
+    it('never treats the Session currently being edited as its own "most recent prior Session"', async () => {
+      // Regression: without excluding `session` itself, this Draft
+      // Session (dated after the real prior one) would otherwise sort
+      // to the top of `allSessions` and recap itself.
+      const actualPrior = makeSession({
+        id: 'session-1',
+        date: '2024-01-01T00:00:00.000Z',
+        status: 'Completed',
+        debrief: [{ type: 'paragraph', content: [{ type: 'text', text: 'The real prior recap.', styles: {} }] }] as never,
+      });
+      const beingEdited = makeSession({
+        id: 'session-2',
+        date: '2024-06-01T00:00:00.000Z',
+        status: 'Draft',
+        debrief: [{ type: 'paragraph', content: [{ type: 'text', text: 'Should never show as its own recap.', styles: {} }] }] as never,
+      });
+      const repository = createFakeRepository({ sessions: [actualPrior, beingEdited] });
+
+      render(<SessionEditor session={beingEdited} onSave={vi.fn()} {...baseProps()} repository={repository} />);
+
+      await waitFor(() => expect(screen.getByText('The real prior recap.')).toBeInTheDocument());
+      expect(screen.getByText('Last Session')).toBeInTheDocument();
+      expect(screen.queryByText('Should never show as its own recap.')).not.toBeInTheDocument();
+    });
   });
 });

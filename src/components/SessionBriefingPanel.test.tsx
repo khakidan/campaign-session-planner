@@ -4,6 +4,13 @@ import userEvent from '@testing-library/user-event';
 import { SessionBriefingPanel } from './SessionBriefingPanel';
 import { makeNote, makeThread } from '../test/fixtures';
 import type { SessionBriefing } from '../lib/plannerMemory';
+import type { Block } from '../types';
+
+vi.mock('./ReadOnlyBlockNoteView', async () => (await import('../test/mocks/blockNote')).mockReadOnlyBlockNoteView());
+
+const DEBRIEF_TEXT: Block[] = [
+  { type: 'paragraph', content: [{ type: 'text', text: 'The party fled before the vault collapsed.', styles: {} }] },
+] as unknown as Block[];
 
 function emptyBriefing(): SessionBriefing {
   return {
@@ -114,5 +121,50 @@ describe('SessionBriefingPanel', () => {
     expect(screen.getByText('Why This Session Matters')).toBeInTheDocument();
     expect(screen.getByText('Seraphine')).toBeInTheDocument();
     expect(screen.getByText("Seraphine's goal")).toBeInTheDocument();
+  });
+
+  it('omits "Last Session" entirely when there is no prior Debrief text or highlights', () => {
+    render(<SessionBriefingPanel briefing={emptyBriefing()} onOpenPlannerEntity={vi.fn()} />);
+    expect(screen.queryByText('Last Session')).not.toBeInTheDocument();
+  });
+
+  it('omits "Last Session" when the prior Debrief is only empty BlockNote content', () => {
+    const blankDebrief: Block[] = [{ type: 'paragraph', content: [] }] as unknown as Block[];
+    render(
+      <SessionBriefingPanel briefing={emptyBriefing()} onOpenPlannerEntity={vi.fn()} previousSessionDebrief={blankDebrief} />
+    );
+    expect(screen.queryByText('Last Session')).not.toBeInTheDocument();
+  });
+
+  it('shows the prior Session\'s Debrief text under "Last Session" when it has real content', () => {
+    render(
+      <SessionBriefingPanel briefing={emptyBriefing()} onOpenPlannerEntity={vi.fn()} previousSessionDebrief={DEBRIEF_TEXT} />
+    );
+
+    expect(screen.getByText('Last Session')).toBeInTheDocument();
+    expect(screen.getByText('Debrief')).toBeInTheDocument();
+    expect(screen.getByText('The party fled before the vault collapsed.')).toBeInTheDocument();
+    expect(screen.queryByText('Recap Highlights')).not.toBeInTheDocument();
+  });
+
+  it('lists prior Recap Highlights under "Last Session" and opens the real Note on click', async () => {
+    const user = userEvent.setup();
+    const onOpenPlannerEntity = vi.fn();
+    const highlight = makeNote({ id: 'n1', title: 'The vault collapsed', type: 'Recap Highlight' });
+
+    render(
+      <SessionBriefingPanel
+        briefing={emptyBriefing()}
+        onOpenPlannerEntity={onOpenPlannerEntity}
+        previousSessionHighlights={[highlight]}
+      />
+    );
+
+    expect(screen.getByText('Last Session')).toBeInTheDocument();
+    expect(screen.getByText('Recap Highlights')).toBeInTheDocument();
+    expect(screen.queryByText('Debrief')).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('The vault collapsed'));
+    expect(onOpenPlannerEntity).toHaveBeenCalledWith({ type: 'note', id: 'n1', source: 'planner' });
   });
 });

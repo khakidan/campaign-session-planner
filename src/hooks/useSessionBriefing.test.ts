@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { createFakeHostAdapter, createFakeRepository, makeEntityLink, makeNote, makeThread, TEST_CAMPAIGN_ID } from '../test/fixtures';
+import { createFakeHostAdapter, createFakeRepository, makeEntityLink, makeNote, makeSession, makeThread, TEST_CAMPAIGN_ID } from '../test/fixtures';
+import { RECAP_HIGHLIGHT_TYPE } from '../lib/sessionRecap';
 import { useSessionBriefing } from './useSessionBriefing';
 
 describe('useSessionBriefing', () => {
@@ -22,6 +23,7 @@ describe('useSessionBriefing', () => {
         playerPreferences: [],
         activeThreads: [expect.objectContaining({ id: 't1' })],
         byCharacter: [],
+        previousSessionHighlights: [],
       })
     );
   });
@@ -80,5 +82,29 @@ describe('useSessionBriefing', () => {
 
     await waitFor(() => expect(result.current.characterGoals).toHaveLength(1));
     expect(result.current.playerTheories).toEqual([]);
+  });
+
+  it('resolves previousSessionHighlights from Recap Highlight Notes linked to previousSessionId', async () => {
+    const session = makeSession({ id: 'session-1' });
+    const highlight = makeNote({ id: 'n1', type: RECAP_HIGHLIGHT_TYPE, title: 'The vault collapsed' });
+    const unrelated = makeNote({ id: 'n2', type: RECAP_HIGHLIGHT_TYPE, title: 'Not linked to this Session' });
+    const repository = createFakeRepository({
+      sessions: [session],
+      notes: [highlight, unrelated],
+      links: [makeEntityLink({ id: 'link-1', sourceType: 'session', sourceId: 'session-1', targetType: 'note', targetId: 'n1' })],
+    });
+
+    const { result } = renderHook(() => useSessionBriefing(repository, TEST_CAMPAIGN_ID, undefined, 'session-1'));
+
+    await waitFor(() => expect(result.current.previousSessionHighlights).toEqual([highlight]));
+  });
+
+  it('leaves previousSessionHighlights empty when previousSessionId is omitted', async () => {
+    const repository = createFakeRepository({ notes: [makeNote({ id: 'n1', type: RECAP_HIGHLIGHT_TYPE })] });
+
+    const { result } = renderHook(() => useSessionBriefing(repository, TEST_CAMPAIGN_ID));
+
+    await waitFor(() => expect(result.current.byCharacter).toEqual([]));
+    expect(result.current.previousSessionHighlights).toEqual([]);
   });
 });
